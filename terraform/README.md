@@ -2,14 +2,11 @@
 See https://cloud.ibm.com/docs/terraform for more info.
 
 ## The Yellow Brick Road
-Use the supplied Dockerfile to build an image with the IBM Cloud CLI + Terraform (this may take a few minutes):
-```
-docker build --rm -t icctf -f Dockerfile . 
-```
+Use the supplied cli.dockerfile to build an image with the IBM Cloud CLI + Terraform (this may take a few minutes):
 
 Run the image and map the current dir to /cwd inside the container:
 ```
-docker run -it --rm -v $(pwd):/cwd icctf
+docker run -it --rm -v $(pwd):/cwd ibm-cloud-cli
 ```
 
 To create a vm on the classic infra IaaS, run the sample terraform script from within the container:

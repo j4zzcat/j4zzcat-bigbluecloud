@@ -29,6 +29,7 @@ RUN curl -L -o file.zip https://github.com/IBM-Cloud/terraform-provider-ibm/rele
 
 # install ibm cloud cli and supporting tools
 RUN curl -sL https://ibm.biz/idt-installer | bash
+RUN echo "vpc-infrastructure power-iaas tke analytics-engine doi cloud-databases machine-learning" | xargs -n 1 ibmcloud plugin install
 
 WORKDIR /root
 ENV IBMCLOUD_COLOR true
