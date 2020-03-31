@@ -2,15 +2,16 @@ FROM ubuntu:19.10
 
 ENV ARCH amd64
 
-ENV IBMCLOUD_CLI_VERSION       0.21.1
+ENV IBMCLOUD_CLI_VERSION       1.0.0
 ENV IBMCLOUD_TERRAFORM_VERSION 1.2.5
 ENV TERRAFORM_VERSION          0.12.24
-ENV DOCKER_CLI_VERSION         19.03.5
+ENV DOCKER_CLI_VERSION         19.03.8
 ENV KUBECTL_VERSION            1.17.1
 ENV HELM_VERSION               2.16.1
 
 RUN apt update \
-      && apt install -y curl git vim mc
+      && apt install -y curl git vim mc \
+      && apt install -y apt-utils apt-transport-https ca-certificates software-properties-common
 
 WORKDIR /tmp
 
@@ -29,7 +30,8 @@ RUN curl -L -o file.zip https://github.com/IBM-Cloud/terraform-provider-ibm/rele
 
 # install ibm cloud cli and supporting tools
 RUN curl -sL https://ibm.biz/idt-installer | bash
-RUN echo "vpc-infrastructure power-iaas tke analytics-engine doi cloud-databases machine-learning" | xargs -n 1 ibmcloud plugin install
+RUN echo "vpc-infrastructure cis doi tke cloud-databases analytics-engine machine-learning power-iaas" | xargs -n 1 ibmcloud plugin install \
+      && echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> ~/.bashrc
 
 WORKDIR /root
 ENV IBMCLOUD_COLOR true

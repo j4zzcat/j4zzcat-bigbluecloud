@@ -1,0 +1,17 @@
+
+Vagrant.configure( '2' ) do | config |
+  config.vm.box = 'generic/ubuntu1804'
+
+  config.vm.provider 'virtualbox' do | vb |
+    vb.name = 'vpc-ipxe'
+    vb.gui = false
+    vb.cpus = 4
+    vb.memory = 4096
+  end
+
+  config.vm.provision 'infra', type: 'shell', inline: <<-SHELL
+    export DEBIAN_FRONTEND=noninteractive
+    apt update
+    apt install -y mc vim ipxe
+  SHELL
+end

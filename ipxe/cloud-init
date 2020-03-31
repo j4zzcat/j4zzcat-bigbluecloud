@@ -1,0 +1,21 @@
+#cloud-config
+
+write_files:
+  - content: |
+      ks=kickstart.ks url=http://1.2.3.4/blah auto-blah disco=yes rock=no
+    path: /kernel_params
+
+packages:
+  - ipxe
+
+sed --in-place -e 's/network {/network --id ipxe {/' /etc/grub.d/20_ipxe
+sed --in-place -e 's/GRUB_DEFAULT=0/GRUB_DEFAULT=ipxe/' /etc/default/grub
+sed --in-place -e ''
+update-grub
+
+dhcp && initrd http://158.176.168.2/images/ubuntu-19.10-server-amd64/install/netboot/ubuntu-installer/amd64/initrd.gz && chain http://158.176.168.2/images/ubuntu-19.10-server-amd64/install/netboot/ubuntu-installer/amd65/linux hostname=boris"
+
+power_state:
+  mode: reboot
+  timeout: 30
+  condition: True
