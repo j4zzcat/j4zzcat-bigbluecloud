@@ -31,10 +31,11 @@ ibmcloud ks subnets --provider=classic | tail -n +3
 echo
 echo 'Kubernetes VPC-Classic'
 vpcs=$(ibmcloud ks vpcs --provider=vpc-classic | tail -n +4 | awk '{print $2}' | xargs echo)
-zones=$(ibmcloud ks zone ls --provider=vpc-classic | tail -n +3 | awk '{print $1}' | xargs echo)
+zones=$(ibmcloud ks zone ls --provider=vpc-classic | tail -n +3 | awk '{print $1}' | tac | xargs echo)
 
 for vpc in ${vpcs}; do
   for zone in ${zones}; do
-    ibmcloud ks subnets --provider=vpc-classic --vpc-id=${vpc} --zone=${zone} 2>/dev/null | tail -n +3
+    echo ${vpc}:${zone} >/dev/stderr
+    ibmcloud ks subnets --provider=vpc-classic --vpc-id=${vpc} --zone=${zone} | tail -n +3
   done
 done
