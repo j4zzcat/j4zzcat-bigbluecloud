@@ -10,7 +10,7 @@ ENV KUBECTL_VERSION            1.17.1
 ENV HELM_VERSION               2.16.1
 
 RUN apt update \
-      && apt install -y curl git vim mc \
+      && apt install -y curl git vim mc python3 python3-pip ruby \
       && apt install -y apt-utils apt-transport-https ca-certificates software-properties-common
 
 WORKDIR /tmp
@@ -33,6 +33,13 @@ RUN curl -sL https://ibm.biz/idt-installer | bash
 RUN ibmcloud cf install
 RUN echo "vpc-infrastructure cis doi tke cloud-databases analytics-engine machine-learning power-iaas" | xargs -n 1 ibmcloud plugin install \
       && echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> ~/.bashrc
+
+RUN echo 'IRB.conf[ :AUTO_INDENT ] = true \n\
+          IRB.conf[ :USE_READLINE ] = true \n\
+          IRB.conf[ :LOAD_MODULES ] = [] unless IRB.conf.key?( :LOAD_MODULES ) \n\
+          unless IRB.conf[ :LOAD_MODULES ].include?( "irb/completion" ) \n\
+            IRB.conf[ :LOAD_MODULES ] << "irb/completion" \n\
+          end ' > ~/.irbrc
 
 WORKDIR /root
 ENV IBMCLOUD_COLOR true
