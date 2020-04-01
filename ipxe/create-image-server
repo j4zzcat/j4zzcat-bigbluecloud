@@ -5,10 +5,11 @@ require 'open3'
 
 # set env variable IBMCLOUD_API_KEY with your key
 
- region_name = "eu-gb"
-    vpc_name = "testbed-1"
- subnet_name = "subnet-1"
-ssh_key_name = "imac-key"
+        region_name = "eu-gb"
+           vpc_name = "testbed-1"
+        subnet_name = "subnet-1"
+       ssh_key_name = "imac-key"
+resource_group_name = "testbed"
 
 instance_name = "ipxe-image-server"
 image_id      = "r018-14140f94-fcc4-11e9-96e7-a72723715315" # ubuntu-18.04
@@ -25,26 +26,23 @@ puts "Logging in..."
     ibmcloud is target --gen 2 ]
 
 puts "Resolving environment..."
-   vpc_id  = %x[ ibmcloud is vpcs | tail -n +3 | awk '/ #{vpc_name} /{print $1}' ].chomp
-subnet_id  = %x[ ibmcloud is subnets | tail -n +3 | awk '/ #{subnet_name} .* #{vpc_name} /{print $1}' ].chomp
-zone_name  = %x[ ibmcloud is subnets | tail -n +3 | awk '/#{subnet_id}/{print $9}' ].chomp
-ssh_key_id = %x[ ibmcloud is keys | tail -n +3 | awk '/ #{ssh_key_name} /{print $1}' ].chomp
+          vpc_id  = %x[ ibmcloud is vpcs | tail -n +3 | awk '/ #{vpc_name} /{print $1}' ].chomp
+        subnet_id = %x[ ibmcloud is subnets | tail -n +3 | awk '/ #{subnet_name} .* #{vpc_name} /{print $1}' ].chomp
+        zone_name = %x[ ibmcloud is subnets | tail -n +3 | awk '/#{subnet_id}/{print $9}' ].chomp
+      ssh_key_id  = %x[ ibmcloud is keys | tail -n +3 | awk '/ #{ssh_key_name} /{print $1}' ].chomp
+resource_group_id = %x[ ibmcloud resource groups | tail -n +4 | awk '/#{resource_group_name} /{print $2}' ].chomp
 
 puts "vpc/id      = #{vpc_name}/#{vpc_id}"
 puts "region/zone = #{region_name}/#{zone_name}"
 puts "subnet/id   = #{subnet_name}/#{subnet_id}"
 puts "ssh_key/id  = #{ssh_key_name}/#{ssh_key_id}"
+puts "resource_group/id = #{resource_group_name}/#{resource_group_id}"
 
 cloud_init_script = <<~EOT
   #cloud-config
-  packages:
-    - vim
-    - mc
-    - git
-
   runcmd:
     - apt update
-    - apt install -y ruby apache2 gcc g++ make binutils perl liblzma-dev mtools mkisofs syslinux isolinux xorriso qemu-kvm
+    - DEBIAN_FRONTEND=noninteractive apt install -y vim mc git ruby apache2 gcc g++ make binutils liblzma-dev mtools mkisofs syslinux isolinux xorriso qemu-kvm
     - gem install --no-document sinatra
     - mkdir -p /usr/local/src
     - git clone https://github.com/ipxe/ipxe /usr/local/src/ipxe
@@ -76,13 +74,16 @@ resource "ibm_is_instance" "#{instance_name}" {
   zone      = "#{zone_name}"
   keys      = [ "#{ssh_key_id}" ]
   user_data = file( "#{cloud_init_file_path}" )
+
+  resource_group = "#{resource_group_id}"
 }
 
 resource "ibm_is_floating_ip" "#{instance_name}" {
   name   = "#{instance_name}"
   target = ibm_is_instance.#{instance_name}.primary_network_interface[ 0 ].id
-}
 
+  resource_group = "#{resource_group_id}"
+}
 EOT
 
 File.open( terraform_file_path, 'w') { | f | f.write terraform_script }
