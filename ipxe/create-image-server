@@ -50,7 +50,9 @@ cloud_init_script = <<~EOT
     - make
     - mkdir /var/images
     - wget http://cdimage.ubuntu.com/releases/19.10/release/ubuntu-19.10-server-amd64.iso -P /var/images
-    - ln -s /var/images /var/www/html/images
+    - mkdir /var/www/html/images
+    - curl -sL https://ibm.biz/idt-installer | bash
+    - ibmcloud plugin install vpc-infrastructure
 EOT
 
 File.open( cloud_init_file_path, 'w') { | f | f.write cloud_init_script }
@@ -63,12 +65,82 @@ terraform_script = <<-EOT
     region           = "#{region_name}"
   }
 
+resource "ibm_is_security_group" "#{instance_name}" {
+  name = "#{instance_name}"
+  vpc  = "#{vpc_id}"
+
+  resource_group = "#{resource_group_id}"
+}
+
+resource "ibm_is_security_group_rule" "outbound_rule" {
+  depends_on = [ ibm_is_security_group.#{instance_name} ]
+
+  group      = ibm_is_security_group.#{instance_name}.id
+  direction  = "outbound"
+  remote     = "0.0.0.0/0"
+}
+
+resource "ibm_is_security_group_rule" "ssh_rule" {
+  depends_on = [ ibm_is_security_group.#{instance_name} ]
+
+  group      = ibm_is_security_group.#{instance_name}.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 22
+    port_max = 22
+  }
+}
+
+resource "ibm_is_security_group_rule" "icmp_rule" {
+  depends_on = [ ibm_is_security_group.#{instance_name} ]
+
+  group      = ibm_is_security_group.#{instance_name}.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  icmp {
+    code = 0
+    type = 8
+  }
+}
+
+resource "ibm_is_security_group_rule" "http_rule" {
+  depends_on = [ ibm_is_security_group.#{instance_name} ]
+
+  group      = ibm_is_security_group.#{instance_name}.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 80
+    port_max = 80
+  }
+}
+
+resource "ibm_is_security_group_rule" "sinatra_rule" {
+  depends_on = [ ibm_is_security_group.#{instance_name} ]
+
+  group      = ibm_is_security_group.#{instance_name}.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 7080
+    port_max = 7080
+  }
+}
+
 resource "ibm_is_instance" "#{instance_name}" {
+  depends_on = [ ibm_is_security_group.#{instance_name} ]
+
   name    = "#{instance_name}"
   image   = "#{image_id}"
   profile = "#{profile_name}"
   primary_network_interface {
     subnet = "#{subnet_id}"
+    security_groups = [ ibm_is_security_group.#{instance_name}.id ]
   }
   vpc       = "#{vpc_id}"
   zone      = "#{zone_name}"
@@ -79,6 +151,8 @@ resource "ibm_is_instance" "#{instance_name}" {
 }
 
 resource "ibm_is_floating_ip" "#{instance_name}" {
+  depends_on = [ ibm_is_instance.#{instance_name} ]
+
   name   = "#{instance_name}"
   target = ibm_is_instance.#{instance_name}.primary_network_interface[ 0 ].id
 
