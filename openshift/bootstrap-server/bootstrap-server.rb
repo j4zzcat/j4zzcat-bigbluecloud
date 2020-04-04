@@ -2,6 +2,9 @@ require 'sinatra/base'
 
 class BootstrapServer
   def run
+    WebApp.set :my_ip, %x[ hostname -I ].chomp
+    WebApp.set :my_port, '8070'
+
     Rack::Server.start( {
       server: 'thin',
       Host:   '0.0.0.0',
@@ -17,14 +20,18 @@ class BootstrapServer
   private
 
   class WebApp < Sinatra::Base
+    configure do
+      enable :logging
+    end
+
     get '/bootstrap' do
       puts params
       instance_id = params[ 'instance_id' ]
       hostname    = params[ 'hostname' ]
 
-      return "echo 'Hello World!'" if instance_id.nil?
+      return "bash -c $(curl http://#{settings.my_ip}:#{settings.my_port}/instance_id=$(cloud-init query instance_id))" if instance_id.nil?
 
-      "echo 'Blah!'"
+      "echo '#{instnace_id}'"
 
     end
   end
