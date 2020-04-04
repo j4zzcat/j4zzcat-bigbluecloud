@@ -32,7 +32,7 @@ class BootstrapServer
         return <<~EOT
           instnace_id=$(cloud-init query instance_id)
           hostname=$(cloud-init query local_hostname)
-          curl http://#{settings.my_ip}:#{settings.my_port}/instance_id=${instnace_id}\?hostname=${hostname}
+          echo curl http://#{settings.my_ip}:#{settings.my_port}/instance_id=${instnace_id}\?hostname=${hostname}
           echo apt install ipxe
         EOT
       end
