@@ -27,7 +27,7 @@
 
 #cloud-config
 runcmd:
-  - /bin/bash -c "$(curl -fsSL https://1.2.3.4:8070/bootstrap)"
+  - /bin/bash -c "$(curl -fsSL http://172.18.0.11:8070/bootstrap)"
 
 
 

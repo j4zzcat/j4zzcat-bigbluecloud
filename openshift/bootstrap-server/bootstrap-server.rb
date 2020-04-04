@@ -31,10 +31,10 @@ class BootstrapServer
         ip=$(hostname -I)
         curl http://#{settings.my_ip}:#{settings.my_port}/register?instance_id=${instnace_id}\?hostname=${hostname}\?ip=${ip}
         apt update
-        apt install ipxe
+        apt install -y ipxe
         sed --in-place -e 's/GRUB_DEFAULT=0/GRUB_DEFAULT=ipxe/' /etc/default/grub
         sed --in-place -e 's/--class network {/--class network --id ipxe {/' /etc/grub.d/20_ipxe
-        sed --in-place -e 's/linux16.*/kernel (hd0,0)/ipxe.lkrn set net0/ip:ipv4 ${ip} \&\& chain http:\/\/#{settings.my_ip}:#{settings.my_port}\/boot?instance_id=${instance_id}/' /etc/grub.d/20_ipxe
+        sed --in-place -e 's/linux16.*/linux16 \$IPXEPATH "set net0/ip:ipv4 ${ip} \&\& chain http:\/\/#{settings.my_ip}:#{settings.my_port}\/boot?instance_id=${instance_id}"/' /etc/grub.d/20_ipxe
         update-grub
         reboot
       EOT
