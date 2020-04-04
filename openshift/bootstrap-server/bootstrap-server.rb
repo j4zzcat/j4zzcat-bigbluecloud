@@ -25,11 +25,16 @@ class BootstrapServer
     end
 
     get '/bootstrap' do
-      puts params
       instance_id = params[ 'instance_id' ]
       hostname    = params[ 'hostname' ]
 
-      return "bash -c $(curl http://#{settings.my_ip}:#{settings.my_port}/instance_id=$(cloud-init query instance_id))" if instance_id.nil?
+      if instance_id.nil?
+        return <<~EOT.gsub( /\s+/, ' ' ).strip
+          cloud-init query instance_id
+        EOT
+      end
+
+      # bash -c $(curl http://#{settings.my_ip}:#{settings.my_port}/instance_id=$(cloud-init query instance_id))"
 
       "echo '#{instnace_id}'"
 
