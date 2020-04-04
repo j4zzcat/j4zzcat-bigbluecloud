@@ -1,23 +1,50 @@
+variable ibmcloud_api_key {}
+variable ssh_key          {}
+variable region           {}
+variable vpc              {}
+variable subnet_id        {}
 
-resource "ibm_is_security_group" "bootstrap" {
-  name = "bootstrap"
-  vpc  = ibm_is_vpc.vpc_1.id
+provider "ibm" {
+  ibmcloud_api_key = var.ibmcloud_api_key
+  generation       = 2
+  region           = var.region
+}
 
-  resource_group = var.resource_group_id
+data "ibm_is_vpc" "vpc" {
+  name = var.vpc
+}
+
+data "ibm_is_ssh_key" "ssh_key" {
+  name = var.ssh_key
+}
+
+data "ibm_is_subnet" "subnet" {
+  identifier = var.subnet_id
+}
+
+data "ibm_is_image" "ubuntu_1804" {
+  name = "ibm-ubuntu-18-04-64"
+}
+
+resource "ibm_is_security_group" "bootstrap_server" {
+  name = "bootstrap-server"
+  vpc  = data.ibm_is_vpc.vpc.id
+
+  resource_group = data.ibm_is_vpc.vpc.resource_group.id
 }
 
 resource "ibm_is_security_group_rule" "outbound_rule" {
-  depends_on = [ ibm_is_security_group.bootstrap ]
+  depends_on = [ ibm_is_security_group.bootstrap_server ]
 
-  group      = ibm_is_security_group.bootstrap.id
+  group      = ibm_is_security_group.bootstrap_server.id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
 }
 
 resource "ibm_is_security_group_rule" "ssh_rule" {
-  depends_on = [ ibm_is_security_group.bootstrap ]
+  depends_on = [ ibm_is_security_group.bootstrap_server ]
 
-  group      = ibm_is_security_group.bootstrap.id
+  group      = ibm_is_security_group.bootstrap_server.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
 
@@ -28,9 +55,9 @@ resource "ibm_is_security_group_rule" "ssh_rule" {
 }
 
 resource "ibm_is_security_group_rule" "icmp_rule" {
-  depends_on = [ ibm_is_security_group.bootstrap ]
+  depends_on = [ ibm_is_security_group.bootstrap_server ]
 
-  group      = ibm_is_security_group.bootstrap.id
+  group      = ibm_is_security_group.bootstrap_server.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
 
@@ -41,9 +68,9 @@ resource "ibm_is_security_group_rule" "icmp_rule" {
 }
 
 resource "ibm_is_security_group_rule" "http_rule" {
-  depends_on = [ ibm_is_security_group.bootstrap ]
+  depends_on = [ ibm_is_security_group.bootstrap_server ]
 
-  group      = ibm_is_security_group.bootstrap.id
+  group      = ibm_is_security_group.bootstrap_server.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
 
@@ -53,20 +80,33 @@ resource "ibm_is_security_group_rule" "http_rule" {
   }
 }
 
-resource "ibm_is_instance" "bootstrap" {
-  depends_on = [ ibm_is_security_group.bootstrap, ibm_is_vpc.vpc_1 ]
+resource "ibm_is_security_group_rule" "sinatra_rule" {
+  depends_on = [ ibm_is_security_group.bootstrap_server ]
 
-  name    = "bootstrap"
+  group      = ibm_is_security_group.bootstrap_server.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 8070
+    port_max = 8070
+  }
+}
+
+resource "ibm_is_instance" "bootstrap_server" {
+  depends_on = [ ibm_is_security_group.bootstrap_server, ibm_is_vpc.vpc_1 ]
+
+  name    = "bootstrap-server"
   image   = data.ibm_is_image.ubuntu_1804.id
   profile = "bx2-2x8"
   primary_network_interface {
     name   = "eth0"
-    subnet = ibm_is_subnet.subnet_zone_1.id
-    security_groups = [ ibm_is_security_group.bootstrap.id ]
+    subnet = ibm_is_subnet.subnet.id
+    security_groups = [ ibm_is_security_group.bootstrap_server.id ]
   }
-  vpc       = ibm_is_vpc.vpc_1.id
-  zone      = var.vpc_1_zone_1
-  keys      = [ var.admin_ssh_key_id ]
+  vpc       = data.ibm_is_vpc.vpc.id
+  zone      = data.ibm_is_subnet.subnet.zone
+  keys      = [ data.ibm_is_ssh_key.ssh_key.id  ]
   user_data = <<-EOT
     #cloud-config
     runcmd:
@@ -90,21 +130,14 @@ resource "ibm_is_instance" "bootstrap" {
       condition: True
     EOT
 
-  resource_group = var.resource_group_id
+  resource_group = data.ibm_is_vpc.vpc.resource_group.id
 }
 
-resource "ibm_is_floating_ip" "bootstrap" {
+resource "ibm_is_floating_ip" "bootstrap_server" {
   depends_on = [ ibm_is_instance.bootstrap ]
 
-  name   = "bootstrap"
-  target = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].id
+  name   = "bootstrap-server"
+  target = ibm_is_instance.bootstrap_server.primary_network_interface[ 0 ].id
 
-  resource_group = var.resource_group_id
-}
-
-resource "ibm_cos_bucket" "bootstrap" {
-  bucket_name          = join( "-", [ ibm_resource_instance.cos.name, "bootstrap" ] )
-  resource_instance_id = ibm_resource_instance.cos.id
-  region_location      = var.vpc_1_region
-  storage_class        = "standard"
+  resource_group = data.ibm_is_vpc.vpc.resource_group.id
 }

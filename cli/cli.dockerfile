@@ -11,7 +11,8 @@ ENV HELM_VERSION               2.16.1
 
 RUN apt update \
       && apt install -y curl git vim mc python3 python3-pip ruby \
-      && apt install -y apt-utils apt-transport-https ca-certificates software-properties-common
+      && apt install -y apt-utils apt-transport-https ca-certificates software-properties-common \
+      && gem install docopt
 
 WORKDIR /tmp
 
@@ -31,7 +32,7 @@ RUN curl -L -o file.zip https://github.com/IBM-Cloud/terraform-provider-ibm/rele
 # install ibm cloud cli and supporting tools
 RUN curl -sL https://ibm.biz/idt-installer | bash
 RUN ibmcloud cf install
-RUN echo "vpc-infrastructure cis doi tke cloud-dns-services cloud-databases analytics-engine machine-learning power-iaas" | xargs -n 1 ibmcloud plugin install \
+RUN echo "vpc-infrastructure cis doi tke vpn cloud-object-storage cloud-dns-services cloud-databases analytics-engine machine-learning power-iaas" | xargs -n 1 ibmcloud plugin install \
       && echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> ~/.bashrc
 
 RUN echo 'IRB.conf[ :AUTO_INDENT ] = true \n\

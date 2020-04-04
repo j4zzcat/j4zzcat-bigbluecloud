@@ -1,0 +1,61 @@
+#! /usr/bin/env ruby
+
+require 'tempfile'
+require 'open3'
+require 'docopt'
+
+# set env variable IBMCLOUD_API_KEY with your key
+ENV[ 'IBMCLOUD_COLOR' ] = 'false'
+
+def bail( msg )
+  puts msg
+  exit 1
+end
+
+usage = <<~DOC
+  USAGE:
+    create-bootstrap-server [--region=<region>] --vpc=<vpc> --subnet=<subnet> --ssh-key=<key>
+
+  OPTIONS:
+    --region=<region>  The region where the VPC is located [default: eu-gb]
+    --vpc=<vpc>        The VPC name
+    --subnet=<subnet>  The Subnet within the VPC, this is where the bootstrap
+                       server Virtual Server (VS) will be created
+    --ssh-key=<key>    The name of the ssh key to put into the VS
+  DOC
+
+begin
+  options = Docopt::docopt( usage )
+rescue Docopt::Exit => e
+  puts usage
+  exit 1
+end
+
+puts "Logging in..."
+#%x[ ibmcloud login --apikey #{ENV[ 'IBMCLOUD_API_KEY' ]} -r #{options[ '--region' ]}
+#    ibmcloud is target --gen 2 ]
+
+puts "Resolving environment..."
+subnet_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "#{options[ '--subnet' ]}" && $8 == "#{options[ '--vpc' ]}") { print $1} }' ].chomp
+bail "Error, can't find subnet: #{options[ '--subnet']}/#{options[ '--vpc']}/#{options[ '--region']}" if subnet_id.length == 0
+
+puts "region    = #{options[ '--region' ]}"
+puts "vpc       = #{options[ '--vpc' ] }"
+puts "subnet/id = #{options[ '--subnet' ]}/#{subnet_id}"
+
+%x[ terraform init ]
+
+cmd = <<-EOT.gsub( /\s+/, ' ' ).strip
+  terraform apply -auto-approve
+    -var ibmcloud_api_key=#{ENV[ 'IBMCLOUD_API_KEY']}
+    -var region=#{options[ '--region' ]}
+    -var vpc=#{options[ '--vpc' ] }
+    -var subnet_id=#{subnet_id}
+    -var ssh_key=#{options[ '--ssh-key' ]}
+EOT
+
+Open3.popen2e( cmd ) do | stdin, stdout_err, wait_thread |
+  while line = stdout_err.gets
+    puts line
+  end
+end
