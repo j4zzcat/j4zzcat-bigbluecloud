@@ -21,7 +21,7 @@ class BootstrapServer
       instance_id = params[ 'instance_id' ]
       hostname    = params[ 'hostname' ]
 
-      "echo 'Hello World!'" if instance_id.length == 0
+      return "echo 'Hello World!'" if instance_id.nil?
 
       "echo 'Blah!'"
 
