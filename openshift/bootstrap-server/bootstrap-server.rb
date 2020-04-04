@@ -18,6 +18,7 @@ class BootstrapServer
 
   class WebApp < Sinatra::Base
     get '/bootstrap' do
+      puts params
       instance_id = params[ 'instance_id' ]
       hostname    = params[ 'hostname' ]
 
