@@ -2,11 +2,10 @@ require 'sinatra/base'
 
 class BootstrapServer
   def run
-    logger.info "Listening on '0.0.0.0:8070..."
     Rack::Server.start( {
       server: 'thin',
       Host:   '0.0.0.0',
-      Port:   Resources.p( :DEFAULT_SERVER_PORT ),
+      Port:   '8070',
       app: Rack::Builder.app do
         map '/' do
           run WebApp.new
