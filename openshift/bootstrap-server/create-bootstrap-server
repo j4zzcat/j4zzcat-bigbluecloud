@@ -32,17 +32,18 @@ rescue Docopt::Exit => e
 end
 
 puts "Logging in..."
-#%x[ ibmcloud login --apikey #{ENV[ 'IBMCLOUD_API_KEY' ]} -r #{options[ '--region' ]}
-#    ibmcloud is target --gen 2 ]
+%x[ ibmcloud login --apikey #{ENV[ 'IBMCLOUD_API_KEY' ]} -r #{options[ '--region' ]}
+    ibmcloud is target --gen 2 ]
 
 puts "Resolving environment..."
 subnet_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "#{options[ '--subnet' ]}" && $8 == "#{options[ '--vpc' ]}") { print $1} }' ].chomp
 bail "Error, can't find subnet: #{options[ '--subnet']}/#{options[ '--vpc']}/#{options[ '--region']}" if subnet_id.length == 0
 
-puts "region    = #{options[ '--region' ]}"
-puts "vpc       = #{options[ '--vpc' ] }"
-puts "subnet/id = #{options[ '--subnet' ]}/#{subnet_id}"
+puts "region      = #{options[ '--region' ]}"
+puts "vpc         = #{options[ '--vpc' ] }"
+puts "subnet/id   = #{options[ '--subnet' ]}/#{subnet_id}"
 
+puts "Running terraform..."
 %x[ terraform init ]
 
 cmd = <<-EOT.gsub( /\s+/, ' ' ).strip

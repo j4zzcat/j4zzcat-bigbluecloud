@@ -30,7 +30,7 @@ resource "ibm_is_security_group" "bootstrap_server" {
   name = "bootstrap-server"
   vpc  = data.ibm_is_vpc.vpc.id
 
-  resource_group = data.ibm_is_vpc.vpc.resource_group.id
+  resource_group = data.ibm_is_vpc.vpc.resource_group
 }
 
 resource "ibm_is_security_group_rule" "outbound_rule" {
@@ -94,14 +94,14 @@ resource "ibm_is_security_group_rule" "sinatra_rule" {
 }
 
 resource "ibm_is_instance" "bootstrap_server" {
-  depends_on = [ ibm_is_security_group.bootstrap_server, ibm_is_vpc.vpc_1 ]
+  depends_on = [ ibm_is_security_group.bootstrap_server ]
 
   name    = "bootstrap-server"
   image   = data.ibm_is_image.ubuntu_1804.id
   profile = "bx2-2x8"
   primary_network_interface {
     name   = "eth0"
-    subnet = ibm_is_subnet.subnet.id
+    subnet = data.ibm_is_subnet.subnet.id
     security_groups = [ ibm_is_security_group.bootstrap_server.id ]
   }
   vpc       = data.ibm_is_vpc.vpc.id
@@ -121,23 +121,23 @@ resource "ibm_is_instance" "bootstrap_server" {
       - mkdir -p /usr/local/src; git clone https://github.com/ipxe/ipxe /usr/local/src/ipxe; cd /usr/local/src/ipxe/src; make
       - curl -sL https://ibm.biz/idt-installer | bash; echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> /root/.bashrc
       - cd /root; echo 'vpc-infrastructure dns cloud-object-storage kp tke vpn' | xargs -n 1 ibmcloud plugin install
-      - gem install --no-document bundle
+      - gem install --no-document bundle sinatra
+      - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud /usr/local/src/j4zzcat-ibmcloud
 
     power_state:
-      delay: "+10"
       mode: reboot
-      timeout: 10
+      timeout: 1
       condition: True
     EOT
 
-  resource_group = data.ibm_is_vpc.vpc.resource_group.id
+  resource_group = data.ibm_is_vpc.vpc.resource_group
 }
 
 resource "ibm_is_floating_ip" "bootstrap_server" {
-  depends_on = [ ibm_is_instance.bootstrap ]
+  depends_on = [ ibm_is_instance.bootstrap_server ]
 
   name   = "bootstrap-server"
   target = ibm_is_instance.bootstrap_server.primary_network_interface[ 0 ].id
 
-  resource_group = data.ibm_is_vpc.vpc.resource_group.id
+  resource_group = data.ibm_is_vpc.vpc.resource_group
 }
