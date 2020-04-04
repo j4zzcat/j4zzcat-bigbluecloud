@@ -31,7 +31,7 @@ RUN curl -L -o file.zip https://github.com/IBM-Cloud/terraform-provider-ibm/rele
 # install ibm cloud cli and supporting tools
 RUN curl -sL https://ibm.biz/idt-installer | bash
 RUN ibmcloud cf install
-RUN echo "vpc-infrastructure cis doi tke cloud-databases analytics-engine machine-learning power-iaas" | xargs -n 1 ibmcloud plugin install \
+RUN echo "vpc-infrastructure cis doi tke cloud-dns-services cloud-databases analytics-engine machine-learning power-iaas" | xargs -n 1 ibmcloud plugin install \
       && echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> ~/.bashrc
 
 RUN echo 'IRB.conf[ :AUTO_INDENT ] = true \n\
