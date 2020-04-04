@@ -37,7 +37,7 @@ class BootstrapServer
         EOT
       end
 
-      "echo '#{instnace_id}'"
+      "echo '#{instance_id}'"
 
     end
   end
