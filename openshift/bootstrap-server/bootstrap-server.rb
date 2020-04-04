@@ -18,7 +18,13 @@ class BootstrapServer
 
   class WebApp < Sinatra::Base
     get '/bootstrap' do
-      "echo 'Hello World!'"
+      instance_id = param[ 'instance_id' ]
+      hostname    = param[ 'hostname' ]
+
+      "echo 'Hello World!'" if instance_id.nil?
+
+      "echo 'Blah!'"
+
     end
   end
 end
