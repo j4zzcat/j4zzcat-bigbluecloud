@@ -29,12 +29,13 @@ class BootstrapServer
       hostname    = params[ 'hostname' ]
 
       if instance_id.nil?
-        return <<~EOT.gsub( /\s+/, ' ' ).strip
-          cloud-init query instance_id
+        return <<~EOT
+          instnace_id=$(cloud-init query instance_id)
+          hostname=$(cloud-init query local_hostname)
+          curl http://#{settings.my_ip}:#{settings.my_port}/instance_id=${instnace_id}\?hostname=${hostname}
+          echo apt install ipxe
         EOT
       end
-
-      # bash -c $(curl http://#{settings.my_ip}:#{settings.my_port}/instance_id=$(cloud-init query instance_id))"
 
       "echo '#{instnace_id}'"
 
