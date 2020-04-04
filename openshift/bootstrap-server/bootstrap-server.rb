@@ -2,7 +2,7 @@ require 'sinatra/base'
 
 class BootstrapServer
   def run
-    WebApp.set :my_ip, %x[ hostname -I ].chomp
+    WebApp.set :my_ip, %x[ ip address show dev ens3 | awk '/inet /{print $2}' ].chomp.split( '/' )[ 0 ]
     WebApp.set :my_port, '8070'
 
     Rack::Server.start( {
@@ -32,7 +32,7 @@ class BootstrapServer
         return <<~EOT
           instnace_id=$(cloud-init query instance_id)
           hostname=$(cloud-init query local_hostname)
-          echo curl http://#{settings.my_ip}:#{settings.my_port}/instance_id=${instnace_id}\?hostname=${hostname}
+          curl http://#{settings.my_ip}:#{settings.my_port}/instance_id=${instnace_id}\?hostname=${hostname}
           echo apt install ipxe
         EOT
       end
