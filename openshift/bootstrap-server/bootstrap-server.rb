@@ -23,3 +23,5 @@ class BootstrapServer
     end
   end
 end
+
+BootstrapServer.new.run
