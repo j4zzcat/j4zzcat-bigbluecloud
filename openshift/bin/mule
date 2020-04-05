@@ -46,8 +46,10 @@ end # terraform
 usage = <<~DOC
   USAGE:
     mule new cluster --name=<name> --location=<loc>... --resource-group=<grp>
-    mule new (bootstrap|master|worker) --name=<name> --cluster=<name> --ssh-key=<key> [--profile=<profile>] [--location=<loc>]
-    mule get profiles
+    mule new bootstrap --ssh-key=<key>
+    mule new (master|worker) --name=<name> --ssh-key=<key> [--profile=<profile>] [--location=<loc>]
+    mule get <name>
+    mule set <name> <value>
 
   OPTIONS:
     --name=<name>           The name of the newly created resource

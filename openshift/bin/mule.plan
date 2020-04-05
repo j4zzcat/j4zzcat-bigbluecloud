@@ -1,0 +1,24 @@
+
+mule new cluster   --name=fubar --resource-group=rusty --location=eu-gb:eu-gb-1 --location=eu-gb:eu-gb-2
+mule new bootstrap --ssh-key=imac-key
+
+mule new master    --name=m1 --ssh-key=imac-key --profile=bx2_8 --location=eu-gb:eu-gb-1
+mule new master    --name=m2 --ssh-key=imac-key --profile=bx2_8 --location=eu-gb:eu-gb-1
+mule new master    --name=m3 --ssh-key=imac-key --profile=bx2_8 --location=eu-gb:eu-gb-2
+
+mule new worker    --name=w01 --ssh-key=imac-key --profile=m16_128 --location=iaas-1
+mule new worker    --name=w02 --ssh-key=imac-key --profile=m16_128 --location=iaas-2
+mule new worker    --name=w03 --ssh-key=imac-key --profile=m16_128 --location=iaas-1
+mule new worker    --name=w04 --ssh-key=imac-key --profile=m16_128 --location=iaas-2
+mule new worker    --name=w05 --ssh-key=imac-key --profile=m16_128 --location=iaas-1
+mule new worker    --name=w06 --ssh-key=imac-key --profile=m16_128 --location=iaas-2
+mule new worker    --name=w07 --ssh-key=imac-key --profile=m16_128 --location=iaas-1
+mule new worker    --name=w08 --ssh-key=imac-key --profile=m16_128 --location=iaas-2
+mule new worker    --name=w09 --ssh-key=imac-key --profile=m16_128 --location=iaas-1
+mule new worker    --name=w10 --ssh-key=imac-key --profile=m16_128 --location=iaas-2
+mule new worker    --name=w11 --ssh-key=imac-key --profile=m16_128 --location=iaas-1
+mule new worker    --name=w12 --ssh-key=imac-key --profile=m16_128 --location=iaas-2
+mule new worker    --name=w13 --ssh-key=imac-key --profile=m16_128 --location=iaas-1
+mule new worker    --name=w14 --ssh-key=imac-key --profile=m16_128 --location=iaas-2
+mule new worker    --name=w15 --ssh-key=imac-key --profile=m16_128 --location=iaas-1
+mule new worker    --name=w16 --ssh-key=imac-key --profile=m16_128 --location=iaas-2 

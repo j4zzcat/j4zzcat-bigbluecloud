@@ -121,20 +121,21 @@ resource "ibm_is_security_group_rule" "sinatra_rule" {
 }
 
 resource "ibm_is_instance" "bootstrap" {
+  provider   = ibm.leg_1
   depends_on = [ ibm_is_security_group.bootstrap ]
 
-  name    = "bootstrap-server"
-  image   = data.ibm_is_image.ubuntu_1804.id
-  profile = "bx2-2x8"
+  name       = "bootstrap-server"
+  image      = data.ibm_is_image.ubuntu_1804.id
+  profile    = "bx2-2x8"
   primary_network_interface {
-    name   = "eth0"
-    subnet = data.ibm_is_subnet.leg_1_subnet_1.id
+    name     = "eth0"
+    subnet   = data.ibm_is_subnet.leg_1_subnet_1.id
     security_groups = [ ibm_is_security_group.bootstrap.id ]
   }
-  vpc       = data.ibm_is_vpc.leg_1_vpc.id
-  zone      = data.ibm_is_subnet.leg_1_subnet_1.zone
-  keys      = [ data.ibm_is_ssh_key.ssh_key.id  ]
-  user_data = <<-EOT
+  vpc        = data.ibm_is_vpc.leg_1_vpc.id
+  zone       = data.ibm_is_subnet.leg_1_subnet_1.zone
+  keys       = [ data.ibm_is_ssh_key.ssh_key.id  ]
+  user_data  = <<-EOT
     #cloud-config
     runcmd:
       - apt update
