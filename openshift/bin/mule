@@ -1,0 +1,168 @@
+#! /usr/bin/env ruby
+
+require 'tempfile'
+require 'open3'
+require 'docopt'
+
+# set env variable IBMCLOUD_API_KEY with your key
+ENV[ 'IBMCLOUD_COLOR' ] = 'false'
+
+ HOME_DIR = File.expand_path( "#{File.dirname __FILE__}/.." )
+STATE_DIR = "#{HOME_DIR}/state"
+
+def bail( msg )
+  puts msg
+  exit 1
+end
+
+def terraform( cluster_name, dir, vars, var_file = nil )
+  Dir.chdir "#{HOME_DIR}/#{dir}"
+  %x[ terraform init ]
+
+  state_dir = "#{STATE_DIR}/#{cluster_name}"
+  Dir.mkdir state_dir if !Dir.exist? state_dir
+
+  cmd = <<-EOT.gsub( /\s+/, ' ' ).strip
+    terraform apply
+      -auto-approve
+      -state #{STATE_DIR}/#{cluster_name}/terraform.tfstate
+      -var ibmcloud_api_key=#{ENV[ 'IBMCLOUD_API_KEY']}
+  EOT
+
+  vars.each { | k, v | cmd += " -var #{k}=#{v}" }
+  cmd += " -var-file=#{var_file}" if !var_file.nil?
+
+  Open3.popen2e( cmd ) do | stdin, stdout_err, wait_thread |
+    while line = stdout_err.gets
+      puts line
+    end
+    return wait_thread.value.exitstatus
+  end
+end # terraform
+
+
+# ---- MAIN ----
+
+usage = <<~DOC
+  USAGE:
+    mule new cluster --name=<name> --location=<loc>... --resource-group=<grp>
+    mule new (bootstrap|master|worker) --name=<name> --cluster=<name> --ssh-key=<key> [--profile=<profile>] [--location=<loc>]
+    mule get profiles
+
+  OPTIONS:
+    --name=<name>           The name of the newly created resource
+    --cluster=<name>        The name of the cluster that will own this resource
+    --location=<loc>        The location of the resource, given as region:zone[:subnet]
+    --resource-group=<grp>  Add the newly created cluster to this resource group
+    --ssh-key=<key>         The name of the ssh key used to admin the resources
+    --profile=<profile>     The profile of the machine, use 'mule get profiles' to
+                            see which ones are available
+  DOC
+
+begin
+  options = Docopt::docopt( usage )
+rescue Docopt::Exit => e
+  puts usage
+  exit 1
+end
+
+if options[ 'get' ]
+  if options[ 'profiles' ]
+    puts "profiles..."
+  end
+  exit
+elsif options[ 'new' ]
+
+  # new cluster
+  if options[ 'cluster' ]
+    cluster_name = options[ '--name' ]
+    leg_1_vpc = cluster_name
+
+    resource_group = options[ '--resource-group' ]
+
+    locations = options[ '--location' ]
+    bail 'Error, only a single location is supported at this time' if locations.size != 1
+    leg_1_region, leg_1_zone = locations[ 0 ].split ':'
+
+    exitstatus = terraform cluster_name, 'lib/cluster', {
+      :cluster_name   => cluster_name,
+      :leg_1_vpc      => leg_1_vpc,
+      :leg_1_region   => leg_1_region,
+      :leg_1_zone     => leg_1_zone,
+      :resource_group => resource_group }
+
+    if exitstatus == 0
+      %x[ ibmcloud login --apikey #{ENV[ 'IBMCLOUD_API_KEY' ]} -r #{leg_1_region}
+          ibmcloud is target --gen 2 ]
+
+      puts "Resolving resource ids..."
+      leg_1_subnet_1_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "subnet-1" && $8 == "#{leg_1_vpc}") { print $1} }' ].chomp
+
+      File.open "#{STATE_DIR}/#{cluster_name}/vars.tfvars", "w" do | f |
+        f.write <<~EOT
+          cluster_name       = "#{cluster_name}"
+          resource_group     = "#{resource_group}"
+          leg_1_vpc          = "#{leg_1_vpc}"
+          leg_1_region       = "#{leg_1_region}"
+          leg_1_zone         = "#{leg_1_zone}"
+          leg_1_subnet_1_id  = "#{leg_1_subnet_1_id}"
+        EOT
+      end
+    end
+
+  # new bootstrap
+  elsif options[ 'bootstrap' ]
+    name     = options[ '--name' ]
+    cluster  = options[ '--cluster' ]
+    location = options[ '--location' ]
+    profile  = options[ '--profile' ]
+    ssh_key  = options[ '--ssh-key' ]
+
+    exitstatus = terraform 'lib/bootstrap', {
+      :name           => name,
+      :region         => region,
+      :zone           => zone,
+      :resource_group => resource_group }
+
+  end
+end
+
+exit 0
+
+
+
+
+
+
+
+# puts "Logging in..."
+# %x[ ibmcloud login --apikey #{ENV[ 'IBMCLOUD_API_KEY' ]} -r #{options[ '--region' ]}
+#     ibmcloud is target --gen 2 ]
+#
+# puts "Resolving environment..."
+# subnet_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "#{options[ '--subnet' ]}" && $8 == "#{options[ '--vpc' ]}") { print $1} }' ].chomp
+# bail "Error, can't find subnet: #{options[ '--subnet']}/#{options[ '--vpc']}/#{options[ '--region']}" if subnet_id.length == 0
+#
+# puts "region      = #{options[ '--region' ]}"
+# puts "vpc         = #{options[ '--vpc' ] }"
+# puts "subnet/id   = #{options[ '--subnet' ]}/#{subnet_id}"
+#
+# puts "Running terraform..."
+# Dir.chdir '../lib/bootstrap-server'
+#
+# %x[ terraform init ]
+#
+# cmd = <<-EOT.gsub( /\s+/, ' ' ).strip
+#   terraform apply -auto-approve
+#     -var ibmcloud_api_key=#{ENV[ 'IBMCLOUD_API_KEY']}
+#     -var region=#{options[ '--region' ]}
+#     -var vpc=#{options[ '--vpc' ] }
+#     -var subnet_id=#{subnet_id}
+#     -var ssh_key=#{options[ '--ssh-key' ]}
+# EOT
+#
+# Open3.popen2e( cmd ) do | stdin, stdout_err, wait_thread |
+#   while line = stdout_err.gets
+#     puts line
+#   end
+# end

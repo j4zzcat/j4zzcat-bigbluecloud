@@ -1,0 +1,35 @@
+require 'tempfile'
+require 'open3'
+require 'docopt'
+
+# set env variable IBMCLOUD_API_KEY with your key
+ENV[ 'IBMCLOUD_COLOR' ] = 'false'
+
+def bail( msg )
+  puts msg
+  exit 1
+end
+
+usage = <<~DOC
+  USAGE:
+    master-server new [--region=<region>] --vpc=<vpc> --subnet=<subnet> --ssh-key=<key> --bootstrap-server=<ip>
+
+  OPTIONS:
+    --region=<region>        The region where the VPC is located [default: eu-gb]
+    --vpc=<vpc>              The VPC name
+    --subnet=<subnet>        The Subnet within the VPC, this is where the bootstrap
+                             server Virtual Server (VS) will be created
+    --ssh-key=<key>          The name of the ssh key to put into the VS
+    --bootstrap-server=<ip>  The private IP address of the bootstrap server
+  DOC
+
+begin
+  options = Docopt::docopt( usage )
+rescue Docopt::Exit => e
+  puts usage
+  exit 1
+end
+
+puts "Logging in..."
+%x[ ibmcloud login --apikey #{ENV[ 'IBMCLOUD_API_KEY' ]} -r #{options[ '--region' ]}
+    ibmcloud is target --gen 2 ]

@@ -43,6 +43,8 @@ class BootstrapServer
     get '/register' do
       instance_id = params[ 'instance_id' ]
       hostname    = params[ 'hostname' ]
+
+      
     end
 
     get '/boot' do
