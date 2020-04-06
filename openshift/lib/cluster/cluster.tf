@@ -35,7 +35,7 @@ resource "ibm_is_subnet" "leg_1_subnet_1" {
   name           = "subnet-1"
   vpc            = ibm_is_vpc.leg_1_vpc.id
   zone           = var.leg_1_zone
-  public_gateway = ibm_is_public_gateway.leg_1_public_gateway
+  public_gateway = ibm_is_public_gateway.leg_1_public_gateway.id
   total_ipv4_address_count = "256"
 }
 
@@ -62,7 +62,7 @@ resource "ibm_iam_authorization_policy" "is_image_reader_cos" {
 # ---- Global resources ----
 resource "ibm_resource_instance" "cos" {
   provider          = ibm.leg_1
-  
+
   name              = join( "-", [ var.cluster_name, "cos" ] )
   service           = "cloud-object-storage"
   plan              = "standard"

@@ -88,7 +88,7 @@ if options[ 'new' ]
 
   # new cluster
   if options[ 'cluster' ]
-    puts "new cluster..."
+    puts "Creating new cluster..."
 
     cluster_name   = options[ '--name' ]
     leg_1_vpc      = cluster_name
@@ -113,14 +113,14 @@ elsif options[ 'add' ]
 
   # add node
   if options[ 'node' ]
-    puts "adding node..."
+    puts "Adding new node..."
   end
 
 elsif options[ 'rm' ]
 
   # rm node
   if options[ 'node' ]
-    puts "removing node..."
+    puts "Removing node..."
   end
 end
 
