@@ -2,17 +2,13 @@ data "ibm_resource_group" "resource_group" {
   name = var.resource_group
 }
 
-data "ibm_is_ssh_key" "ssh_key" {
-  name = var.ssh_key
-}
-
 # ---- Leg 1 VPC ----
 resource "ibm_is_vpc" "leg_1_vpc" {
   provider       = ibm.leg_1
 
   name           = var.leg_1_vpc
   classic_access = "true"
-  resource_group = data.ibm_resource_group.RESOURCE_GROUP.id
+  resource_group = data.ibm_resource_group.resource_group.id
 }
 
 resource "ibm_is_subnet" "leg_1_subnet_1" {
@@ -49,10 +45,10 @@ resource "ibm_iam_authorization_policy" "is_image_reader_cos" {
 resource "ibm_resource_instance" "cos" {
   provider          = ibm.leg_1
 
-  name              = join( "-", [ var.cluster_name, "cos" ] )
+  name              = join( "-", [ var.cluster, "cos" ] )
   service           = "cloud-object-storage"
   plan              = "standard"
   location          = "global"
 
-  resource_group_id = data.ibm_resource_group.RESOURCE_GROUP.id
+  resource_group_id = data.ibm_resource_group.resource_group.id
 }

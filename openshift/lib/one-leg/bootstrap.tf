@@ -1,3 +1,9 @@
+data "ibm_is_ssh_key" "ssh_key" {
+  provider = ibm.leg_1
+
+  name = var.ssh_key
+}
+
 data "ibm_is_image" "ubuntu_1804" {
   name = "ibm-ubuntu-18-04-64"
 }
@@ -137,7 +143,7 @@ resource "ibm_is_instance" "bootstrap" {
       condition: True
     EOT
 
-  resource_group = data.ibm_is_vpc.leg_1_vpc.resource_group
+  resource_group = ibm_is_vpc.leg_1_vpc.resource_group
 }
 
 resource "ibm_is_floating_ip" "bootstrap" {
