@@ -7,20 +7,17 @@ require 'docopt'
 # set env variable IBMCLOUD_API_KEY with your key
 ENV[ 'IBMCLOUD_COLOR' ] = 'false'
 
- HOME_DIR = File.expand_path( "#{File.dirname __FILE__}/.." )
-STATE_DIR = "#{HOME_DIR}/state"
+  HOME_DIR = File.expand_path( "#{File.dirname __FILE__}/.." )
+ STATE_DIR = Dir.pwd
+STATE_FILE = "#{STATE_DIR}/terraform.tfstate"
+ VARS_FILE = "#{STATE_DIR}/terraform.tfvars"
 
-def bail( msg )
+def quit( msg )
   puts msg
   exit 1
 end
 
-def terraform( dir, new_vars = nil )
-      state_dir = Dir.pwd
-     state_file = "#{state_dir}/terraform.tfstate"
-      vars_file = "#{state_dir}/terraform.tfvars"
-
-  # merge existing terraform vars with this run's vars
+def load_vars_file( vars_file = VARS_FILE )
   vars = {}
   if File.exist? vars_file
     File.readlines( vars_file ).each do | line |
@@ -28,13 +25,23 @@ def terraform( dir, new_vars = nil )
       vars[ k.to_sym ] = v.tr "\"\n", ''
     end
   end
+  vars
+end
 
-  merged = vars.merge new_vars
+def store_vars_file( vars, vars_file = VARS_FILE )
   File.open vars_file, 'w' do | f |
-    merged.each do | k, v |
+    vars.each do | k, v |
       f.write "#{k} = \"#{v}\"\n"
     end
   end
+end
+
+def terraform( dir, new_vars = nil )
+
+  # merge existing terraform vars with this run's vars
+  vars   = load_vars_file
+  merged = vars.merge new_vars
+  store_vars_file merged
 
   # prepare command
   Dir.chdir "#{HOME_DIR}/#{dir}"
@@ -43,9 +50,9 @@ def terraform( dir, new_vars = nil )
   cmd = <<-EOT.gsub( /\s+/, ' ' ).strip
     terraform apply
       -auto-approve
-      -state #{state_file}
+      -state #{STATE_FILE}
       -var ibmcloud_api_key=#{ENV[ 'IBMCLOUD_API_KEY']}
-      -var-file #{vars_file}
+      -var-file #{VARS_FILE}
       -compact-warnings
   EOT
 
@@ -58,6 +65,7 @@ def terraform( dir, new_vars = nil )
     status = wait_thread.value
   end
 
+  status.exitstatus
 end # terraform
 
 # ---- MAIN ----
@@ -96,7 +104,7 @@ if options[ 'new' ]
     ssh_key        = options[ '--ssh-key' ]
 
     locations = options[ '--location' ]
-    bail 'Error, only a single location is supported at this time' if locations.size != 1
+    quit 'Error, only a single location is supported at this time' if locations.size != 1
     leg_1_region, leg_1_zone = locations[ 0 ].split ':'
 
     exit_status = terraform 'lib/cluster', {
@@ -113,7 +121,27 @@ elsif options[ 'add' ]
 
   # add node
   if options[ 'node' ]
-    puts "Adding new node..."
+    if options[ '--type' ] == 'bootstrap'
+      puts "Adding new bootstrap node..."
+
+      puts "Resolving resource ids..."
+      vars = load_vars_file
+
+      %x[ ibmcloud login --apikey #{ENV[ 'IBMCLOUD_API_KEY' ]} -r #{vars[ :leg_1_region ]}
+          ibmcloud is target --gen 2 ]
+      leg_1_subnet_1_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "subnet-1" && $8 == "#{vars[ :leg_1_vpc ]}") { print $1} }' ].chomp
+
+      exit_status = terraform 'lib/bootstrap', {
+        :leg_1_subnet_1_id => leg_1_subnet_1_id
+      }
+
+    elsif options[ '--type' ] == 'master'
+      puts "Adding new master node..."
+    elsif options[ '--type' ] == 'worker'
+      puts "Adding new worker node..."
+    else
+      puts 'Error, unrecognied node type'
+    end
   end
 
 elsif options[ 'rm' ]

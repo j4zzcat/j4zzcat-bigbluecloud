@@ -12,14 +12,17 @@ provider "ibm" {
 }
 
 data "ibm_is_vpc" "leg_1_vpc" {
+  provider = ibm.leg_1
   name = var.leg_1_vpc
 }
 
 data "ibm_is_ssh_key" "ssh_key" {
+  provider = ibm.leg_1
   name = var.ssh_key
 }
 
 data "ibm_is_subnet" "leg_1_subnet_1" {
+  provider = ibm.leg_1
   identifier = var.leg_1_subnet_1_id
 }
 
@@ -28,6 +31,8 @@ data "ibm_is_image" "ubuntu_1804" {
 }
 
 resource "ibm_is_security_group" "bootstrap" {
+  provider = ibm.leg_1
+
   name = "bootstrap"
   vpc  = data.ibm_is_vpc.leg_1_vpc.id
 
@@ -81,7 +86,7 @@ resource "ibm_is_security_group_rule" "dns_rule" {
   }
 }
 
-resource "ibm_is_security_group_rule" "dns_rule" {
+resource "ibm_is_security_group_rule" "dhcp_rule" {
   depends_on = [ ibm_is_security_group.bootstrap ]
 
   group      = ibm_is_security_group.bootstrap.id
