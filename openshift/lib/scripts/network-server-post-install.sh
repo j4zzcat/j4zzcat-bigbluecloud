@@ -1,4 +1,4 @@
-# proper upgrqade
+# proper upgrade
 apt update
 
 rm /boot/grub/menu.lst
