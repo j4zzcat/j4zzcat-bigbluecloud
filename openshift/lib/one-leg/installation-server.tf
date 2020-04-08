@@ -136,6 +136,7 @@ resource "ibm_is_instance" "installation_server" {
       - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud /usr/local/src/j4zzcat-ibmcloud
       - systemctl stop systemd-resolved; systemctl disable systemd-resolved; rm /etc/resolv.conf; echo "nameserver 8.8.8.8" > /etc/resolv.conf
       - apt install -y dnsmasq
+      - cd /tmp; curl -LO wget https://mirrors.mit.edu/ubuntu-cdimage/releases/19.10/release/ubuntu-19.10-server-amd64.iso
       - mkdir -p /opt/openshift; cd /opt/openshift
       - curl -Lo /tmp/openshift-install.tgz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-install-linux-4.3.9.tar.gz; tar -xzvf /tmp/openshift-install.tgz
       - curl -Lo /tmp/openshift-client.tgz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz; tar -xzvf /tmp/openshift-client.tgz

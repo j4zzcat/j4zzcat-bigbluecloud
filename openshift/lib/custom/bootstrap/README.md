@@ -5,9 +5,14 @@ Client
   sed --in-place -e 's/\(GRUB_DEFAULT\)=0/\1=ipxe/' /etc/default/grub
 
 - configure ipxe boot
+  for VPC VS:
   sed --in-place -e 's|\(linux16.*\)|\1 dhcp \\\&\\\& chain http://172.18.0.4:8070/boot?hostname=BLAH|' /etc/grub.d/20_ipxe
+
+  for Classic Baremetal since there's no DHCP available (?)
+  sed --in-place -e 's|\(linux16.*\)|\1 ifopen net0 \\\&\\\& set net0/ip BLAH \\\&\\\& set net0/netmask BLAH \\\&\\\& set net0/gateway BLAH \\\&\\\& chain http://172.18.0.4:8070/boot?hostname=BLAH|' /etc/grub.d/20_ipxe
+
   update-grub
-  
+
 
 
 On the Client
@@ -86,3 +91,25 @@ DNS=172.18.0.4
 UseMTU=true
 RouteMetric=100
 UseDNS=false
+
+# ipxe script
+#!ipxe
+dhcp
+set base http://mirror.centos.org/centos/7/os/x86_64
+kernel ${base}/images/pxeboot/vmlinuz initrd=initrd.img repo=${base}
+initrd ${base}/images/pxeboot/initrd.img
+boot
+
+
+# bare metal script
+script = <<~EOT
+  #!ipxe
+  ifopen net0
+  set net0/ip 10.72.220.203
+  set net0/netmask 255.255.255.192
+  set net0/gateway 10.72.220.193
+  set base http://mirror.centos.org/centos/7/os/x86_64
+  kernel ${base}/images/pxeboot/vmlinuz initrd=initrd.img repo=${base}
+  initrd ${base}/images/pxeboot/initrd.img
+  boot
+EOT
