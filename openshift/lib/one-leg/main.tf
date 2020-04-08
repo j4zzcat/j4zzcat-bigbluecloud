@@ -3,16 +3,18 @@ variable ibmcloud_api_key {}
 variable resource_group   {}
 variable ssh_key          {}
 
-variable cluster          {}
-variable leg_1_vpc        {}
-variable leg_1_region     {}
-variable leg_1_zone       {}
+variable cluster              {}
+variable leg_1_vpc            {}
+variable leg_1_vpc_region     {}
+variable leg_1_vpc_zone       {}
+variable leg_1_classic_region {}
+variable leg_1_classic_zone   {}
 
 provider "ibm" {
   alias            = "leg_1"
   ibmcloud_api_key = var.ibmcloud_api_key
   generation       = 2
-  region           = var.leg_1_region
+  region           = var.leg_1_vpc_region
 }
 
 # provider "ibm" {

@@ -1,4 +1,5 @@
 Client
+------
 - install ipxe
 - fix ipxe in /etc/grub.d/20_ipxe
   sed --in-place -e 's/\(--class network\) {/\1 --id ipxe {/' /etc/grub.d/20_ipxe
@@ -14,8 +15,12 @@ Client
   update-grub
 
 
+Download CoreOS images
+----------------------
+
 
 On the Client
+-------------
 #cloud-config
 runcmd:
   - /bin/bash -c "$(curl -fsSL http://172.18.0.11:8070/bootstrap)"

@@ -103,7 +103,7 @@ resource "ibm_is_security_group_rule" "sinatra_rule" {
   }
 }
 
-resource "ibm_is_instance" "installation_server" {
+resource "ibm_is_instance" "leg_1_vpc_installation_server" {
   provider   = ibm.leg_1
   depends_on = [ ibm_is_security_group.installation_server ]
 
@@ -112,11 +112,11 @@ resource "ibm_is_instance" "installation_server" {
   profile    = "bx2-2x8"
   primary_network_interface {
     name     = "eth0"
-    subnet   = ibm_is_subnet.leg_1_subnet_1.id
+    subnet   = ibm_is_subnet.leg_1_vpc_subnet_1.id
     security_groups = [ ibm_is_security_group.installation_server.id ]
   }
   vpc        = ibm_is_vpc.leg_1_vpc.id
-  zone       = ibm_is_subnet.leg_1_subnet_1.zone
+  zone       = ibm_is_subnet.leg_1_vpc_subnet_1.zone
   keys       = [ data.ibm_is_ssh_key.ssh_key.id  ]
   user_data  = <<-EOT
     #cloud-config
@@ -134,8 +134,6 @@ resource "ibm_is_instance" "installation_server" {
       - cd /root; echo 'vpc-infrastructure dns cloud-object-storage kp tke vpn' | xargs -n 1 ibmcloud plugin install
       - gem install --no-document bundle sinatra thin
       - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud /usr/local/src/j4zzcat-ibmcloud
-      - systemctl stop systemd-resolved; systemctl disable systemd-resolved; rm /etc/resolv.conf; echo "nameserver 8.8.8.8" > /etc/resolv.conf
-      - apt install -y dnsmasq
       - cd /tmp; curl -LO wget https://mirrors.mit.edu/ubuntu-cdimage/releases/19.10/release/ubuntu-19.10-server-amd64.iso
       - mkdir -p /opt/openshift; cd /opt/openshift
       - curl -Lo /tmp/openshift-install.tgz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-install-linux-4.3.9.tar.gz; tar -xzvf /tmp/openshift-install.tgz
@@ -153,7 +151,7 @@ resource "ibm_is_instance" "installation_server" {
 
 resource "ibm_is_floating_ip" "installation" {
   provider   = ibm.leg_1
-  depends_on = [ ibm_is_instance.installation_server ]
+  depends_on = [ ibm_is_instance.leg_1_vpc_installation_server ]
 
   name   = "installation-server"
   target = ibm_is_instance.installation_server.primary_network_interface[ 0 ].id

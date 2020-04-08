@@ -11,22 +11,22 @@ resource "ibm_is_vpc" "leg_1_vpc" {
   resource_group = data.ibm_resource_group.resource_group.id
 }
 
-resource "ibm_is_subnet" "leg_1_subnet_1" {
+resource "ibm_is_subnet" "leg_1_vpc_subnet_1" {
   provider       = ibm.leg_1
 
   name           = "subnet-1"
   vpc            = ibm_is_vpc.leg_1_vpc.id
-  zone           = var.leg_1_zone
-  public_gateway = ibm_is_public_gateway.leg_1_public_gateway.id
+  zone           = var.leg_1_vpc_zone
+  public_gateway = ibm_is_public_gateway.leg_1_vpc_public_gateway.id
   total_ipv4_address_count = "256"
 }
 
-resource "ibm_is_public_gateway" "leg_1_public_gateway" {
+resource "ibm_is_public_gateway" "leg_1_vpc_public_gateway" {
   provider = ibm.leg_1
 
   name     = "public-gateway"
   vpc      = ibm_is_vpc.leg_1_vpc.id
-  zone     = var.leg_1_zone
+  zone     = var.leg_1_vpc_zone
 
   resource_group = ibm_is_vpc.leg_1_vpc.resource_group
 }
