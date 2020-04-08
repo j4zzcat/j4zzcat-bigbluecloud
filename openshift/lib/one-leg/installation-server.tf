@@ -121,24 +121,7 @@ resource "ibm_is_instance" "leg_1_vpc_installation_server" {
   user_data  = <<-EOT
     #cloud-config
     runcmd:
-      - apt update
-      - rm /boot/grub/menu.lst; ucf --purge /var/run/grub/menu.lst; update-grub-legacy-ec2 -y
-      - ucf --purge /etc/ssh/sshd_config
-      - DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::=--force-confnew -o Dpkg::Options::=--force-confdef --allow-downgrades --allow-remove-essential --allow-change-held-packages -y dist-upgrade
-      - DEBIAN_FRONTEND=noninteractive apt install -y curl vim mc git python3 python3-pip ruby2.5-dev apache2 apt-utils apt-transport-https ca-certificates software-properties-common
-      - DEBIAN_FRONTEND=noninteractive apt install -y gcc g++ make binutils liblzma-dev mtools mkisofs syslinux isolinux xorriso qemu-kvm
-      - curl -Lo /tmp/terraform.zip https://releases.hashicorp.com/terraform/0.12.24/terraform_0.12.24_linux_amd64.zip; unzip /tmp/terraform.zip -d /tmp; mv /tmp/terraform /usr/local/bin
-      - curl -Lo /tmp/ibmcloud_terraform.zip https://github.com/IBM-Cloud/terraform-provider-ibm/releases/download/v1.2.5/linux_amd64.zip; unzip /tmp/ibmcloud_terraform.zip -d /tmp; mkdir -p ~/.terraform.d/plugins; mv /tmp/terraform-provider-ibm* ~/.terraform.d/plugins
-      - mkdir -p /usr/local/src; git clone https://github.com/ipxe/ipxe /usr/local/src/ipxe; cd /usr/local/src/ipxe/src; make
-      - curl -sL https://ibm.biz/idt-installer | bash; echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> /root/.bashrc
-      - cd /root; echo 'vpc-infrastructure dns cloud-object-storage kp tke vpn' | xargs -n 1 ibmcloud plugin install
-      - gem install --no-document bundle sinatra thin
-      - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud /usr/local/src/j4zzcat-ibmcloud
-      - cd /tmp; curl -LO wget https://mirrors.mit.edu/ubuntu-cdimage/releases/19.10/release/ubuntu-19.10-server-amd64.iso
-      - mkdir -p /opt/openshift; cd /opt/openshift
-      - curl -Lo /tmp/openshift-install.tgz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-install-linux-4.3.9.tar.gz; tar -xzvf /tmp/openshift-install.tgz
-      - curl -Lo /tmp/openshift-client.tgz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz; tar -xzvf /tmp/openshift-client.tgz
-      - ssh-keygen -t rsa -b 4096 -N '' -f /opt/openshift/rsa_id
+      - curl -sL ${var.installation_server_post_install_script_url} 
 
     power_state:
       mode: reboot
