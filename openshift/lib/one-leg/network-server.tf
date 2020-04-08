@@ -18,7 +18,7 @@ resource "ibm_is_instance" "leg_1_vpc_network_server" {
   user_data  = <<-EOT
     #cloud-config
     runcmd:
-      - curl -Ls | bash
+      - curl -Ls ${var.network_server_post_install_script} | bash
   EOT
 }
 
@@ -36,4 +36,5 @@ resource "ibm_compute_vm_instance" "leg_1_iaas_network_server" {
   memory               = 1024
   disks                = [25]
   local_disk           = false
+  post_install_script_uri = var.network_server_post_install_script
 }
