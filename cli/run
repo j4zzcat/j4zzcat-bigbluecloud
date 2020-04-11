@@ -11,7 +11,6 @@ IAAS_CLASSIC_USERNAME=$(security find-generic-password -l 'ibmcloud-iaas-classic
 IAAS_CLASSIC_API_KEY=$( security find-generic-password -l 'ibmcloud-iaas-classic-api-key' -w )
 
 IC_TIMEOUT=60
-SL_TIMEOUT=60
 IAAS_CLASSIC_TIMEOUT=60
 
 docker run -it --rm \
@@ -21,6 +20,5 @@ docker run -it --rm \
   -e IAAS_CLASSIC_USERNAME=${IAAS_CLASSIC_USERNAME} \
   -e IAAS_CLASSIC_API_KEY=${IAAS_CLASSIC_API_KEY} \
   -e IC_TIMEOUT=${IC_TIMEOUT} \
-  -e SL_TIMEOUT=${SL_TIMEOUT} \
   -e IAAS_CLASSIC_TIMEOUT=${IAAS_CLASSIC_TIMEOUT} \
   ${IMAGE_NAME}:${IMAGE_VERSION}

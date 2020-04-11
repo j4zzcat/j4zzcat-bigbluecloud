@@ -18,14 +18,12 @@ resource "ibm_network_vlan" "l1i_vlan_1" {
 
 resource "ibm_security_group" "l1i_conn_with_l1v" {
   provider = ibm.l1
-  tags     = [ local.fqdn ]
 
   name     = join( "-", [ var.name, "l1i-conn-with-l1v" ] )
 }
 
 resource "ibm_security_group_rule" "l1i_conn_with_l1v_inbound" {
   provider = ibm.l1
-  tags     = [ local.fqdn ]
 
   direction         = "ingress"
   ether_type        = "IPv4"
@@ -34,7 +32,6 @@ resource "ibm_security_group_rule" "l1i_conn_with_l1v_inbound" {
 
 resource "ibm_security_group_rule" "l1i_conn_with_l1v_outbound" {
   provider = ibm.l1
-  tags     = [ local.fqdn ]
 
   direction         = "egress"
   ether_type        = "IPv4"

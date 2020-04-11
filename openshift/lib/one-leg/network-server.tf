@@ -60,7 +60,6 @@ resource "ibm_compute_vm_instance" "l1iv1s1_network_server" {
 
 resource "ibm_network_interface_sg_attachment" "l1i_sg_network_server" {
   provider = ibm.l1
-  tags     = [ local.fqdn, "l1i", "v1" ]
 
   security_group_id    = ibm_security_group.l1i_conn_with_l1v.id
   network_interface_id = ibm_compute_vm_instance.l1iv1s1_network_server.public_interface_id

@@ -14,7 +14,6 @@ resource "ibm_is_vpc" "l1v_vpc" {
 
 resource "ibm_is_subnet" "l1v_subnet_1" {
   provider       = ibm.l1
-  tags           = [ local.fqdn ]
 
   name           = "subnet-1"
   vpc            = ibm_is_vpc.l1v_vpc.id
@@ -25,7 +24,6 @@ resource "ibm_is_subnet" "l1v_subnet_1" {
 
 resource "ibm_is_network_acl" "l1v_conn_with_l1i" {
   provider = ibm.l1
-  tags     = [ local.fqdn ]
 
   name = "l1v-conn-with-l1i"
   vpc  = ibm_is_vpc.l1v_vpc.id
@@ -70,7 +68,6 @@ resource "ibm_is_ssh_key" "l1v_admin_ssh_key" {
 # --- security groups ---
 resource "ibm_is_security_group" "any_to_any" {
   provider       = ibm.l1
-  tags           = [ local.fqdn ]
   resource_group = ibm_is_vpc.l1v_vpc.resource_group
 
   name = "any-to-any"
@@ -80,7 +77,6 @@ resource "ibm_is_security_group" "any_to_any" {
 
 resource "ibm_is_security_group_rule" "outbound_any_to_any" {
   provider   = ibm.l1
-  tags       = [ local.fqdn ]
 
   group      = ibm_is_security_group.any_to_any.id
   direction  = "outbound"
@@ -89,7 +85,6 @@ resource "ibm_is_security_group_rule" "outbound_any_to_any" {
 
 resource "ibm_is_security_group_rule" "inbound_any_to_any" {
   provider   = ibm.l1
-  tags       = [ local.fqdn ]
 
   group      = ibm_is_security_group.any_to_any.id
   direction  = "inbound"

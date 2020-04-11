@@ -14,7 +14,9 @@ variable l1i_datacenter {}
 # ibmcloud_api_key       IC_API_KEY
 # iaas_classic_username  IAAS_CLASSIC_USERNAME
 # iaas_classic_api_key   IAAS_CLASSIC_API_KEY
+# iaas_classic_timeout   IAAS_CLASSIC_TIMEOUT
 #
+
 provider "ibm" {
   alias      = "l1"
   region     = var.l1v_region
@@ -23,7 +25,7 @@ provider "ibm" {
 
 # local variables
 locals {
-  fqdn           = join( "." [ var.name, var.domain ] )
+  fqdn           = join( ".", [ var.name, var.domain ] )
   resource_group = local.fqdn
 
   l1v_vpc        = join( "-", [ var.name, "l1v" ] )

@@ -44,4 +44,4 @@ RUN ibmcloud cf install \
       && echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> ~/.bashrc
 
 ENV IBMCLOUD_COLOR true
-WORKDIR /root
+WORKDIR /cwd

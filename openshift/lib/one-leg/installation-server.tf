@@ -4,7 +4,6 @@ data "ibm_is_image" "ubuntu_1804" {
 
 resource "ibm_is_security_group" "installation_server" {
   provider       = ibm.l1
-  tags           = [ local.fqdn ]
   resource_group = ibm_is_vpc.l1v_vpc.resource_group
 
   name = "installation-server"
@@ -118,7 +117,7 @@ resource "ibm_is_instance" "l1vs1_installation_server" {
   user_data  = <<-EOT
     #cloud-config
     runcmd:
-      - curl -sL ${var.installation_server_post_install_script_url}
+      - curl -sL ${local.installation_server_post_install_script_url}
 
     power_state:
       mode: reboot
