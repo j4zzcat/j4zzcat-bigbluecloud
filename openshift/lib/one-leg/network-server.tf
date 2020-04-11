@@ -21,7 +21,7 @@ resource "ibm_is_instance" "l1vs1_network_server" {
   user_data  = <<-EOT
     #cloud-config
     runcmd:
-      - curl -Ls ${var.network_server_post_install_script_url} | bash
+      - curl -Ls ${local.network_server_post_install_script_url} | bash
     EOT
 }
 
@@ -55,7 +55,7 @@ resource "ibm_compute_vm_instance" "l1iv1s1_network_server" {
   local_disk              = false
   private_vlan_id         = ibm_network_vlan.l1i_vlan_1.id
   ssh_key_ids             = [ ibm_compute_ssh_key.l1i_admin_ssh_key.id ]
-  post_install_script_uri = var.network_server_post_install_script_url
+  post_install_script_uri = local.network_server_post_install_script_url
 }
 
 resource "ibm_network_interface_sg_attachment" "l1i_sg_network_server" {

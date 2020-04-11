@@ -1,5 +1,0 @@
-Retrieving instances with type service_instance in resource group testbed in all locations under account Venus as sharon.dagan@il.ibm.com...
-OK
-ID                                                                                                                           GUID                                                                                                                         Name             Location   State    Type               Resource ID   
-crn:v1:bluemix:public:is:eu-gb-3:a/f13648d1c3e97881258c83dacc5d3586::subnet:07a7-99294ef3-5740-4a3f-8f9e-ffe697ed679f        crn:v1:bluemix:public:is:eu-gb-3:a/f13648d1c3e97881258c83dacc5d3586::subnet:07a7-99294ef3-5740-4a3f-8f9e-ffe697ed679f        subnet-1         eu-gb-3    active   service_instance   is.subnet   
-crn:v1:bluemix:public:is:eu-gb-3:a/f13648d1c3e97881258c83dacc5d3586::floating-ip:r018-0cfdd7a7-58c7-4a5b-b825-4e89c3fca264   crn:v1:bluemix:public:is:eu-gb-3:a/f13648d1c3e97881258c83dacc5d3586::floating-ip:r018-0cfdd7a7-58c7-4a5b-b825-4e89c3fca264   158.176.180.22   eu-gb-3    active   service_instance   is.floating-ip   
