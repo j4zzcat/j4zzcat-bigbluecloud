@@ -12,35 +12,35 @@ apt-get \
   -o Dpkg::Options::=--force-confdef \
   --allow-downgrades \
   --allow-remove-essential \
-  --allow-change-held-packages -y \
-  dist-upgrade
+  --allow-change-held-packages \
+  -y dist-upgrade
 
-# terraform
-cd /tmp
-curl -LO https://releases.hashicorp.com/terraform/0.12.24/terraform_0.12.24_linux_amd64.zip
-unzip /tmp/terraform*.zip -d /tmp
-mv /tmp/terraform /usr/local/bin
+# pxe prereqs
+apt-get install -y mc vim ruby2.5-dev apache2 gcc g++ make binutils liblzma-dev mtools mkisofs syslinux isolinux xorriso qemu-kvm
 
-# ibmcloud terraform provider
-cd /tmp
-curl -LO https://github.com/IBM-Cloud/terraform-provider-ibm/releases/download/v1.2.5/linux_amd64.zip
-unzip /tmp/linux_amd64.zip -d /tmp
-mkdir -p ~/.terraform.d/plugins
-mv /tmp/terraform-provider-ibm* ~/.terraform.d/plugins
+# ipxe
+mkdir -p /usr/local/src
+git clone https://github.com/ipxe/ipxe /usr/local/src/ipxe
+cd /usr/local/src/ipxe/src
+make
 
-# ibmcloud cli
-cd /root
-curl -sL https://ibm.biz/idt-installer | bash
-echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> /root/.bashrc
-echo 'vpc-infrastructure dns cloud-object-storage kp tke vpn' | xargs -n 1 ibmcloud plugin install
+# sinatra
+gem install --no-document bundle sinatra thin
 
-# openshift
+# openshift client and files
 cd /tmp
 curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-install-linux-4.3.9.tar.gz
 curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
+
 mkdir -p /opt/openshift
 cd /opt/openshift
-tar -xzvf /tmp/openshift-install*.tgz
-tar -xzvf /tmp/openshift-client*.tgz
+tar -xzvf /tmp/openshift-install*.tar.gz
+tar -xzvf /tmp/openshift-client*.tar.gz
+
+mkdir -p /opt/openshift/images
+cd /opt/openshift/images
+for file in installer-kernel-x86_64 installer-initramfs.x86_64.img installer.x86_64.iso metal.x86_64.raw.gz; do
+  curl -LO https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.3/4.3.8/rhcos-4.3.8-x86_64-${file}
+done
 
 # ssh-keygen -t rsa -b 4096 -N '' -f /opt/openshift/rsa_id
