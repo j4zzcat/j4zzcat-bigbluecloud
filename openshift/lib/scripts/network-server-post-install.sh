@@ -16,7 +16,7 @@ apt-get \
   -y dist-upgrade
 
 # prereq software
-apt-get install -y ruby2.5-dev apache2 gcc g++ make binutils liblzma-dev mtools mkisofs syslinux isolinux xorriso qemu-kvm
+apt-get install -y mc vim ruby2.5-dev apache2 gcc g++ make binutils liblzma-dev mtools mkisofs syslinux isolinux xorriso qemu-kvm
 
 # ipxe
 mkdir -p /usr/local/src

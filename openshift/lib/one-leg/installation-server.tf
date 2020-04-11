@@ -1,33 +1,28 @@
-data "ibm_is_ssh_key" "ssh_key" {
-  provider = ibm.leg_1
-
-  name = var.ssh_key
-}
-
 data "ibm_is_image" "ubuntu_1804" {
   name = "ibm-ubuntu-18-04-64"
 }
 
 resource "ibm_is_security_group" "installation_server" {
-  provider = ibm.leg_1
+  provider       = ibm.l1
+  tags           = [ local.fqdn ]
+  resource_group = ibm_is_vpc.l1v_vpc.resource_group
 
   name = "installation-server"
-  vpc  = ibm_is_vpc.leg_1_vpc.id
+  vpc  = ibm_is_vpc.l1v_vpc.id
 
-  resource_group = ibm_is_vpc.leg_1_vpc.resource_group
 }
 
 # TODO harden
 resource "ibm_is_security_group_rule" "outbound_rule" {
-  provider   = ibm.leg_1
+  provider   = ibm.l1
 
   group      = ibm_is_security_group.installation_server.id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
 }
 
-resource "ibm_is_security_group_rule" "ssh_rule" {
-  provider   = ibm.leg_1
+resource "ibm_is_security_group_rule" "ssh_rule_installation_server" {
+  provider   = ibm.l1
 
   group      = ibm_is_security_group.installation_server.id
   direction  = "inbound"
@@ -39,8 +34,8 @@ resource "ibm_is_security_group_rule" "ssh_rule" {
   }
 }
 
-resource "ibm_is_security_group_rule" "icmp_rule" {
-  provider   = ibm.leg_1
+resource "ibm_is_security_group_rule" "icmp_rule_installation_server" {
+  provider   = ibm.l1
 
   group      = ibm_is_security_group.installation_server.id
   direction  = "inbound"
@@ -52,8 +47,8 @@ resource "ibm_is_security_group_rule" "icmp_rule" {
   }
 }
 
-resource "ibm_is_security_group_rule" "dns_rule" {
-  provider   = ibm.leg_1
+resource "ibm_is_security_group_rule" "dns_rule_installation_server" {
+  provider   = ibm.l1
 
   group      = ibm_is_security_group.installation_server.id
   direction  = "inbound"
@@ -65,8 +60,8 @@ resource "ibm_is_security_group_rule" "dns_rule" {
   }
 }
 
-resource "ibm_is_security_group_rule" "dhcp_rule" {
-  provider   = ibm.leg_1
+resource "ibm_is_security_group_rule" "dhcp_rule_installation_server" {
+  provider   = ibm.l1
 
   group      = ibm_is_security_group.installation_server.id
   direction  = "inbound"
@@ -78,8 +73,8 @@ resource "ibm_is_security_group_rule" "dhcp_rule" {
   }
 }
 
-resource "ibm_is_security_group_rule" "http_rule" {
-  provider   = ibm.leg_1
+resource "ibm_is_security_group_rule" "http_rule_installation_server" {
+  provider   = ibm.l1
   group      = ibm_is_security_group.installation_server.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
@@ -90,8 +85,8 @@ resource "ibm_is_security_group_rule" "http_rule" {
   }
 }
 
-resource "ibm_is_security_group_rule" "sinatra_rule" {
-  provider   = ibm.leg_1
+resource "ibm_is_security_group_rule" "sinatra_rule_installation_server" {
+  provider   = ibm.l1
 
   group      = ibm_is_security_group.installation_server.id
   direction  = "inbound"
@@ -103,25 +98,27 @@ resource "ibm_is_security_group_rule" "sinatra_rule" {
   }
 }
 
-resource "ibm_is_instance" "leg_1_vpc_installation_server" {
-  provider   = ibm.leg_1
-  depends_on = [ ibm_is_security_group.installation_server ]
+resource "ibm_is_instance" "l1vs1_installation_server" {
+  provider       = ibm.l1
+  tags           = [ local.fqdn, "l1v", "s1" ]
+  resource_group = ibm_is_vpc.l1v_vpc.resource_group
+  depends_on     = [ ibm_is_security_group.installation_server ]
 
-  name       = "installation-server"
+  name       = "installation-server-l1vs1"
   image      = data.ibm_is_image.ubuntu_1804.id
   profile    = "bx2-2x8"
   primary_network_interface {
     name     = "eth0"
-    subnet   = ibm_is_subnet.leg_1_vpc_subnet_1.id
+    subnet   = ibm_is_subnet.l1v_subnet_1.id
     security_groups = [ ibm_is_security_group.installation_server.id ]
   }
-  vpc        = ibm_is_vpc.leg_1_vpc.id
-  zone       = ibm_is_subnet.leg_1_vpc_subnet_1.zone
-  keys       = [ data.ibm_is_ssh_key.ssh_key.id  ]
+  vpc        = ibm_is_vpc.l1v_vpc.id
+  zone       = ibm_is_subnet.l1v_subnet_1.zone
+  keys       = [ ibm_is_ssh_key.l1v_admin_ssh_key.id  ]
   user_data  = <<-EOT
     #cloud-config
     runcmd:
-      - curl -sL ${var.installation_server_post_install_script_url} 
+      - curl -sL ${var.installation_server_post_install_script_url}
 
     power_state:
       mode: reboot
@@ -129,15 +126,15 @@ resource "ibm_is_instance" "leg_1_vpc_installation_server" {
       condition: True
     EOT
 
-  resource_group = ibm_is_vpc.leg_1_vpc.resource_group
 }
 
-resource "ibm_is_floating_ip" "installation" {
-  provider   = ibm.leg_1
-  depends_on = [ ibm_is_instance.leg_1_vpc_installation_server ]
+resource "ibm_is_floating_ip" "l1vs1_installation_server_fip" {
+  provider       = ibm.l1
+  tags           = [ local.fqdn, "l1v", "s1" ]
+  resource_group = ibm_is_vpc.l1v_vpc.resource_group
+  depends_on     = [ ibm_is_instance.l1vs1_installation_server ]
 
-  name   = "installation-server"
-  target = ibm_is_instance.installation_server.primary_network_interface[ 0 ].id
+  name   = "installation-server-l1vs1"
+  target = ibm_is_instance.l1vs1_installation_server.primary_network_interface[ 0 ].id
 
-  resource_group = ibm_is_vpc.leg_1_vpc.resource_group
 }

@@ -1,32 +1,33 @@
-variable ibmcloud_api_key {}
 
-variable resource_group   {}
-variable ssh_key          {}
+variable name           {}
+variable domain         {}
+variable l1v_region     {}
+variable l1v_zone       {}
+variable l1i_datacenter {}
 
-variable cluster              {}
-variable leg_1_vpc            {}
-variable leg_1_vpc_region     {}
-variable leg_1_vpc_zone       {}
-variable leg_1_classic_region {}
-variable leg_1_classic_zone   {}
-
+#
+# These are read from the environment and used
+# in the provider
+#
+# provider key           env variable
+# -------------------------------------------------
+# ibmcloud_api_key       IC_API_KEY
+# iaas_classic_username  IAAS_CLASSIC_USERNAME
+# iaas_classic_api_key   IAAS_CLASSIC_API_KEY
+#
 provider "ibm" {
-  alias            = "leg_1"
-  ibmcloud_api_key = var.ibmcloud_api_key
-  generation       = 2
-  region           = var.leg_1_vpc_region
+  alias      = "l1"
+  region     = var.l1v_region
+  generation = 2
 }
 
-# provider "ibm" {
-#   alias            = "leg_2"
-#   ibmcloud_api_key = var.ibmcloud_api_key
-#   generation       = 2
-#   region           = var.leg_2_region
-# }
-#
-# provider "ibm" {
-#   alias            = "leg_3"
-#   ibmcloud_api_key = var.ibmcloud_api_key
-#   generation       = 2
-#   region           = var.leg_3_region
-# }
+# local variables
+locals {
+  fqdn           = join( "." [ var.name, var.domain ] )
+  resource_group = local.fqdn
+
+  l1v_vpc        = join( "-", [ var.name, "l1v" ] )
+
+  installation_server_post_install_script_url = "https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/0.2/openshift/lib/scripts/installation-server-post-install.sh"
+  network_server_post_install_script_url      = "https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/0.2/openshift/lib/scripts/network-server-post-install.sh"
+}
