@@ -37,10 +37,10 @@ cd /opt/openshift
 tar -xzvf /tmp/openshift-install*.tar.gz
 tar -xzvf /tmp/openshift-client*.tar.gz
 
-mkdir -p /opt/openshift/images
-cd /opt/openshift/images
+mkdir -p /var/www/html/images/rhcos
+cd /var/www/html/images/rhcos
 for file in installer-kernel-x86_64 installer-initramfs.x86_64.img installer.x86_64.iso metal.x86_64.raw.gz; do
   curl -LO https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.3/4.3.8/rhcos-4.3.8-x86_64-${file}
 done
 
-# ssh-keygen -t rsa -b 4096 -N '' -f /opt/openshift/rsa_id
+mkdir -p /var/www/html/config
