@@ -4,7 +4,6 @@ class BootstrapServer
   def run
     WebApp.set :my_ip, %x[ ip address show dev ens3 | awk '/inet /{print $2}' ].chomp.split( '/' )[ 0 ]
     WebApp.set :my_port, '8070'
-    WebApp.set :my_config, '/root/installation-server.config'
 
     # 172.168.0.8 coreos.inst=yes coreos.inst.install_dev=sda coreos.inst.image_url=http://172.18.0.7/rhcos/metal.x86_64.raw.gz coreos.inst.ignition_url=http://172.18.0.7/rhcos/config.ign ip=dhcp
     # 172.168.0.8 master_config.ign
@@ -36,7 +35,7 @@ class BootstrapServer
         apt install -y ipxe
         sed --in-place -e 's/GRUB_DEFAULT=0/GRUB_DEFAULT=ipxe/' /etc/default/grub
         sed --in-place -e 's/--class network {/--class network --id ipxe {/' /etc/grub.d/20_ipxe
-        sed --in-place -e 's|linux16.*|linux16 $IPXEPATH dhcp \\\&\\\& chain http://#{settings.my_ip}:#{settings.my_port}/boot?type=#{type}|' /etc/grub.d/20_ipxe
+        sed --in-place -e 's|linux16.*|linux16 $IPXEPATH dhcp \\\\&\\\\& chain http://#{settings.my_ip}:#{settings.my_port}/boot?type=#{type}|' /etc/grub.d/20_ipxe
         update-grub
         # reboot
       EOT
