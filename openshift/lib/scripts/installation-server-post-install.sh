@@ -29,8 +29,8 @@ gem install --no-document bundle sinatra thin
 
 # openshift client and files
 cd /tmp
-curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-install-linux-4.3.9.tar.gz
-curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
+curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.3/openshift-client-linux-4.3.9.tar.gz
+curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.3/openshift-install-linux-4.3.9.tar.gz
 
 mkdir -p /opt/openshift
 cd /opt/openshift
