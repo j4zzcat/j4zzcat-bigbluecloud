@@ -1,9 +1,0 @@
-#! /bin/bash
-
-SCRIPT_DIR=$(cd $(dirname "${0}"); pwd -P)
-
-IMAGE_FILE=${SCRIPT_DIR}/ibmcloud-cli.dockerfile
-IMAGE_NAME=$(   cat ${IMAGE_FILE} | awk -F '"' '/image.name/{print $2}')
-IMAGE_VERSION=$(cat ${IMAGE_FILE} | awk -F '"' '/image.version/{print $2}')
-
-docker build --rm -f ${IMAGE_FILE} -t ${IMAGE_NAME}:${IMAGE_VERSION} .

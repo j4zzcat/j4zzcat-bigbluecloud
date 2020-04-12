@@ -1,9 +1,9 @@
 
-variable name           {}
-variable domain         {}
+variable cluster_name   {}
+variable cluster_domain {}
 variable l1v_region     {}
 variable l1v_zone       {}
-variable l1i_datacenter {}
+# variable l1i_datacenter {}
 
 #
 # These are read from the environment and used
@@ -24,7 +24,7 @@ provider "ibm" {
 
 # local variables
 locals {
-  fqdn           = join( ".", [ var.name, var.domain ] )
-  resource_group = join( "_", [ var.name, var.domain ] )
-  l1v_vpc        = join( "-", [ var.name, "l1v" ] )
+  fqdn           = join( ".", [ var.cluster_name, var.cluster_domain ] )
+  resource_group = join( "_", [ var.cluster_name, var.cluster_domain ] )
+  l1v_vpc        = join( "-", [ var.cluster_name, "l1v" ] )
 }

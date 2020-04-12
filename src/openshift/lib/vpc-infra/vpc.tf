@@ -1,4 +1,4 @@
-data "ibm_resource_group" "g_resource_group" {
+resource "ibm_resource_group" "resource_group" {
   name = local.resource_group
 }
 
@@ -6,7 +6,7 @@ data "ibm_resource_group" "g_resource_group" {
 resource "ibm_is_vpc" "l1v_vpc" {
   provider       = ibm.l1
   tags           = [ local.fqdn ]
-  resource_group = data.ibm_resource_group.g_resource_group.id
+  resource_group = ibm_resource_group.resource_group.id
 
   name           = local.l1v_vpc
   classic_access = "true"
@@ -61,8 +61,8 @@ resource "ibm_is_ssh_key" "l1v_admin_ssh_key" {
   tags           = [ local.fqdn ]
   resource_group = ibm_is_vpc.l1v_vpc.resource_group
 
-  name       = join( "-", [ "admin-ssh-key", var.name, "l1v" ] )
-  public_key = file( join( ".", [ var.name, "rsa.pub" ] ) )
+  name       = join( "-", [ "admin-ssh-key", var.cluster_name, "l1v" ] )
+  public_key = file( join( ".", [ var.cluster_name, "rsa.pub" ] ) )
 }
 
 # --- security groups ---
@@ -107,7 +107,7 @@ resource "ibm_is_security_group_rule" "inbound_any_to_any" {
 #   tags              = [ local.fqdn ]
 #   resource_group_id = ibm_resource_group.g_resource_group.id
 #
-#   name              = join( "-", [ var.name, "cos" ] )
+#   name              = join( "-", [ var.cluster_name, "cos" ] )
 #   service           = "cloud-object-storage"
 #   plan              = "standard"
 #   location          = "global"

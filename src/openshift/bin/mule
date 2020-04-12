@@ -4,57 +4,42 @@ require 'tempfile'
 require 'open3'
 require 'docopt'
 
-# set env variable IBMCLOUD_API_KEY with your key
 ENV[ 'IBMCLOUD_COLOR' ] = 'false'
 
   HOME_DIR = File.expand_path( "#{File.dirname __FILE__}/.." )
- STATE_DIR = Dir.pwd
-STATE_FILE = "#{STATE_DIR}/terraform.tfstate"
- VARS_FILE = "#{STATE_DIR}/terraform.tfvars"
+   RUN_DIR = Dir.pwd
+STATE_FILE = "#{RUN_DIR}/terraform.tfstate"
 
-def quit( msg )
-  puts msg
-  exit 1
+def terraform_init
+  %x[ echo 'provider "ibm" {}' > dummy.tf
+      terraform init ]
 end
 
-def load_vars_file( vars_file = VARS_FILE )
-  vars = {}
-  if File.exist? vars_file
-    File.readlines( vars_file ).each do | line |
-      k, v = line.split ' = '
-      vars[ k.to_sym ] = v.tr "\"\n", ''
+def terraform( dir, vars = nil )
+  plan_dir  = "#{HOME_DIR}/lib/#{dir}"
+  vars_file = "#{RUN_DIR}/#{dir}.auto.tfvars"
+
+  # write vars
+  if !vars.nil?
+    puts "Writing #{vars_file}..."
+    File.open vars_file, 'w' do | f |
+      vars.each do | k, v |
+        f.write "#{k} = \"#{v}\"\n"
+      end
     end
   end
-  vars
-end
-
-def store_vars_file( vars, vars_file = VARS_FILE )
-  File.open vars_file, 'w' do | f |
-    vars.each do | k, v |
-      f.write "#{k} = \"#{v}\"\n"
-    end
-  end
-end
-
-def terraform( dir, new_vars = nil )
-
-  # merge existing terraform vars with this run's vars
-  vars   = load_vars_file
-  merged = vars.merge new_vars
-  store_vars_file merged
 
   # prepare command
-  Dir.chdir "#{HOME_DIR}/#{dir}"
-  %x[ terraform init ]
-
+  puts "Running terraform..."
   cmd = <<-EOT.gsub( /\s+/, ' ' ).strip
     terraform apply
       -auto-approve
       -state #{STATE_FILE}
-      -var ibmcloud_api_key=#{ENV[ 'IBMCLOUD_API_KEY']}
-      -var-file #{VARS_FILE}
       -compact-warnings
+      #{plan_dir}
   EOT
+
+  puts cmd
 
   # run terraform
   status = nil
@@ -71,18 +56,19 @@ end # terraform
 # ---- MAIN ----
 
 usage = <<~DOC
+  NAME:
+    mule - Create simple openshift v4.3 cluster on IBM Cloud
+
   USAGE:
-    mule new cluster --name=<name> --location=<loc>... --resource-group=<grp> --ssh-key=<key>
-    mule add node    --name=<name> --type=<type> [--profile=<profile>] [--location=<loc>]
+    mule new cluster --name=<name> [--domain=<domain>] --location=<loc>...
+    mule new node    --name=<name> --type=<type>
     mule rm  node    --name=<name> [--force]
 
   OPTIONS:
     --name=<name>           The name of the newly created resource
+    --domain=<domain>       The domain of the cluster [default: openshift]
     --location=<loc>        The location of the resource, given as region:zone[:subnet]
-    --resource-group=<grp>  Add the newly created cluster to this resource group
-    --ssh-key=<key>         The name of the ssh key used to admin the resources
-    --profile=<profile>     The profile of the machine
-    --type=<type>           The type of the node, one of (bootstrap|master|worker)
+    --type=<type>           The type of the node, one of (master|worker)
   DOC
 
 begin
@@ -99,113 +85,36 @@ if options[ 'new' ]
     puts "Creating new cluster..."
 
     cluster_name   = options[ '--name' ]
-    leg_1_vpc      = cluster_name
-    resource_group = options[ '--resource-group' ]
-    ssh_key        = options[ '--ssh-key' ]
+    cluster_domain = options[ '--domain' ]
 
     locations = options[ '--location' ]
     quit 'Error, only a single location is supported at this time' if locations.size != 1
-    leg_1_region, leg_1_zone = locations[ 0 ].split ':'
+    l1v_region, l1v_zone = locations[ 0 ].split ':'
 
-    exit_status = terraform 'lib/cluster', {
+    puts "Generating new ssh key..."
+    %x[ rm -f ./#{cluster_name}.rsa ./#{cluster_name}.rsa.pub
+        ssh-keygen -t rsa -b 4096 -N "" -f ./#{cluster_name}.rsa ]
+
+    terraform_init()
+
+    terraform 'vpc-infra', {
       :cluster_name   => cluster_name,
-      :leg_1_vpc      => leg_1_vpc,
-      :leg_1_region   => leg_1_region,
-      :leg_1_zone     => leg_1_zone,
-      :resource_group => resource_group,
-      :ssh_key        => ssh_key }
+      :cluster_domain => cluster_domain,
+      :l1v_region     => l1v_region,
+      :l1v_zone       => l1v_zone }
 
+    terraform 'lib/installation-server'
+    terraform 'lib/network-server'
   end
 
 elsif options[ 'add' ]
-
-  # add node
-  if options[ 'node' ]
-    if options[ '--type' ] == 'bootstrap'
-      puts "Adding new bootstrap node..."
-
-      puts "Resolving resource ids..."
-      vars = load_vars_file
-
-      %x[ ibmcloud login --apikey #{ENV[ 'IBMCLOUD_API_KEY' ]} -r #{vars[ :leg_1_region ]}
-          ibmcloud is target --gen 2 ]
-      leg_1_subnet_1_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "subnet-1" && $8 == "#{vars[ :leg_1_vpc ]}") { print $1} }' ].chomp
-
-      exit_status = terraform 'lib/bootstrap', {
-        :leg_1_subnet_1_id => leg_1_subnet_1_id
-      }
-
-    elsif options[ '--type' ] == 'master'
-      puts "Adding new master node..."
-    elsif options[ '--type' ] == 'worker'
-      puts "Adding new worker node..."
-    else
-      puts 'Error, unrecognied node type'
-    end
-  end
+  puts 'Not implemented yet'
+  exit 1
 
 elsif options[ 'rm' ]
+  puts 'Not implemented yet'
+  exit 1
 
-  # rm node
-  if options[ 'node' ]
-    puts "Removing node..."
-  end
 end
 
 exit 0
-
-
-# if exitstatus == 0
-#   %x[ ibmcloud login --apikey #{ENV[ 'IBMCLOUD_API_KEY' ]} -r #{leg_1_region}
-#       ibmcloud is target --gen 2 ]
-#
-#   puts "Resolving resource ids..."
-#   leg_1_subnet_1_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "subnet-1" && $8 == "#{leg_1_vpc}") { print $1} }' ].chomp
-#
-#   File.open "#{STATE_DIR}/#{cluster_name}/vars.tfvars", "w" do | f |
-#     f.write <<~EOT
-#       cluster_name       = "#{cluster_name}"
-#       resource_group     = "#{resource_group}"
-#       leg_1_vpc          = "#{leg_1_vpc}"
-#       leg_1_region       = "#{leg_1_region}"
-#       leg_1_zone         = "#{leg_1_zone}"
-#       leg_1_subnet_1_id  = "#{leg_1_subnet_1_id}"
-#     EOT
-#   end
-# end
-
-
-
-
-
-# puts "Logging in..."
-# %x[ ibmcloud login --apikey #{ENV[ 'IBMCLOUD_API_KEY' ]} -r #{options[ '--region' ]}
-#     ibmcloud is target --gen 2 ]
-#
-# puts "Resolving environment..."
-# subnet_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "#{options[ '--subnet' ]}" && $8 == "#{options[ '--vpc' ]}") { print $1} }' ].chomp
-# bail "Error, can't find subnet: #{options[ '--subnet']}/#{options[ '--vpc']}/#{options[ '--region']}" if subnet_id.length == 0
-#
-# puts "region      = #{options[ '--region' ]}"
-# puts "vpc         = #{options[ '--vpc' ] }"
-# puts "subnet/id   = #{options[ '--subnet' ]}/#{subnet_id}"
-#
-# puts "Running terraform..."
-# Dir.chdir '../lib/bootstrap-server'
-#
-# %x[ terraform init ]
-#
-# cmd = <<-EOT.gsub( /\s+/, ' ' ).strip
-#   terraform apply -auto-approve
-#     -var ibmcloud_api_key=#{ENV[ 'IBMCLOUD_API_KEY']}
-#     -var region=#{options[ '--region' ]}
-#     -var vpc=#{options[ '--vpc' ] }
-#     -var subnet_id=#{subnet_id}
-#     -var ssh_key=#{options[ '--ssh-key' ]}
-# EOT
-#
-# Open3.popen2e( cmd ) do | stdin, stdout_err, wait_thread |
-#   while line = stdout_err.gets
-#     puts line
-#   end
-# end
