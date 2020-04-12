@@ -11,8 +11,11 @@ ENV[ 'IBMCLOUD_COLOR' ] = 'false'
 STATE_FILE = "#{RUN_DIR}/terraform.tfstate"
 
 def terraform_init
-  %x[ echo 'provider "ibm" {}' > dummy.tf
-      terraform init ]
+  if !File.exist? '.terraform'
+    %x[ echo 'provider "ibm" {}' > dummy.tf
+        terraform init
+        rm dummy.tf ]
+  end
 end
 
 def terraform( dir, vars = nil )

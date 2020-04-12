@@ -1,9 +1,3 @@
-data "ibm_is_vpc" "l1v_vpc" {
-}
-
-data "ibm_is_subnet" "l1v_subnet_1" {
-}
-
 data "ibm_is_image" "ubuntu_1804" {
   name = "ibm-ubuntu-18-04-64"
 }
