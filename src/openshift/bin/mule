@@ -6,9 +6,15 @@ require 'docopt'
 
 ENV[ 'IBMCLOUD_COLOR' ] = 'false'
 
-  HOME_DIR = File.expand_path( "#{File.dirname __FILE__}/.." )
-   RUN_DIR = Dir.pwd
-STATE_FILE = "#{RUN_DIR}/terraform.tfstate"
+    HOME_DIR = File.expand_path( "#{File.dirname __FILE__}/.." )
+     RUN_DIR = Dir.pwd
+  STATE_FILE = "#{RUN_DIR}/terraform.tfstate"
+SSH_KEYS_DIR = "#{RUN_DIR}/ssh-keys"
+
+def ibmcloud_cli_init( region )
+  %x[ ibmcloud login -r #{region}
+      ibmcloud is target --gen 2 ]
+end
 
 def terraform_init
   if !File.exist? '.terraform'
@@ -19,7 +25,7 @@ def terraform_init
 end
 
 def terraform( dir, vars = nil )
-  plan_dir  = "#{HOME_DIR}/lib/#{dir}"
+  plan_dir  = "#{HOME_DIR}/lib/modules/#{dir}"
   vars_file = "#{RUN_DIR}/#{dir}.auto.tfvars"
 
   # write vars
@@ -32,6 +38,11 @@ def terraform( dir, vars = nil )
     end
   end
 
+  var_files_option = ""
+  Dir.glob( "#{RUN_DIR}/*.auto.tfvars" ) do | f |
+    var_files_option += "-var-file=#{f} "
+  end
+
   # prepare command
   puts "Running terraform..."
   cmd = <<-EOT.gsub( /\s+/, ' ' ).strip
@@ -39,6 +50,7 @@ def terraform( dir, vars = nil )
       -auto-approve
       -state #{STATE_FILE}
       -compact-warnings
+      #{var_files_option}
       #{plan_dir}
   EOT
 
@@ -63,14 +75,14 @@ usage = <<~DOC
     mule - Create simple openshift v4.3 cluster on IBM Cloud
 
   USAGE:
-    mule new cluster --name=<name> [--domain=<domain>] --location=<loc>...
+    mule new cluster --name=<name> --location=<loc>... --resource-group=<rg>
     mule new node    --name=<name> --type=<type>
     mule rm  node    --name=<name> [--force]
 
   OPTIONS:
     --name=<name>           The name of the newly created resource
-    --domain=<domain>       The domain of the cluster [default: openshift]
     --location=<loc>        The location of the resource, given as region:zone[:subnet]
+    --resource-group=<rg>   The name of the resource group to put the resources in
     --type=<type>           The type of the node, one of (master|worker)
   DOC
 
@@ -87,27 +99,39 @@ if options[ 'new' ]
   if options[ 'cluster' ]
     puts "Creating new cluster..."
 
-    cluster_name   = options[ '--name' ]
-    cluster_domain = options[ '--domain' ]
+    name           = options[ '--name' ]
+    resource_group = options[ '--resource-group' ]
 
     locations = options[ '--location' ]
     quit 'Error, only a single location is supported at this time' if locations.size != 1
-    l1v_region, l1v_zone = locations[ 0 ].split ':'
+    region, zone = locations[ 0 ].split ':'
 
-    puts "Generating new ssh key..."
-    %x[ rm -f ./#{cluster_name}.rsa ./#{cluster_name}.rsa.pub
-        ssh-keygen -t rsa -b 4096 -N "" -f ./#{cluster_name}.rsa ]
+    Dir.mkdir SSH_KEYS_DIR if !File.exist? SSH_KEYS_DIR
+    admin_private_key = "#{SSH_KEYS_DIR}/#{name}.rsa"
+    admin_public_key  = "#{admin_private_key}.pub"
 
+    if !File.exist? admin_private_key
+      puts "Generating new ssh key..."
+      %x[ ssh-keygen -t rsa -b 4096 -N "" -f #{admin_private_key} ]
+    end
+
+    ibmcloud_cli_init( region )
     terraform_init()
 
     terraform 'vpc-infra', {
-      :cluster_name   => cluster_name,
-      :cluster_domain => cluster_domain,
-      :l1v_region     => l1v_region,
-      :l1v_zone       => l1v_zone }
+      :resource_group_name => resource_group,
+      :vpc_name            => name,
+      :region_name         => region,
+      :zone_name           => zone,
+      :admin_public_key    => admin_public_key }
 
-    terraform 'lib/installation-server'
-    terraform 'lib/network-server'
+    subnet_1_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "subnet-1" && $8 == "#{name}") { print $1} }' ].chomp
+
+    terraform 'installation-server', {
+      :vpc_name  => name,
+      :subnet_id => subnet_1_id
+    }
+
   end
 
 elsif options[ 'add' ]

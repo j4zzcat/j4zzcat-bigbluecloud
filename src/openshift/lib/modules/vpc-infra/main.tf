@@ -1,24 +1,26 @@
-resource "ibm_resource_group" "resource_group" {
-  name = local.resource_group
+provider "ibm" {
+  region     = var.region_name
+  generation = 2
+}
+
+data "ibm_resource_group" "resource_group" {
+  name = var.resource_group_name
 }
 
 # ---- Leg 1 VPC ----
-resource "ibm_is_vpc" "l1v_vpc" {
-  provider       = ibm.l1
-  tags           = [ local.fqdn ]
-  resource_group = ibm_resource_group.resource_group.id
+resource "ibm_is_vpc" "vpc" {
+  tags           = null
+  resource_group = data.ibm_resource_group.resource_group.id
 
-  name           = local.l1v_vpc
-  classic_access = "true"
+  name           = var.vpc_name
+  # classic_access = "true"
 }
 
-resource "ibm_is_subnet" "l1v_subnet_1" {
-  provider       = ibm.l1
-
+resource "ibm_is_subnet" "subnet_1" {
   name           = "subnet-1"
-  vpc            = ibm_is_vpc.l1v_vpc.id
-  zone           = var.l1v_zone
-  public_gateway = ibm_is_public_gateway.l1v_public_gateway.id
+  vpc            = ibm_is_vpc.vpc.id
+  zone           = var.zone_name
+  public_gateway = ibm_is_public_gateway.public_gateway.id
   total_ipv4_address_count = "256"
 }
 
@@ -45,47 +47,40 @@ resource "ibm_is_subnet" "l1v_subnet_1" {
 #   }
 # }
 
-resource "ibm_is_public_gateway" "l1v_public_gateway" {
-  provider       = ibm.l1
-  tags           = [ local.fqdn ]
-  resource_group = ibm_is_vpc.l1v_vpc.resource_group
+resource "ibm_is_public_gateway" "public_gateway" {
+  tags           = null
+  resource_group = ibm_is_vpc.vpc.resource_group
 
   name     = "public-gateway"
-  vpc      = ibm_is_vpc.l1v_vpc.id
-  zone     = var.l1v_zone
+  vpc      = ibm_is_vpc.vpc.id
+  zone     = var.zone_name
 }
 
 # --- ssh key ---
-resource "ibm_is_ssh_key" "l1v_admin_ssh_key" {
-  provider       = ibm.l1
-  tags           = [ local.fqdn ]
-  resource_group = ibm_is_vpc.l1v_vpc.resource_group
+resource "ibm_is_ssh_key" "admin_public_key" {
+  tags           = null
+  resource_group = ibm_is_vpc.vpc.resource_group
 
-  name       = join( "-", [ "admin-ssh-key", var.cluster_name, "l1v" ] )
-  public_key = file( join( ".", [ var.cluster_name, "rsa.pub" ] ) )
+  name       = join( "-", [ var.vpc_name, "admin-key" ] )
+  public_key = file( var.admin_public_key )
 }
 
 # --- security groups ---
 resource "ibm_is_security_group" "any_to_any" {
-  provider       = ibm.l1
-  resource_group = ibm_is_vpc.l1v_vpc.resource_group
+  resource_group = ibm_is_vpc.vpc.resource_group
 
   name = "any-to-any"
-  vpc  = ibm_is_vpc.l1v_vpc.id
+  vpc  = ibm_is_vpc.vpc.id
 
 }
 
 resource "ibm_is_security_group_rule" "outbound_any_to_any" {
-  provider   = ibm.l1
-
   group      = ibm_is_security_group.any_to_any.id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
 }
 
 resource "ibm_is_security_group_rule" "inbound_any_to_any" {
-  provider   = ibm.l1
-
   group      = ibm_is_security_group.any_to_any.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"

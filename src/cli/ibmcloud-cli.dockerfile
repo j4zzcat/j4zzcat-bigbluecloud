@@ -28,6 +28,7 @@ WORKDIR /tmp
 RUN curl -LO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${ARCH}.zip \
       && unzip terraform*.zip \
       && mv terraform /usr/local/bin \
+      && echo 'complete -C /usr/local/bin/terraform terraform' >> /root/.bashrc \
       && rm -rf /tmp/*
 
 # install ibm cloud terraform provider
@@ -41,7 +42,7 @@ RUN curl -LO https://github.com/IBM-Cloud/terraform-provider-ibm/releases/downlo
 RUN curl -sL https://ibm.biz/idt-installer | bash
 RUN ibmcloud cf install \
       && echo "vpc-infrastructure cis doi tke vpn cloud-dns-services cloud-databases analytics-engine machine-learning power-iaas" | xargs -n 1 ibmcloud plugin install \
-      && echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> ~/.bashrc
+      && echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> /root/.bashrc
 
 ENV IBMCLOUD_COLOR true
 WORKDIR /cwd
