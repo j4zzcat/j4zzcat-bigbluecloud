@@ -2,4 +2,4 @@
 .vagrant
 .terraform
 terraform.tfstate*
-id_rsa.pub
+*.rsa*
