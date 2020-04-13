@@ -118,7 +118,8 @@ resource "ibm_is_instance" "installation_server" {
   user_data  = <<-EOT
     #cloud-config
     runcmd:
-      - curl -sL ${local.installation_server_post_install_script_url} | bash
+      - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src
+      - bash /usr/local/src/j4zzcat-ibmcloud/src/openshift/lib/modules/installation-server/post-provision.sh
 
     power_state:
       mode: reboot
