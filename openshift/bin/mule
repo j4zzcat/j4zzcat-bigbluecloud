@@ -8,7 +8,7 @@ ENV[ 'IBMCLOUD_COLOR' ] = 'false'
 
     HOME_DIR = File.expand_path( "#{File.dirname __FILE__}/.." )
      RUN_DIR = Dir.pwd
-  STATE_FILE = "#{RUN_DIR}/terraform.tfstate"
+   STATE_DIR = "#{RUN_DIR}"
 SSH_KEYS_DIR = "#{RUN_DIR}/ssh-keys"
 
 def ibmcloud_cli_init( region )
@@ -48,7 +48,7 @@ def terraform( dir, vars = nil )
   cmd = <<-EOT.gsub( /\s+/, ' ' ).strip
     terraform apply
       -auto-approve
-      -state #{STATE_FILE}
+      -state #{STATE_DIR}/#{dir}.tfstate
       -compact-warnings
       #{var_files_option}
       #{plan_dir}
