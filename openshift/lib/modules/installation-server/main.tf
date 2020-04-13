@@ -20,10 +20,10 @@ data "ibm_is_image" "ubuntu_1804" {
 }
 
 resource "ibm_is_security_group" "installation_server" {
-  resource_group = ibm_is_vpc.vpc.resource_group
+  resource_group = data.ibm_is_vpc.vpc.resource_group
 
   name = "installation-server"
-  vpc  = ibm_is_vpc.vpc.id
+  vpc  = data.ibm_is_vpc.vpc.id
 }
 
 # TODO harden
@@ -101,7 +101,7 @@ resource "ibm_is_security_group_rule" "sinatra_rule_installation_server" {
 
 resource "ibm_is_instance" "installation_server" {
   tags           = null
-  resource_group = ibm_is_vpc.vpc.resource_group
+  resource_group = data.ibm_is_vpc.vpc.resource_group
   depends_on     = [ ibm_is_security_group.installation_server ]
 
   name       = "installation-server"
@@ -109,11 +109,11 @@ resource "ibm_is_instance" "installation_server" {
   profile    = "bx2-2x8"
   primary_network_interface {
     name     = "eth0"
-    subnet   = ibm_is_subnet.subnet_1.id
+    subnet   = data.ibm_is_subnet.subnet_1.id
     security_groups = [ ibm_is_security_group.installation_server.id ]
   }
-  vpc        = ibm_is_vpc.vpc.id
-  zone       = ibm_is_subnet.subnet_1.zone
+  vpc        = data.ibm_is_vpc.vpc.id
+  zone       = data.ibm_is_subnet.subnet_1.zone
   keys       = [ ibm_is_ssh_key.admin_public_key.id ]
   user_data  = <<-EOT
     #cloud-config
