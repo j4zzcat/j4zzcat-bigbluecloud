@@ -1,5 +1,6 @@
 .DS_Store
 .vagrant
-.terraform
+.terraform*
 terraform.tfstate*
+*.tfvars
 *.rsa*
