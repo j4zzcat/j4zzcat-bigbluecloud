@@ -128,8 +128,9 @@ if options[ 'new' ]
     subnet_1_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "subnet-1" && $8 == "#{name}") { print $1} }' ].chomp
 
     terraform 'installation-server', {
-      :vpc_name  => name,
-      :subnet_id => subnet_1_id
+      :vpc_name    => name,
+      :region_name => region,
+      :subnet_id   => subnet_1_id
     }
 
   end
