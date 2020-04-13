@@ -114,7 +114,7 @@ resource "ibm_is_instance" "installation_server" {
   }
   vpc        = data.ibm_is_vpc.vpc.id
   zone       = data.ibm_is_subnet.subnet_1.zone
-  keys       = [ ibm_is_ssh_key.admin_public_key.id ]
+  keys       = [ data.ibm_is_ssh_key.admin_public_key.id ]
   user_data  = <<-EOT
     #cloud-config
     runcmd:
@@ -126,12 +126,11 @@ resource "ibm_is_instance" "installation_server" {
       timeout: 1
       condition: True
     EOT
-
 }
 
 resource "ibm_is_floating_ip" "installation_server" {
   tags           = null
-  resource_group = ibm_is_vpc.vpc.resource_group
+  resource_group = data.ibm_is_vpc.vpc.resource_group
   depends_on     = [ ibm_is_instance.installation_server ]
 
   name   = "installation-server"
