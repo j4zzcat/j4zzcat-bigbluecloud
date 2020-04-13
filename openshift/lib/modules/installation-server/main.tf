@@ -119,7 +119,7 @@ resource "ibm_is_instance" "installation_server" {
     #cloud-config
     runcmd:
       - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src
-      - bash /usr/local/src/j4zzcat-ibmcloud/src/openshift/lib/modules/installation-server/post-provision.sh
+      - bash /usr/local/src/j4zzcat-ibmcloud/openshift/lib/modules/installation-server/post-provision.sh
 
     power_state:
       mode: reboot
