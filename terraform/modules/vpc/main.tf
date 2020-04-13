@@ -1,17 +1,5 @@
-provider "ibm" {
-  region     = var.region_name
-  generation = 2
-}
-
-data "ibm_resource_group" "resource_group" {
-  name = var.resource_group_name
-}
-
-# ---- Leg 1 VPC ----
 resource "ibm_is_vpc" "vpc" {
-  tags           = null
-  resource_group = data.ibm_resource_group.resource_group.id
-
+  resource_group = var.resource_group.id
   name           = var.vpc_name
   # classic_access = "true"
 }
@@ -64,7 +52,6 @@ resource "ibm_is_ssh_key" "admin_public_key" {
   name       = join( "-", [ var.vpc_name, "admin-key" ] )
   public_key = file( var.admin_public_key )
 }
-
 
 # ---- cloud object storage ---
 # resource "ibm_iam_authorization_policy" "l1v_vpc_image_reader_g_cos" {

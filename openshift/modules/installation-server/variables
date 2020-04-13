@@ -1,0 +1,5 @@
+variable resource_group         = {}
+variable vpc_id                 = {}
+variable zone_name              = {}
+variable subnet_id              = {}
+variable admin_public_key       = {}
