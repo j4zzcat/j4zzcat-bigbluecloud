@@ -33,7 +33,13 @@ def terraform( dir, vars = nil )
     puts "Writing #{vars_file}..."
     File.open vars_file, 'w' do | f |
       vars.each do | k, v |
-        f.write "#{k} = \"#{v}\"\n"
+        if v.is_a? Hash
+          v_s = ""
+          v.each { | k1, v1 | v_s += "#{k1} = \"#{v1}\"\n" }
+          f.write "#{k} = {\n#{v_s}}"
+        else
+          f.write "#{k} = \"#{v}\"\n"
+        end
       end
     end
   end
@@ -118,24 +124,33 @@ if options[ 'new' ]
     ibmcloud_cli_init( region )
     terraform_init()
 
-    # terraform 'vpc-infra', {
-    #   :resource_group_name => resource_group,
-    #   :vpc_name            => name,
-    #   :region_name         => region,
-    #   :zone_name           => zone,
-    #   :admin_public_key    => admin_public_key }
+    terraform 'vpc-infra', {
+      :resource_group_name => resource_group,
+      :vpc_name            => name,
+      :region_name         => region,
+      :zone_name           => zone,
+      :admin_public_key    => admin_public_key }
 
     subnet_1_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "subnet-1" && $8 == "#{name}") { print $1} }' ].chomp
 
-    # terraform 'installation-server', {
-    #   :vpc_name    => name,
-    #   :region_name => region,
-    #   :subnet_id   => subnet_1_id }
+    # workaround for https://github.com/IBM-Cloud/terraform-provider-ibm/issues/1292
+    security_groups_map = {}
+    %x[ ibmcloud is sgs | awk '$5 == "#{name}"' | awk '{print $2" "$1}' ].chomp.each_line do | line |
+      name, id = line.split
+      security_groups_map[ name.to_sym ] = id
+    end
+
+    terraform 'installation-server', {
+      :vpc_name            => name,
+      :region_name         => region,
+      :subnet_id           => subnet_1_id,
+      :security_groups_map => security_groups_map }
 
     terraform 'network-server', {
-      :vpc_name    => name,
-      :region_name => region,
-      :subnet_id   => subnet_1_id }
+      :vpc_name            => name,
+      :region_name         => region,
+      :subnet_id           => subnet_1_id ,
+      :security_groups_map => security_groups_map }
   end
 
 elsif options[ 'add' ]

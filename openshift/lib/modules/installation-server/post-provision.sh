@@ -15,19 +15,19 @@ apt-get \
   --allow-change-held-packages \
   -y dist-upgrade
 
-# pxe prereqs
+# install ipxe prereqs
 apt-get install -y mc vim ruby2.5-dev apache2 gcc g++ make binutils liblzma-dev mtools mkisofs syslinux isolinux xorriso qemu-kvm
 
-# ipxe
+# install and build ipxe
 mkdir -p /usr/local/src
 git clone https://github.com/ipxe/ipxe /usr/local/src/ipxe
 cd /usr/local/src/ipxe/src
 make
 
-# sinatra
+# install sinatra
 gem install --no-document bundle sinatra thin
 
-# openshift client and files
+# install openshift client and files
 cd /tmp
 curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.3/openshift-client-linux-4.3.9.tar.gz
 curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.3/openshift-install-linux-4.3.9.tar.gz

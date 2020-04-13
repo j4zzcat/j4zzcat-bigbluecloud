@@ -19,14 +19,8 @@ data "ibm_is_image" "ubuntu_1804" {
   name = "ibm-ubuntu-18-04-64"
 }
 
-data "ibm_is_security_group" "serve_http_https" {
-  name = "serve_http_https"
-}
-
 resource "ibm_is_instance" "installation_server" {
-  tags           = null
   resource_group = data.ibm_is_vpc.vpc.resource_group
-  depends_on     = [ ibm_is_security_group.installation_server ]
 
   name       = "installation-server"
   image      = data.ibm_is_image.ubuntu_1804.id
@@ -34,7 +28,13 @@ resource "ibm_is_instance" "installation_server" {
   primary_network_interface {
     name     = "eth0"
     subnet   = data.ibm_is_subnet.subnet_1.id
-    security_groups = [ data.ibm_is_security_group.serve_http_https.id ]
+    security_groups = [
+      var.security_groups_map[ "allow-outbound-any" ],
+      var.security_groups_map[ "allow-inbound-ping" ],
+      var.security_groups_map[ "allow-inbound-ssh" ],
+      var.security_groups_map[ "allow-inbound-http-https" ],
+      ibm_is_security_group.allow_inbound_tcp_7080.id
+    ]
   }
   vpc        = data.ibm_is_vpc.vpc.id
   zone       = data.ibm_is_subnet.subnet_1.zone
@@ -53,11 +53,9 @@ resource "ibm_is_instance" "installation_server" {
 }
 
 resource "ibm_is_floating_ip" "installation_server" {
-  tags           = null
   resource_group = data.ibm_is_vpc.vpc.resource_group
   depends_on     = [ ibm_is_instance.installation_server ]
 
   name   = "installation-server"
   target = ibm_is_instance.installation_server.primary_network_interface[ 0 ].id
-
 }

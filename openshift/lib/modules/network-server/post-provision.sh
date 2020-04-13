@@ -15,7 +15,7 @@ apt-get \
   --allow-change-held-packages \
   -y dist-upgrade
 
-# dnsmasq
+# install and configure dnsmasq
 systemctl stop systemd-resolved
 systemctl disable systemd-resolved
 rm /etc/resolv.conf
