@@ -1,27 +1,103 @@
-# vpc
-resource "ibm_is_instance" "l1vs1_network_server" {
-  provider       = ibm.l1
-  tags           = [ local.fqdn, "l1v", "s1" ]
-  resource_group = ibm_is_vpc.l1v_vpc.resource_group
+provider "ibm" {
+  region     = var.region_name
+  generation = 2
+}
 
+data "ibm_is_vpc" "vpc" {
+  name = var.vpc_name
+}
 
-  name       = "network-server-l1vs1"
+data "ibm_is_subnet" "subnet_1" {
+  identifier = var.subnet_id
+}
+
+data "ibm_is_ssh_key" "admin_public_key" {
+  name = join( "-", [ var.vpc_name, "admin-key" ] )
+}
+
+data "ibm_is_image" "ubuntu_1804" {
+  name = "ibm-ubuntu-18-04-64"
+}
+
+resource "ibm_is_security_group" "network_server" {
+  resource_group = data.ibm_is_vpc.vpc.resource_group
+
+  name = "network-server"
+  vpc  = data.ibm_is_vpc.vpc.id
+}
+
+# TODO harden
+resource "ibm_is_security_group_rule" "outbound_rule" {
+  group      = ibm_is_security_group.network_server.id
+  direction  = "outbound"
+  remote     = "0.0.0.0/0"
+}
+
+resource "ibm_is_security_group_rule" "ssh_rule_installation_server" {
+  group      = ibm_is_security_group.network_server.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 22
+    port_max = 22
+  }
+}
+
+resource "ibm_is_security_group_rule" "icmp_rule_network_server" {
+  group      = ibm_is_security_group.network_server.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  icmp {
+    code = 0
+    type = 8
+  }
+}
+
+resource "ibm_is_security_group_rule" "dns_rule_network_server" {
+  group      = ibm_is_security_group.network_server.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 53
+    port_max = 53
+  }
+}
+
+resource "ibm_is_security_group_rule" "dhcp_network_server" {
+  group      = ibm_is_security_group.network_server.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  udp {
+    port_min = 67
+    port_max = 67
+  }
+}
+
+resource "ibm_is_instance" "network_server" {
+  resource_group = data.ibm_is_vpc.vpc.resource_group
+
+  name       = "network-server"
   image      = data.ibm_is_image.ubuntu_1804.id
   profile    = "bx2-2x8"
 
   primary_network_interface {
     name     = "eth0"
-    subnet   = ibm_is_subnet.l1v_subnet_1.id
-    security_groups = [ ibm_is_security_group.any_to_any.id ]
+    subnet   = data.ibm_is_subnet.subnet_1.id
+    security_groups = [ ibm_is_security_group.network_server.id ]
   }
 
-  vpc        = ibm_is_vpc.l1v_vpc.id
-  zone       = ibm_is_subnet.l1v_subnet_1.zone
-  keys       = [ ibm_is_ssh_key.l1v_admin_ssh_key.id ]
+  vpc        = data.ibm_is_vpc.vpc.id
+  zone       = data.ibm_is_subnet.subnet_1.zone
+  keys       = [ data.ibm_is_ssh_key.admin_public_key.id ]
   user_data  = <<-EOT
     #cloud-config
     runcmd:
-      - curl -Ls ${local.network_server_post_install_script_url} | bash
+      - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
+      - bash /usr/local/src/j4zzcat-ibmcloud/openshift/lib/modules/network-server/post-provision.sh
 
     power_state:
       mode: reboot
@@ -31,13 +107,11 @@ resource "ibm_is_instance" "l1vs1_network_server" {
 }
 
 resource "ibm_is_floating_ip" "l1vs1_network_server_fip" {
-  provider       = ibm.l1
-  tags           = [ local.fqdn, "l1v", "s1" ]
-  resource_group = ibm_is_vpc.l1v_vpc.resource_group
-  depends_on     = [ ibm_is_instance.l1vs1_network_server ]
+  resource_group = data.ibm_is_vpc.vpc.resource_group
+  depends_on     = [ ibm_is_instance.network_server ]
 
-  name   = "network-server-l1vs1"
-  target = ibm_is_instance.l1vs1_network_server.primary_network_interface[ 0 ].id
+  name   = "network-server"
+  target = ibm_is_instance.network_server.primary_network_interface[ 0 ].id
 }
 
 # iaas

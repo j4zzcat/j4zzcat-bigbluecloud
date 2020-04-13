@@ -65,25 +65,6 @@ resource "ibm_is_ssh_key" "admin_public_key" {
   public_key = file( var.admin_public_key )
 }
 
-# --- security groups ---
-resource "ibm_is_security_group" "any_to_any" {
-  resource_group = ibm_is_vpc.vpc.resource_group
-
-  name = "any-to-any"
-  vpc  = ibm_is_vpc.vpc.id
-}
-
-resource "ibm_is_security_group_rule" "outbound_any_to_any" {
-  group      = ibm_is_security_group.any_to_any.id
-  direction  = "outbound"
-  remote     = "0.0.0.0/0"
-}
-
-resource "ibm_is_security_group_rule" "inbound_any_to_any" {
-  group      = ibm_is_security_group.any_to_any.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-}
 
 # ---- cloud object storage ---
 # resource "ibm_iam_authorization_policy" "l1v_vpc_image_reader_g_cos" {

@@ -118,20 +118,24 @@ if options[ 'new' ]
     ibmcloud_cli_init( region )
     terraform_init()
 
-    terraform 'vpc-infra', {
-      :resource_group_name => resource_group,
-      :vpc_name            => name,
-      :region_name         => region,
-      :zone_name           => zone,
-      :admin_public_key    => admin_public_key }
+    # terraform 'vpc-infra', {
+    #   :resource_group_name => resource_group,
+    #   :vpc_name            => name,
+    #   :region_name         => region,
+    #   :zone_name           => zone,
+    #   :admin_public_key    => admin_public_key }
 
     subnet_1_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "subnet-1" && $8 == "#{name}") { print $1} }' ].chomp
 
-    terraform 'installation-server', {
+    # terraform 'installation-server', {
+    #   :vpc_name    => name,
+    #   :region_name => region,
+    #   :subnet_id   => subnet_1_id }
+
+    terraform 'network-server', {
       :vpc_name    => name,
       :region_name => region,
       :subnet_id   => subnet_1_id }
-
   end
 
 elsif options[ 'add' ]
