@@ -39,10 +39,11 @@ resource "ibm_is_instance" "network_server" {
   zone       = data.ibm_is_subnet.subnet_1.zone
   keys       = [ data.ibm_is_ssh_key.admin_public_key.id ]
   user_data  = <<-EOT
-  #cloud-config
-  runcmd:
-    - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
-    - bash /usr/local/src/j4zzcat-ibmcloud/openshift/lib/modules/network-server/post-provision.sh
+    #cloud-config
+    runcmd:
+      - timeout 1m bash -c 'while :; do ping -c 1 github.com && break; done'
+      - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
+      - bash /usr/local/src/j4zzcat-ibmcloud/openshift/lib/modules/network-server/post-provision.sh
 
     power_state:
       mode: reboot

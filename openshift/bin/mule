@@ -26,7 +26,7 @@ end
 
 def terraform( dir, vars = nil )
   plan_dir  = "#{HOME_DIR}/lib/modules/#{dir}"
-  vars_file = "#{RUN_DIR}/#{dir}.auto.tfvars"
+  vars_file = "#{RUN_DIR}/#{dir}.tfvars"
 
   # write vars
   if !vars.nil?
@@ -45,8 +45,8 @@ def terraform( dir, vars = nil )
   end
 
   var_files_option = ""
-  Dir.glob( "#{RUN_DIR}/*.auto.tfvars" ) do | f |
-    var_files_option += "-var-file=#{f} "
+  Dir.glob( "#{RUN_DIR}/*.tfvars" ) do | f |
+    var_files_option += "-var-file=#{File.basename f} "
   end
 
   # prepare command
@@ -124,12 +124,12 @@ if options[ 'new' ]
     ibmcloud_cli_init( region )
     terraform_init()
 
-    terraform 'vpc-infra', {
-      :resource_group_name => resource_group,
-      :vpc_name            => name,
-      :region_name         => region,
-      :zone_name           => zone,
-      :admin_public_key    => admin_public_key }
+    # terraform 'vpc-infra', {
+    #   :resource_group_name => resource_group,
+    #   :vpc_name            => name,
+    #   :region_name         => region,
+    #   :zone_name           => zone,
+    #   :admin_public_key    => admin_public_key }
 
     subnet_1_id = %x[ ibmcloud is subnets | tail -n +3 | awk '{ if ($2 == "subnet-1" && $8 == "#{name}") { print $1} }' ].chomp
 

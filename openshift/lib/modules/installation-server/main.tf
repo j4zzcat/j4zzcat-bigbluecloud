@@ -42,6 +42,7 @@ resource "ibm_is_instance" "installation_server" {
   user_data  = <<-EOT
     #cloud-config
     runcmd:
+      - timeout 1m bash -c 'while :; do ping -c 1 github.com && break; done'
       - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
       - bash /usr/local/src/j4zzcat-ibmcloud/openshift/lib/modules/installation-server/post-provision.sh
 
