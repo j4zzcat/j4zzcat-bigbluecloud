@@ -45,7 +45,7 @@ module "network_server_instance" {
 module "haproxy_masters_instance" {
  source = "./modules/haproxy"
 
- name                     = "haproxy_masters"
+ name                     = "masters"
  vpc_name                 = var.vpc_name
  subnet_id                = module.vpc_instance.default_subnet.id
  resource_group_id        = data.ibm_resource_group.resource_group.id
@@ -56,7 +56,7 @@ module "haproxy_masters_instance" {
 module "haproxy_workers_instance" {
  source = "./modules/haproxy_server"
 
- name                     = "haproxy_workers"
+ name                     = "workers"
  vpc_name                 = var.vpc_name
  subnet_id                = module.vpc_instance.default_subnet.id
  resource_group_id        = data.ibm_resource_group.resource_group.id

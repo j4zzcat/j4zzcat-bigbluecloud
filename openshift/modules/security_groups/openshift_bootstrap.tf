@@ -6,17 +6,6 @@ resource "ibm_is_security_group" "allow_inbound_openshift_bootstrap" {
   vpc  = data.ibm_is_vpc.vpc.id
 }
 
-resource "ibm_is_security_group_rule" "tcp_6443_rule" {
-  group      = ibm_is_security_group.allow_inbound_openshift_bootstrap.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 6443
-    port_max = 6443
-  }
-}
-
 resource "ibm_is_security_group_rule" "tcp_22623_rule" {
   group      = ibm_is_security_group.allow_inbound_openshift_bootstrap.id
   direction  = "inbound"

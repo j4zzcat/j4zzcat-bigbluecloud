@@ -5,7 +5,7 @@ data "ibm_is_vpc" "vpc" {
 module "haproxy_server" {
   source = "../../../terraform/modules/server"
 
-  name              = var.name
+  name              = join( "-", [ "haproxy", var.name ] )
   vpc_name          = var.vpc_name
   subnet_id         = var.subnet_id
   key_id            = var.key_id
@@ -16,7 +16,8 @@ module "haproxy_server" {
     var.standard_security_groups[ "allow_inbound_ping" ],
     var.standard_security_groups[ "allow_inbound_ssh" ],
     var.standard_security_groups[ "allow_inbound_http_https" ],
-    ibm_is_security_group.allow_inbound_openshift_bootstrap
+    ibm_is_security_group.allow_inbound_openshift_bootstrap,
+    ibm_is_security_group.allow_inbound_openshift_internode
   ]
 
   user_data = <<EOT
