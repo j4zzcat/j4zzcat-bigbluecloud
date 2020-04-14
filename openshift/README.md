@@ -24,33 +24,36 @@ docker run -it --rm \
   -e IAAS_CLASSIC_TIMEOUT=60 \
   ibmcloud/cli:1.0
 ```
-The rest of the guide has to be executed within the docker container. 
+The rest of the guide has to be executed within the docker container.
 
 ### Test that you can login
 ```
 ibmcloud login
 ```
 
-### Update configuration
+### Update the configuration
 Generate a new ssh key. This key will be provisioned onto every server allowing you to remotely login to the server.
 ```
 mkdir /repo/openshift/keys
 ssh-keygen -t rsa -b 4096 -N "" -f /repo/openshift/keys/admin_key.rsa
 ```
 
-Edit the file `/repo/openshift/main.auto.tfvars` and set the name of the openshift cluster, the resource group and the admin ssh public key. Note that the specified resource group should already exist. For example:
+Edit the file `/repo/openshift/main.auto.tfvars` and set the name of the openshift cluster, location, the resource group etc. Note that the specified resource group should already exist. For example:
 ```
 # file main.auto.tfvars
-resource_group_name = "peto"
 name                = "openshift"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
+resource_group_name = "peto"
 admin_public_key    = "/repo/openshift/keys/admin_key.rsa.pub"
 ```
 
+Update the openshift configuration file TBD
 
-
-
-
-
-Edit the file <root of repository>
+### Provision the infrastructure
+```
+cd /repo/openshift
+terraform init
+terraform apply -target=module.vpc
+terraform apply
+```

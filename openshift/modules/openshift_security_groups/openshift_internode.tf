@@ -2,7 +2,7 @@
 resource "ibm_is_security_group" "allow_inbound_openshift_internode" {
   resource_group = var.resource_group_id
 
-  name = "allow-inbound-openshift-bootstrap"
+  name = "allow-inbound-openshift-internode"
   vpc  = data.ibm_is_vpc.vpc.id
 }
 
