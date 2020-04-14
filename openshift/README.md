@@ -38,11 +38,11 @@ mkdir /repo/openshift/keys
 ssh-keygen -t rsa -b 4096 -N "" -f /repo/openshift/keys/admin_key.rsa
 ```
 
-Edit the file /repo/openshift/main.auto.tfvars and set the cluster name, resource group and the admin ssh public key.
-For example:
+Edit the file `/repo/openshift/main.auto.tfvars` and set the name of the openshift cluster, the resource group and the admin ssh public key. Note that the specified resource group should already exist. For example:
 ```
+# file main.auto.tfvars
 resource_group_name = "peto"
-name                = "openshift-cluster"
+name                = "openshift"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
 admin_public_key    = "/repo/openshift/keys/admin_key.rsa.pub"
