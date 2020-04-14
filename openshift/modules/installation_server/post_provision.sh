@@ -28,8 +28,10 @@ gem install --no-document bundle sinatra thin
 
 # install openshift client and files
 cd /tmp
-curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.3/openshift-client-linux.tar.gz
-curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.3/openshift-install-linux.tar.gz
+for file in openshift-client-linux.tar.gz openshift-install-linux.tar.gz sha256sum.txt sha256sum.txt.sig; do
+  curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.3/${file}
+done
+# TODO verify sha and sig
 gzip -d openshift*
 
 mkdir -p /opt/openshift

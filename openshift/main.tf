@@ -41,3 +41,25 @@ module "network_server_instance" {
  key_id                   = module.vpc_instance.default_admin_key.id
  standard_security_groups = module.vpc_instance.standard_security_groups
 }
+
+module "haproxy_masters_instance" {
+ source = "./modules/haproxy"
+
+ name                     = "haproxy_masters"
+ vpc_name                 = var.vpc_name
+ subnet_id                = module.vpc_instance.default_subnet.id
+ resource_group_id        = data.ibm_resource_group.resource_group.id
+ key_id                   = module.vpc_instance.default_admin_key.id
+ standard_security_groups = module.vpc_instance.standard_security_groups
+}
+
+module "haproxy_workers_instance" {
+ source = "./modules/haproxy_server"
+
+ name                     = "haproxy_workers"
+ vpc_name                 = var.vpc_name
+ subnet_id                = module.vpc_instance.default_subnet.id
+ resource_group_id        = data.ibm_resource_group.resource_group.id
+ key_id                   = module.vpc_instance.default_admin_key.id
+ standard_security_groups = module.vpc_instance.standard_security_groups
+}
