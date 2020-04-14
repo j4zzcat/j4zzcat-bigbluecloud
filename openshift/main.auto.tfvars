@@ -1,0 +1,5 @@
+resource_group_name = "peto"
+vpc_name            = "peto"
+region_name         = "eu-gb"
+zone_name           = "eu-gb-1"
+admin_public_key    = "./keys/admin-ssh-key.rsa.pub"

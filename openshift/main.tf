@@ -23,7 +23,9 @@ module "vpc" {
 }
 
 module "openshift_security_groups" {
-  source = "./modules/openshift_security_groups"
+  source            = "./modules/openshift_security_groups"
+  vpc_name          = var.vpc_name
+  resource_group_id = data.ibm_resource_group.resource_group.id
 }
 
 module "installation_server" {
@@ -47,23 +49,24 @@ module "network_server" {
 }
 
 module "haproxy_masters" {
- source = "./modules/haproxy"
-
- name                     = "masters"
- vpc_name                 = var.vpc_name
- subnet_id                = module.vpc.default_subnet.id
- resource_group_id        = data.ibm_resource_group.resource_group.id
- key_id                   = module.vpc.default_admin_key.id
- standard_security_groups = module.vpc.standard_security_groups
-}
-
-module "haproxy_workers" {
  source = "./modules/haproxy_server"
 
- name                     = "workers"
- vpc_name                 = var.vpc_name
- subnet_id                = module.vpc.default_subnet.id
- resource_group_id        = data.ibm_resource_group.resource_group.id
- key_id                   = module.vpc.default_admin_key.id
- standard_security_groups = module.vpc.standard_security_groups
+ name                      = "masters"
+ vpc_name                  = var.vpc_name
+ subnet_id                 = module.vpc.default_subnet.id
+ resource_group_id         = data.ibm_resource_group.resource_group.id
+ key_id                    = module.vpc.default_admin_key.id
+ standard_security_groups  = module.vpc.standard_security_groups
+ openshift_security_groups = module.openshift_security_groups.openshift_security_groups
 }
+
+# module "haproxy_workers" {
+#  source = "./modules/haproxy_server"
+#
+#  name                     = "workers"
+#  vpc_name                 = var.vpc_name
+#  subnet_id                = module.vpc.default_subnet.id
+#  resource_group_id        = data.ibm_resource_group.resource_group.id
+#  key_id                   = module.vpc.default_admin_key.id
+#  standard_security_groups = module.vpc.standard_security_groups
+# }

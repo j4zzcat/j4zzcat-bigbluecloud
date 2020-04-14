@@ -16,8 +16,8 @@ module "haproxy_server" {
     var.standard_security_groups[ "allow_inbound_ping" ],
     var.standard_security_groups[ "allow_inbound_ssh" ],
     var.standard_security_groups[ "allow_inbound_http_https" ],
-    ibm_is_security_group.allow_inbound_openshift_bootstrap,
-    ibm_is_security_group.allow_inbound_openshift_internode
+    var.openshift_security_groups[ "allow_inbound_openshift_bootstrap" ],
+    var.openshift_security_groups[ "allow_inbound_openshift_internode" ]
   ]
 
   user_data = <<EOT

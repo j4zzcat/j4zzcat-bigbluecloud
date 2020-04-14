@@ -2,6 +2,4 @@
 .vagrant
 .terraform*
 terraform.tfstate*
-*.tfvars
 *.rsa*
-testbed
