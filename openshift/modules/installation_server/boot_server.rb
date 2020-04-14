@@ -1,9 +1,11 @@
 require 'sinatra/base'
 
+PORT = '7080'
+
 class BootstrapServer
   def run
     WebApp.set :my_ip, %x[ ip address show dev ens3 | awk '/inet /{print $2}' ].chomp.split( '/' )[ 0 ]
-    WebApp.set :my_port, '7080'
+    WebApp.set :my_port, PORT
 
     # 172.168.0.8 coreos.inst=yes coreos.inst.install_dev=sda coreos.inst.image_url=http://172.18.0.7/rhcos/metal.x86_64.raw.gz coreos.inst.ignition_url=http://172.18.0.7/rhcos/config.ign ip=dhcp
     # 172.168.0.8 master_config.ign
@@ -12,7 +14,7 @@ class BootstrapServer
     Rack::Server.start( {
       server: 'thin',
       Host:   '0.0.0.0',
-      Port:   '7080',
+      Port:   PORT,
       app: Rack::Builder.app do
         map '/' do
           run WebApp.new
@@ -28,7 +30,7 @@ class BootstrapServer
       enable :logging
     end
 
-    get '/prepare' do
+    get '/prepare/:type' do
       type = params[ 'type' ]
       return <<~EOT
         apt update
@@ -41,7 +43,7 @@ class BootstrapServer
       EOT
     end
 
-    get '/boot' do
+    get '/boot/:type' do
       type = params[ 'type' ]
       return <<~EOT
         #!ipxe

@@ -2,7 +2,6 @@ data "ibm_is_vpc" "vpc" {
   name = var.vpc_name
 }
 
-
 # --- allow inbound TCP 7080 ---
 resource "ibm_is_security_group" "allow_inbound_tcp_7080" {
   resource_group = var.resource_group_id

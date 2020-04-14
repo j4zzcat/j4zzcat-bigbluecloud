@@ -1,7 +1,7 @@
 # proper upgrade
 apt update
-rm /boot/grub/menu.lst \
-ucf --purge /var/run/grub/menu.lst \
+rm /boot/grub/menu.lst
+ucf --purge /var/run/grub/menu.lst
 update-grub-legacy-ec2 -y
 ucf --purge /etc/ssh/sshd_config
 
