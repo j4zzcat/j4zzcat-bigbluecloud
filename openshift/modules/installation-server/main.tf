@@ -1,9 +1,14 @@
+data "ibm_is_vpc" "vpc" {
+  name = var.vpc_name
+}
+
+
 # --- allow inbound TCP 7080 ---
 resource "ibm_is_security_group" "allow_inbound_tcp_7080" {
   resource_group = var.resource_group_id
 
   name = "allow-inbound-tcp-7080"
-  vpc  = var.vpc_id
+  vpc  = data.ibm_is_vpc.vpc.id
 }
 
 resource "ibm_is_security_group_rule" "tcp_7080_rule" {
@@ -21,7 +26,7 @@ module "installation-server" {
   source = "../../../terraform/modules/server"
 
   name              = "installation-server"
-  vpc_id            = var.vpc_id
+  vpc_name          = var.vpc_name
   subnet_id         = var.subnet_id
   key_id            = var.key_id
   resource_group_id = var.resource_group_id
@@ -39,7 +44,7 @@ module "installation-server" {
 runcmd:
 - timeout 1m bash -c 'while :; do ping -c 1 github.com && break; done'
 - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
-- bash /usr/local/src/j4zzcat-ibmcloud/openshift/lib/installation-server/post-provision.sh
+- bash /usr/local/src/j4zzcat-ibmcloud/openshift/modules/installation-server/post-provision.sh
 power_state:
 mode: reboot
 timeout: 1

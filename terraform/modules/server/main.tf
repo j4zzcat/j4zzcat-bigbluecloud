@@ -1,3 +1,7 @@
+data "ibm_is_vpc" "vpc" {
+  name = var.vpc_name
+}
+
 data "ibm_is_subnet" "subnet" {
   identifier = var.subnet_id
 }
@@ -12,7 +16,7 @@ resource "ibm_is_instance" "server" {
   name           = var.name
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
-  vpc            = var.vpc_id
+  vpc            = data.ibm_is_vpc.vpc.id
   zone           = data.ibm_is_subnet.subnet.zone
   keys           = [ var.key_id ]
   user_data      = var.user_data
@@ -26,6 +30,6 @@ resource "ibm_is_instance" "server" {
 
 resource "ibm_is_floating_ip" "server_fip" {
   resource_group = var.resource_group_id
-  name           = ibm_is_instance.server.name
+  name           = join( "-", [ var.vpc_name, ibm_is_instance.server.name, "fip" ] )
   target         = ibm_is_instance.server.primary_network_interface[ 0 ].id
 }

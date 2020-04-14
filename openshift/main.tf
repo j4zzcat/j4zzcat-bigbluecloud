@@ -25,7 +25,7 @@ module "vpc" {
 module "installation-server" {
  source = "./modules/installation-server"
 
- vpc_id                   = module.vpc.id
+ vpc_name                 = var.vpc_name
  subnet_id                = module.vpc.default_subnet.id
  resource_group_id        = data.ibm_resource_group.this_resource_group.id
  key_id                   = module.vpc.default_admin_key.id
