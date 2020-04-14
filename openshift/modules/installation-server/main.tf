@@ -1,9 +1,9 @@
 # --- allow inbound TCP 7080 ---
 resource "ibm_is_security_group" "allow_inbound_tcp_7080" {
-  resource_group = var.resource_group
+  resource_group = var.resource_group_id
 
   name = "allow-inbound-tcp-7080"
-  vpc  = module.vpc.id
+  vpc  = var.vpc_id
 }
 
 resource "ibm_is_security_group_rule" "tcp_7080_rule" {
@@ -20,18 +20,17 @@ resource "ibm_is_security_group_rule" "tcp_7080_rule" {
 module "installation-server" {
   source = "../../../terraform/modules/server"
 
-  name             = "installation-server"
-  vpc_id           = var.vpc_id
-  zone_name        = var.zone_name
-  subnet_id        = var.subnet_id
-  admin_public_key = var.admin_public_key
-  resource_group   = var.resource_group
+  name              = "installation-server"
+  vpc_id            = var.vpc_id
+  subnet_id         = var.subnet_id
+  key_id            = var.key_id
+  resource_group_id = var.resource_group_id
 
   security_groups  = [
-    var.common_security_groups[ "allow_outbound_any" ],
-    var.common_security_groups[ "allow_inbound_ping" ],
-    var.common_security_groups[ "allow_inbound_ssh" ],
-    var.common_security_groups[ "allow_inbound_http_https" ],
+    var.standard_security_groups[ "allow_outbound_any" ],
+    var.standard_security_groups[ "allow_inbound_ping" ],
+    var.standard_security_groups[ "allow_inbound_ssh" ],
+    var.standard_security_groups[ "allow_inbound_http_https" ],
     ibm_is_security_group.allow_inbound_tcp_7080.id
   ]
 

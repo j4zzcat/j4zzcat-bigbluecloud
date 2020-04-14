@@ -1,5 +1,13 @@
-output "subnet_1_id" {
-  value = ibm_is_subnet.subnet_1.id
+output "id" {
+  value = ibm_is_vpc.vpc.id
+}
+
+output "default_subnet" {
+  value = ibm_is_subnet.default_subnet
+}
+
+output "default_admin_key" {
+  value = ibm_is_ssh_key.default_admin_key
 }
 
 output "standard_security_groups" {

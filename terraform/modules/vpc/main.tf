@@ -1,11 +1,11 @@
 resource "ibm_is_vpc" "vpc" {
-  resource_group = var.resource_group.id
-  name           = var.vpc_name
-  # classic_access = "true"
+  resource_group = var.resource_group_id
+  name           = var.name
+  classic_access = var.classic_access
 }
 
-resource "ibm_is_subnet" "subnet_1" {
-  name           = "subnet-1"
+resource "ibm_is_subnet" "default_subnet" {
+  name           = "default-subnet"
   vpc            = ibm_is_vpc.vpc.id
   zone           = var.zone_name
   public_gateway = ibm_is_public_gateway.public_gateway.id
@@ -45,12 +45,12 @@ resource "ibm_is_public_gateway" "public_gateway" {
 }
 
 # --- ssh key ---
-resource "ibm_is_ssh_key" "admin_public_key" {
+resource "ibm_is_ssh_key" "default_admin_key" {
   tags           = null
   resource_group = ibm_is_vpc.vpc.resource_group
 
-  name       = join( "-", [ var.vpc_name, "admin-key" ] )
-  public_key = file( var.admin_public_key )
+  name       = join( "-", [ var.name, "default-admin-key" ] )
+  public_key = file( var.default_admin_key )
 }
 
 # ---- cloud object storage ---

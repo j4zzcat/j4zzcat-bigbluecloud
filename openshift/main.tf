@@ -18,15 +18,16 @@ module "vpc" {
 
   name              = var.vpc_name
   zone_name         = var.zone_name
+  default_admin_key = var.admin_public_key
   resource_group_id = data.ibm_resource_group.this_resource_group.id
 }
 
-# module "installation-server" {
-#   source = "./modules/installation-server"
-#
-#   vpc_id            = module.vpc.id
-#   zone_name         = var.zone_name
-#   subnet_id         = module.vpc.subnet_1.id
-#   admin_public_key  = var.admin_public_key
-#   resource_group_id = data.ibm_resource_group.this_resource_group.id
-# }
+module "installation-server" {
+ source = "./modules/installation-server"
+
+ vpc_id                   = module.vpc.id
+ subnet_id                = module.vpc.default_subnet.id
+ resource_group_id        = data.ibm_resource_group.this_resource_group.id
+ key_id                   = module.vpc.default_admin_key.id
+ standard_security_groups = module.vpc.standard_security_groups
+}
