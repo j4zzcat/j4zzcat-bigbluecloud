@@ -44,7 +44,7 @@ module "installation-server" {
 runcmd:
 - timeout 1m bash -c 'while :; do ping -c 1 github.com && break; done'
 - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
-- bash /usr/local/src/j4zzcat-ibmcloud/openshift/modules/installation-server/post-provision.sh
+- bash /usr/local/src/j4zzcat-ibmcloud/openshift/modules/installation_server/post_provision.sh
 power_state:
 mode: reboot
 timeout: 1

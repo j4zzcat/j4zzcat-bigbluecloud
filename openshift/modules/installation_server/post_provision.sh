@@ -1,13 +1,11 @@
 # proper upgrade
 apt update
-
-rm /boot/grub/menu.lst
-ucf --purge /var/run/grub/menu.lst
+rm /boot/grub/menu.lst \
+ucf --purge /var/run/grub/menu.lst \
 update-grub-legacy-ec2 -y
 ucf --purge /etc/ssh/sshd_config
 
-export DEBIAN_FRONTEND=noninteractive
-apt-get \
+DEBIAN_FRONTEND=noninteractive apt-get \
   -o Dpkg::Options::=--force-confnew \
   -o Dpkg::Options::=--force-confdef \
   --allow-downgrades \
@@ -16,7 +14,8 @@ apt-get \
   -y dist-upgrade
 
 # install ipxe prereqs
-apt-get install -y mc vim ruby2.5-dev apache2 gcc g++ make binutils liblzma-dev mtools mkisofs syslinux isolinux xorriso qemu-kvm
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  mc vim ruby2.5-dev apache2 gcc g++ make binutils liblzma-dev mtools mkisofs syslinux isolinux xorriso qemu-kvm
 
 # install and build ipxe
 mkdir -p /usr/local/src
