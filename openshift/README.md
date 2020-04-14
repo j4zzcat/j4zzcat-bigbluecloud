@@ -24,6 +24,7 @@ docker run -it --rm \
   -e IAAS_CLASSIC_TIMEOUT=60 \
   ibmcloud/cli:1.0
 ```
+The rest of the guide has to be executed within the docker container. 
 
 ### Test that you can login
 ```
