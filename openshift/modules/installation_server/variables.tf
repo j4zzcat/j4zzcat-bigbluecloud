@@ -1,5 +1,6 @@
 variable vpc_name                 {}
 variable subnet_id                {}
 variable key_id                   {}
+variable nameserver               {}
 variable resource_group_id        {}
 variable standard_security_groups {}

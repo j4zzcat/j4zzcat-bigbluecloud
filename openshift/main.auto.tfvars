@@ -1,3 +1,4 @@
+# file main.auto.tfvars
 name                = "peto"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"

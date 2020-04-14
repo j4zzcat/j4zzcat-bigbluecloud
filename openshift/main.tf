@@ -28,6 +28,16 @@ module "openshift_security_groups" {
   resource_group_id = data.ibm_resource_group.resource_group.id
 }
 
+module "network_server" {
+  source = "./modules/network_server"
+
+  vpc_name                 = var.name
+  subnet_id                = module.vpc.default_subnet.id
+  resource_group_id        = data.ibm_resource_group.resource_group.id
+  key_id                   = module.vpc.default_admin_key.id
+  standard_security_groups = module.vpc.standard_security_groups
+}
+
 module "installation_server" {
  source = "./modules/installation_server"
 
@@ -36,16 +46,7 @@ module "installation_server" {
  resource_group_id        = data.ibm_resource_group.resource_group.id
  key_id                   = module.vpc.default_admin_key.id
  standard_security_groups = module.vpc.standard_security_groups
-}
-
-module "network_server" {
- source = "./modules/network_server"
-
- vpc_name                 = var.name
- subnet_id                = module.vpc.default_subnet.id
- resource_group_id        = data.ibm_resource_group.resource_group.id
- key_id                   = module.vpc.default_admin_key.id
- standard_security_groups = module.vpc.standard_security_groups
+ nameserver               = module.network_server.private_ip
 }
 
 module "haproxy_masters" {

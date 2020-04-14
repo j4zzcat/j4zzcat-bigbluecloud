@@ -6,8 +6,7 @@ ucf --purge /var/run/grub/menu.lst
 update-grub-legacy-ec2 -y
 ucf --purge /etc/ssh/sshd_config
 
-export DEBIAN_FRONTEND=noninteractive
-apt-get \
+DEBIAN_FRONTEND=noninteractive apt-get \
   -o Dpkg::Options::=--force-confnew \
   -o Dpkg::Options::=--force-confdef \
   --allow-downgrades \
@@ -15,4 +14,5 @@ apt-get \
   --allow-change-held-packages \
   -y dist-upgrade
 
-apt install -y vim mc haproxy
+DEBIAN_FRONTEND=noninteractive apt install -y \
+  vim mc haproxy

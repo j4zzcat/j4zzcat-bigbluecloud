@@ -2,7 +2,7 @@ data "ibm_is_vpc" "vpc" {
   name = var.vpc_name
 }
 
-module "installation-server" {
+module "installation_server" {
   source = "../../../terraform/modules/server"
 
   name              = "installation-server"
@@ -22,12 +22,12 @@ module "installation-server" {
   user_data = <<EOT
 #cloud-config
 runcmd:
-- timeout 1m bash -c 'while :; do ping -c 1 github.com && break; done'
-- git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
-- bash /usr/local/src/j4zzcat-ibmcloud/openshift/modules/installation_server/post_provision.sh
+  - timeout 1m bash -c 'while :; do ping -c 1 github.com && break; done'
+  - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
+  - bash /usr/local/src/j4zzcat-ibmcloud/openshift/modules/installation_server/post_provision.sh
 power_state:
-mode: reboot
-timeout: 1
-condition: True
+  mode: reboot
+  timeout: 1
+  condition: True
 EOT
 }

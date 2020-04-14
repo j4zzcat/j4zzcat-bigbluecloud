@@ -38,7 +38,7 @@ mkdir /repo/openshift/keys
 ssh-keygen -t rsa -b 4096 -N "" -f /repo/openshift/keys/admin_key.rsa
 ```
 
-Edit the file `/repo/openshift/main.auto.tfvars` and set the name of the openshift cluster, location, the resource group etc. Note that the specified resource group should already exist. For example:
+Edit the file `/repo/openshift/main.auto.tfvars` and set the name of the openshift cluster, location, the resource group etc. Note that the specified resource group should exist already. For example:
 ```
 # file main.auto.tfvars
 name                = "openshift"
@@ -55,5 +55,6 @@ Update the openshift configuration file TBD
 cd /repo/openshift
 terraform init
 terraform apply -target=module.vpc
+terraform apply -target=module.network_server
 terraform apply
 ```
