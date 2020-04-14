@@ -1,4 +1,4 @@
-# --- allow openshift internode ---
+# --- allow openshift internode communication ---
 resource "ibm_is_security_group" "allow_inbound_openshift_internode" {
   resource_group = var.resource_group_id
 

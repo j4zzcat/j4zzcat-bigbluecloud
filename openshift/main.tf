@@ -13,7 +13,7 @@ data "ibm_resource_group" "resource_group" {
   name = var.resource_group_name
 }
 
-module "vpc_instance" {
+module "vpc" {
   source = "../terraform/modules/vpc"
 
   name              = var.vpc_name
@@ -22,44 +22,48 @@ module "vpc_instance" {
   resource_group_id = data.ibm_resource_group.resource_group.id
 }
 
-module "installation_server_instance" {
+module "openshift_security_groups" {
+  source = "./modules/openshift_security_groups"
+}
+
+module "installation_server" {
  source = "./modules/installation_server"
 
  vpc_name                 = var.vpc_name
- subnet_id                = module.vpc_instance.default_subnet.id
+ subnet_id                = module.vpc.default_subnet.id
  resource_group_id        = data.ibm_resource_group.resource_group.id
- key_id                   = module.vpc_instance.default_admin_key.id
- standard_security_groups = module.vpc_instance.standard_security_groups
+ key_id                   = module.vpc.default_admin_key.id
+ standard_security_groups = module.vpc.standard_security_groups
 }
 
-module "network_server_instance" {
+module "network_server" {
  source = "./modules/network_server"
 
  vpc_name                 = var.vpc_name
- subnet_id                = module.vpc_instance.default_subnet.id
+ subnet_id                = module.vpc.default_subnet.id
  resource_group_id        = data.ibm_resource_group.resource_group.id
- key_id                   = module.vpc_instance.default_admin_key.id
- standard_security_groups = module.vpc_instance.standard_security_groups
+ key_id                   = module.vpc.default_admin_key.id
+ standard_security_groups = module.vpc.standard_security_groups
 }
 
-module "haproxy_masters_instance" {
+module "haproxy_masters" {
  source = "./modules/haproxy"
 
  name                     = "masters"
  vpc_name                 = var.vpc_name
- subnet_id                = module.vpc_instance.default_subnet.id
+ subnet_id                = module.vpc.default_subnet.id
  resource_group_id        = data.ibm_resource_group.resource_group.id
- key_id                   = module.vpc_instance.default_admin_key.id
- standard_security_groups = module.vpc_instance.standard_security_groups
+ key_id                   = module.vpc.default_admin_key.id
+ standard_security_groups = module.vpc.standard_security_groups
 }
 
-module "haproxy_workers_instance" {
+module "haproxy_workers" {
  source = "./modules/haproxy_server"
 
  name                     = "workers"
  vpc_name                 = var.vpc_name
- subnet_id                = module.vpc_instance.default_subnet.id
+ subnet_id                = module.vpc.default_subnet.id
  resource_group_id        = data.ibm_resource_group.resource_group.id
- key_id                   = module.vpc_instance.default_admin_key.id
- standard_security_groups = module.vpc_instance.standard_security_groups
+ key_id                   = module.vpc.default_admin_key.id
+ standard_security_groups = module.vpc.standard_security_groups
 }
