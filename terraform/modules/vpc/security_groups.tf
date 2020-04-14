@@ -88,7 +88,7 @@ resource "ibm_is_security_group" "allow_inbound_ssh" {
 resource "ibm_is_security_group_rule" "ssh_rule" {
   group      = ibm_is_security_group.allow_inbound_ssh.id
   direction  = "inbound"
-  remote     = "0.0.0.0/0"
+  remote     = "109.65.0.0/16" # TODO fix
 
   tcp {
     port_min = 22

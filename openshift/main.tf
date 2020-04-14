@@ -59,6 +59,7 @@ module "haproxy_masters" {
  key_id                    = module.vpc.default_admin_key.id
  standard_security_groups  = module.vpc.standard_security_groups
  openshift_security_groups = module.openshift_security_groups.openshift_security_groups
+ nameserver                = module.network_server.private_ip
 }
 
 # module "haproxy_workers" {
