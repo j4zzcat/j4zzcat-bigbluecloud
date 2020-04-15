@@ -29,7 +29,9 @@ resource "ibm_is_instance" "server" {
 }
 
 resource "ibm_is_floating_ip" "server_fip" {
+  count = var.floating_ip ? 1 : 0
+
   resource_group = var.resource_group_id
-  name           = join( "-", [ var.vpc_name, ibm_is_instance.server.name, "fip" ] )
+  name           = "${ibm_is_instance.server.name}-fip"
   target         = ibm_is_instance.server.primary_network_interface[ 0 ].id
 }

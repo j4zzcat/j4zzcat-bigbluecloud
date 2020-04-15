@@ -5,7 +5,7 @@ data "ibm_is_vpc" "vpc" {
 module "haproxy_server" {
   source = "../../../terraform/modules/server"
 
-  name              = join( "-", [ "haproxy", var.name ] )
+  name              = var.name
   vpc_name          = var.vpc_name
   subnet_id         = var.subnet_id
   key_id            = var.key_id

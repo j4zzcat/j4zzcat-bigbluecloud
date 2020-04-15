@@ -22,8 +22,8 @@ module "vpc" {
   resource_group_id = data.ibm_resource_group.resource_group.id
 }
 
-module "openshift_security_groups" {
-  source            = "./modules/openshift_security_groups"
+module "security_groups" {
+  source            = "./modules/security_groups"
   vpc_name          = var.name
   resource_group_id = data.ibm_resource_group.resource_group.id
 }
@@ -49,26 +49,28 @@ module "installation_server" {
  nameserver               = module.network_server.private_ip
 }
 
-module "haproxy_masters" {
+module "haproxy-masters" {
  source = "./modules/haproxy_server"
 
- name                      = "masters"
+ name                      = "haproxy-masters"
  vpc_name                  = var.name
  subnet_id                 = module.vpc.default_subnet.id
  resource_group_id         = data.ibm_resource_group.resource_group.id
  key_id                    = module.vpc.default_admin_key.id
  standard_security_groups  = module.vpc.standard_security_groups
- openshift_security_groups = module.openshift_security_groups.openshift_security_groups
+ openshift_security_groups = module.security_groups.openshift_security_groups
  nameserver                = module.network_server.private_ip
 }
 
-# module "haproxy_workers" {
-#  source = "./modules/haproxy_server"
-#
-#  name                     = "workers"
-#  vpc_name                 = var.name
-#  subnet_id                = module.vpc.default_subnet.id
-#  resource_group_id        = data.ibm_resource_group.resource_group.id
-#  key_id                   = module.vpc.default_admin_key.id
-#  standard_security_groups = module.vpc.standard_security_groups
-# }
+module "haproxy-workers" {
+ source = "./modules/haproxy_server"
+
+ name                      = "haproxy-workers"
+ vpc_name                  = var.name
+ subnet_id                 = module.vpc.default_subnet.id
+ resource_group_id         = data.ibm_resource_group.resource_group.id
+ key_id                    = module.vpc.default_admin_key.id
+ standard_security_groups  = module.vpc.standard_security_groups
+ openshift_security_groups = module.security_groups.openshift_security_groups
+ nameserver                = module.network_server.private_ip
+}
