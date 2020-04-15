@@ -14,3 +14,7 @@ expand-hosts
 local=/peto/
 domain=peto
 ```
+
+### Terraform
+* Show available instances:  terraform state list
+* Show state of instance: terraform state show module.haproxy_masters.module.haproxy_server.ibm_is_instance.server

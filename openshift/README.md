@@ -50,11 +50,17 @@ admin_public_key    = "/repo/openshift/keys/admin_key.rsa.pub"
 
 Update the openshift configuration file TBD
 
-### Provision the infrastructure
+### Provision OpenShift
+First, provision the basic infrastructure: vpc, security groups, ssh key and a network server (provides dns).
 ```
 cd /repo/openshift
 terraform init
 terraform apply -target=module.vpc
 terraform apply -target=module.network_server
+```
+
+Now, provision the rest: installation server, 2 x load balancer, 3 x master, 2 x worker
+```
 terraform apply
+
 ```
