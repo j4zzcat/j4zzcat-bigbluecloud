@@ -24,7 +24,7 @@ module "installation_server" {
 runcmd:
   - timeout 1m bash -c 'while :; do ping -c 1 github.com && break; done'
   - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
-  - bash /usr/local/src/j4zzcat-ibmcloud/openshift/scripts/proper_upgrade.sh  
+  - bash /usr/local/src/j4zzcat-ibmcloud/openshift/scripts/ubuntu_18/proper_upgrade.sh  
   - bash /usr/local/src/j4zzcat-ibmcloud/openshift/modules/installation_server/post_provision.sh
 power_state:
   mode: reboot

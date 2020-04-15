@@ -11,6 +11,6 @@ log-queries
 domain-needed
 bogus-priv
 expand-hosts
-local=/local/
-domain=ibmcloud
+local=/peto/
+domain=peto
 ```
