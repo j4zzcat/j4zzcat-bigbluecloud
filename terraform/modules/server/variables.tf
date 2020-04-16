@@ -5,10 +5,6 @@ variable key_id            {}
 variable resource_group_id {}
 variable security_groups   {}
 
-variable floating_ip       {
-  default = true
-}
-
 variable profile           {
   default = "bx2-2x8"
 }
