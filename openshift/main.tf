@@ -5,7 +5,8 @@ variable resource_group_name {}
 variable admin_key           {}
 
 locals {
-  admin_public_key = "${admin_key}.pub"
+  admin_public_key = "${var.admin_key}.pub"
+  domain           = var.name
 }
 
 provider "ibm" {
@@ -22,7 +23,7 @@ module "vpc" {
 
   name              = var.name
   zone_name         = var.zone_name
-  default_admin_key = var.admin_public_key
+  default_admin_key = local.admin_public_key
   resource_group_id = data.ibm_resource_group.resource_group.id
 }
 
@@ -55,7 +56,7 @@ module "installation_server" {
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 
-module "haproxy-masters" {
+module "haproxy_masters" {
   source = "./modules/haproxy_server"
 
   name              = "haproxy-masters"
@@ -67,7 +68,7 @@ module "haproxy-masters" {
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 
-module "haproxy-workers" {
+module "haproxy_workers" {
   source = "./modules/haproxy_server"
 
   name              = "haproxy-workers"
@@ -82,13 +83,14 @@ module "haproxy-workers" {
 resource "null_resource" "register_with_nameserver" {
   provisioner "local-exec" {
     command = <<EOT
-      ./scripts/local_exec/register_with_nameserver.sh \
-        ${admin_key} \
-        ${module.network_server.public_ip} \
-        network_server:${module.network_server.private_ip} \
-        installation_server:${module.installation_server.private_ip} \
-        haproxy_masters:${module.haproxy_masters.private_ip} \
-        haproxy_workers:${module.haproxy_workers.private_ip}
+        bash ./scripts/local_exec/register_with_nameserver.sh \
+          ${var.admin_key} \
+          ${module.network_server.public_ip} \
+          ${local.domain} \
+          network_server:${module.network_server.private_ip} \
+          installation_server:${module.installation_server.private_ip} \
+          haproxy_masters:${module.haproxy_masters.private_ip} \
+          haproxy_workers:${module.haproxy_workers.private_ip}
 EOT
   }
 }
