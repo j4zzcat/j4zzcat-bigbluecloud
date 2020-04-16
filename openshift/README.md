@@ -56,21 +56,19 @@ First, provision the basic infrastructure: vpc, security groups, ssh key, networ
 cd /repo/openshift
 terraform init
 terraform apply -auto-approve -target=module.vpc
-terraform apply -auto-approve -target=module.security_groups
-terraform apply -auto-approve -target=module.network_server
-terraform apply -auto-approve -target=module.installation_server
-```
-
-Now, provision the rest of the cluster: 2 x load balancer, 3 x master, 2 x worker
-```
 terraform apply -auto-approve \
+  -target=module.security_groups \
+  -target=module.network_server \
+  -target=module.installation_server \
   -target=module.haproxy_masters \
   -target=module.haproxy_workers \
-  -target=module.master_1 \
+  -target=null_resource.register_with_nameserver
+
+  <!-- -target=module.master_1 \
   -target=module.master_2 \
   -target=module.master_3 \
   -target=module.worker_1 \
-  -target=module.worker_2
+  -target=module.worker_2 -->
 
 ```
 
