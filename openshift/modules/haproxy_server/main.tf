@@ -28,7 +28,7 @@ runcmd:
   - bash /j4zzcat/openshift/scripts/ubuntu_18/upgrade_os.sh
   - bash /j4zzcat/openshift/scripts/ubuntu_18/install_basics.sh
   - bash /j4zzcat/openshift/scripts/ubuntu_18/install_haproxy.sh
-  - bash /j4zzcat/openshift/scripts/ubuntu_18/configure_nameserver.sh ${var.nameserver} ${var.vpc_name}
+  - bash /j4zzcat/openshift/scripts/ubuntu_18/configure_name_resolution.sh ${var.nameserver} ${var.vpc_name}
 power_state:
   mode: reboot
   timeout: 1

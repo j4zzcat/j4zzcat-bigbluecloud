@@ -45,7 +45,7 @@ name                = "openshift"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
 resource_group_name = "peto"
-admin_public_key    = "/repo/openshift/keys/admin_key.rsa.pub"
+admin_key           = "/repo/openshift/keys/admin_key.rsa"
 ```
 
 Update the openshift configuration file <TBD>

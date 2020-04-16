@@ -2,7 +2,11 @@ variable name                {}
 variable region_name         {}
 variable zone_name           {}
 variable resource_group_name {}
-variable admin_public_key    {}
+variable admin_key           {}
+
+locals {
+  admin_public_key = "${admin_key}.pub"
+}
 
 provider "ibm" {
   region     = var.region_name
@@ -73,4 +77,18 @@ module "haproxy-workers" {
   key_id            = module.vpc.default_admin_key.id
   nameserver        = module.network_server.private_ip
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
+}
+
+resource "null_resource" "register_with_nameserver" {
+  provisioner "local-exec" {
+    command = <<EOT
+      ./scripts/local_exec/register_with_nameserver.sh \
+        ${admin_key} \
+        ${module.network_server.public_ip} \
+        network_server:${module.network_server.private_ip} \
+        installation_server:${module.installation_server.private_ip} \
+        haproxy_masters:${module.haproxy_masters.private_ip} \
+        haproxy_workers:${module.haproxy_workers.private_ip}
+EOT
+  }
 }
