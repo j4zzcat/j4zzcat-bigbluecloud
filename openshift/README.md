@@ -48,19 +48,41 @@ resource_group_name = "peto"
 admin_public_key    = "/repo/openshift/keys/admin_key.rsa.pub"
 ```
 
-Update the openshift configuration file TBD
+Update the openshift configuration file <TBD>
 
 ### Provision OpenShift
-First, provision the basic infrastructure: vpc, security groups, ssh key and a network server (provides dns).
+First, provision the basic infrastructure: vpc, security groups, ssh key, network server (provides dns) and the installation server (provides pxe services):
 ```
 cd /repo/openshift
 terraform init
 terraform apply -target=module.vpc
+terraform apply -target=module.security_groups
 terraform apply -target=module.network_server
+terraform apply -target=module.installation_server
 ```
 
-Now, provision the rest: installation server, 2 x load balancer, 3 x master, 2 x worker
+Now, provision the rest of the cluster: 2 x load balancer, 3 x master, 2 x worker
 ```
-terraform apply
+terraform apply \
+  -target=module.haproxy_masters \
+  -target=module.haproxy_workers \
+  -target=module.master_1 \
+  -target=module.master_2 \
+  -target=module.master_3 \
+  -target=module.worker_1 \
+  -target=module.worker_2
 
 ```
+
+Next, configure the naming service:
+```
+terraform apply -target=module.configure_network_server
+```
+
+And finally, install OpenShift:
+```
+terraform apply -target=module.install_openshift
+```
+
+### Test the installation
+<TBD>

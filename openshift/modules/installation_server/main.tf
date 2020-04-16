@@ -12,11 +12,11 @@ module "installation_server" {
   resource_group_id = var.resource_group_id
 
   security_groups  = [
-    var.standard_security_groups[ "allow_outbound_any" ],
-    var.standard_security_groups[ "allow_inbound_ping" ],
-    var.standard_security_groups[ "allow_inbound_ssh" ],
-    var.standard_security_groups[ "allow_inbound_http_https" ],
-    ibm_is_security_group.allow_inbound_tcp_7080.id
+    var.security_groups[ "allow_outbound_any" ],
+    var.security_groups[ "allow_inbound_ping" ],
+    var.security_groups[ "allow_inbound_ssh" ],
+    var.security_groups[ "allow_inbound_http_https" ],
+    var.security_groups[ "allow_inbound_sinatra" ]
   ]
 
   user_data = <<EOT
@@ -25,7 +25,7 @@ runcmd:
   - timeout 1m bash -c 'while :; do ping -c 1 github.com && break; done'
   - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
   - ln -s /usr/local/src/j4zzcat-ibmcloud /j4zzcat
-  - bash /j4zzcat/openshift/scripts/ubuntu_18/proper_upgrade.sh
+  - bash /j4zzcat/openshift/scripts/ubuntu_18/upgrade_os.sh
   - bash /j4zzcat/openshift/scripts/ubuntu_18/install_basics.sh
   - bash /j4zzcat/openshift/scripts/ubuntu_18/install_sinatra.sh
   - bash /j4zzcat/openshift/scripts/ubuntu_18/install_openshift_client.sh

@@ -97,14 +97,14 @@ resource "ibm_is_security_group_rule" "ssh_rule" {
 }
 
 # --- allow inbound dns ---
-resource "ibm_is_security_group" "allow_inbound_dns_dhcp" {
+resource "ibm_is_security_group" "allow_inbound_dns" {
   resource_group = ibm_is_vpc.vpc.resource_group
-  name = "allow-inbound-dns-dhcp"
+  name = "allow-inbound-dns"
   vpc  = ibm_is_vpc.vpc.id
 }
 
 resource "ibm_is_security_group_rule" "dns_tcp_rule" {
-  group      = ibm_is_security_group.allow_inbound_dns_dhcp.id
+  group      = ibm_is_security_group.allow_inbound_dns.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
 
@@ -115,7 +115,7 @@ resource "ibm_is_security_group_rule" "dns_tcp_rule" {
 }
 
 resource "ibm_is_security_group_rule" "dns_udp_rule" {
-  group      = ibm_is_security_group.allow_inbound_dns_dhcp.id
+  group      = ibm_is_security_group.allow_inbound_dns.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
 
@@ -125,8 +125,15 @@ resource "ibm_is_security_group_rule" "dns_udp_rule" {
   }
 }
 
+# --- allow inbound dhcp ---
+resource "ibm_is_security_group" "allow_inbound_dhcp" {
+  resource_group = ibm_is_vpc.vpc.resource_group
+  name = "allow-inbound-dhcp"
+  vpc  = ibm_is_vpc.vpc.id
+}
+
 resource "ibm_is_security_group_rule" "dhcp_rule" {
-  group      = ibm_is_security_group.allow_inbound_dns_dhcp.id
+  group      = ibm_is_security_group.allow_inbound_dhcp.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
 

@@ -1,13 +1,13 @@
-# --- allow inbound TCP 7080 ---
-resource "ibm_is_security_group" "allow_inbound_tcp_7080" {
+# --- allow inbound tcp 7080 for sinatra ---
+resource "ibm_is_security_group" "allow_inbound_sinatra" {
   resource_group = var.resource_group_id
 
-  name = "allow-inbound-tcp-7080"
+  name = "allow-inbound-sinatra"
   vpc  = data.ibm_is_vpc.vpc.id
 }
 
 resource "ibm_is_security_group_rule" "tcp_7080_rule" {
-  group      = ibm_is_security_group.allow_inbound_tcp_7080.id
+  group      = ibm_is_security_group.allow_inbound_sinatra.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
 
