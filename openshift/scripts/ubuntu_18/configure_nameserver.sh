@@ -15,7 +15,7 @@ sed --in-place \
 netplan apply
 
 # register my ip and hostname with the dns
-timeout 3m bash -c 'while :; do ping -c 1 '${NAMESERVER}' && break; done'
+timeout 5m bash -c 'while :; do ping -c 1 '${NAMESERVER}' && break; done'
 MY_IP=$(hostname -I)
 MY_HOSTNAME=$(hostname)
 curl -X POST \

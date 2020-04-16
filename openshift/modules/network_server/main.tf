@@ -30,7 +30,7 @@ runcmd:
   - bash /j4zzcat/openshift/scripts/ubuntu_18/install_sinatra.sh
   - bash /j4zzcat/openshift/scripts/ubuntu_18/install_dnsmasq.sh ${var.vpc_name}
 bootcmd:
-  - ruby /j4zzcat/openshift/modules/network_server/name_server_helper.rb
+  - ruby /j4zzcat/openshift/modules/network_server/name_server_helper.rb &
 power_state:
   mode: reboot
   timeout: 1
