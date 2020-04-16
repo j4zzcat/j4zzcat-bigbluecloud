@@ -55,15 +55,15 @@ First, provision the basic infrastructure: vpc, security groups, ssh key, networ
 ```
 cd /repo/openshift
 terraform init
-terraform apply -target=module.vpc
-terraform apply -target=module.security_groups
-terraform apply -target=module.network_server
-terraform apply -target=module.installation_server
+terraform apply -auto-approve -target=module.vpc
+terraform apply -auto-approve -target=module.security_groups
+terraform apply -auto-approve -target=module.network_server
+terraform apply -auto-approve -target=module.installation_server
 ```
 
 Now, provision the rest of the cluster: 2 x load balancer, 3 x master, 2 x worker
 ```
-terraform apply \
+terraform apply -auto-approve \
   -target=module.haproxy_masters \
   -target=module.haproxy_workers \
   -target=module.master_1 \
@@ -76,12 +76,12 @@ terraform apply \
 
 Next, configure the naming service:
 ```
-terraform apply -target=module.configure_network_server
+terraform apply -auto-approve -target=module.configure_network_server
 ```
 
 And finally, install OpenShift:
 ```
-terraform apply -target=module.install_openshift
+terraform apply -auto-approve -target=module.install_openshift
 ```
 
 ### Test the installation

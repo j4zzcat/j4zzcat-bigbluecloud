@@ -15,8 +15,8 @@ module "network_server" {
     var.security_groups[ "allow_outbound_any" ],
     var.security_groups[ "allow_inbound_ping" ],
     var.security_groups[ "allow_inbound_ssh" ],
-    var.security_groups[ "allow_inbound_http_https" ],
-    var.security_groups[ "allow_inbound_dns" ]
+    var.security_groups[ "allow_inbound_dns" ],
+    var.security_groups[ "allow_inbound_sinatra" ]
   ]
 
   user_data = <<EOT
@@ -27,6 +27,7 @@ runcmd:
   - ln -s /usr/local/src/j4zzcat-ibmcloud /j4zzcat
   - bash /j4zzcat/openshift/scripts/ubuntu_18/upgrade_os.sh
   - bash /j4zzcat/openshift/scripts/ubuntu_18/install_basics.sh
+  - bash /j4zzcat/openshift/scripts/ubuntu_18/install_sinatra.sh
   - bash /j4zzcat/openshift/scripts/ubuntu_18/install_dnsmasq.sh ${var.vpc_name}
 power_state:
   mode: reboot

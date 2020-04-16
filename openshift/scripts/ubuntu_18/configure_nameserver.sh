@@ -13,3 +13,9 @@ sed --in-place \
   /etc/netplan/50-cloud-init.yaml
 
 netplan apply
+
+MY_IP=$(hostname -I)
+MY_HOSTNAME=$(hostname)
+curl -X POST \
+  --data "hostname=${MY_HOSTNAME}" \
+  http://${NAMESERVER}:7080/registar/${MY_IP}
