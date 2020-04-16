@@ -22,7 +22,7 @@ module "vpc" {
   resource_group_id = data.ibm_resource_group.resource_group.id
 }
 
-module "security_groups" {
+module "openshift_security_groups" {
   source            = "./modules/security_groups"
   vpc_name          = var.name
   resource_group_id = data.ibm_resource_group.resource_group.id
@@ -60,7 +60,7 @@ module "haproxy-masters" {
  resource_group_id         = data.ibm_resource_group.resource_group.id
  key_id                    = module.vpc.default_admin_key.id
  standard_security_groups  = module.vpc.standard_security_groups
- openshift_security_groups = module.security_groups.openshift_security_groups
+ openshift_security_groups = module.openshift_security_groups.openshift_security_groups
  nameserver                = module.network_server.private_ip
 }
 
@@ -73,6 +73,6 @@ module "haproxy-workers" {
  resource_group_id         = data.ibm_resource_group.resource_group.id
  key_id                    = module.vpc.default_admin_key.id
  standard_security_groups  = module.vpc.standard_security_groups
- openshift_security_groups = module.security_groups.openshift_security_groups
+ openshift_security_groups = module.openshift_security_groups.openshift_security_groups
  nameserver                = module.network_server.private_ip
 }
