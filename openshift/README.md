@@ -57,8 +57,6 @@ cd /repo/openshift
 terraform init
 terraform apply -target=module.vpc
 terraform apply -target=module.network_server
-terraform apply
-
 ```
 
 Now, provision the rest: installation server, 2 x load balancer, 3 x master, 2 x worker
