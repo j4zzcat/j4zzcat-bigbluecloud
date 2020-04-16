@@ -1,21 +1,12 @@
-# install ipxe prereqs
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  mc vim ruby2.5-dev apache2 gcc g++ make binutils liblzma-dev mtools mkisofs syslinux isolinux xorriso qemu-kvm
-
-# install and build ipxe
-mkdir -p /usr/local/src
-git clone https://github.com/ipxe/ipxe /usr/local/src/ipxe
-cd /usr/local/src/ipxe/src
-make
-
-# install sinatra
-gem install --no-document bundle sinatra thin
+  apache2
 
 # install openshift client and files
 cd /tmp
 for file in openshift-client-linux.tar.gz openshift-install-linux.tar.gz sha256sum.txt sha256sum.txt.sig; do
   curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.3/${file}
 done
+
 # TODO verify sha and sig
 gzip -d openshift*
 

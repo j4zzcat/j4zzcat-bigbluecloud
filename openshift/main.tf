@@ -31,6 +31,7 @@ module "security_groups" {
 module "network_server" {
   source = "./modules/network_server"
 
+  name                     = "network-server"
   vpc_name                 = var.name
   subnet_id                = module.vpc.default_subnet.id
   resource_group_id        = data.ibm_resource_group.resource_group.id
@@ -41,6 +42,7 @@ module "network_server" {
 module "installation_server" {
  source = "./modules/installation_server"
 
+ name                     = "installation-server"
  vpc_name                 = var.name
  subnet_id                = module.vpc.default_subnet.id
  resource_group_id        = data.ibm_resource_group.resource_group.id

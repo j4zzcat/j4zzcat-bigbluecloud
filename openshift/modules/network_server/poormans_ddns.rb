@@ -2,10 +2,14 @@ require 'sinatra/base'
 
 PORT = '7080'
 
-class PoormansDDNS
+class BootstrapServer
   def run
     WebApp.set :my_ip, %x[ ip address show dev ens3 | awk '/inet /{print $2}' ].chomp.split( '/' )[ 0 ]
     WebApp.set :my_port, PORT
+
+    # 172.168.0.8 coreos.inst=yes coreos.inst.install_dev=sda coreos.inst.image_url=http://172.18.0.7/rhcos/metal.x86_64.raw.gz coreos.inst.ignition_url=http://172.18.0.7/rhcos/config.ign ip=dhcp
+    # 172.168.0.8 master_config.ign
+    # 172.168.0.9 worker_config.ign
 
     Rack::Server.start( {
       server: 'thin',
