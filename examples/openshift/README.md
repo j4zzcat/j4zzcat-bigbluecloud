@@ -31,21 +31,26 @@ The rest of the guide has to be executed within the docker container.
 ibmcloud login
 ```
 
+### Change to the OpenShift example dir
+```
+cd /repo/examples/openshift
+```
+
 ### Update the configuration
 Generate a new ssh key. This key will be provisioned onto every server allowing you to remotely login to the server.
 ```
-mkdir /repo/openshift/keys
-ssh-keygen -t rsa -b 4096 -N "" -f /repo/openshift/keys/admin_key.rsa
+mkdir ./keys
+ssh-keygen -t rsa -b 4096 -N "" -f ./keys/admin_key.rsa
 ```
 
-Edit the file `/repo/openshift/main.auto.tfvars` and set the name of the openshift cluster, location, the resource group etc. Note that the specified resource group should exist already. For example:
+Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, location, the resource group etc. Note that the specified resource group should exist already. For example:
 ```
 # file main.auto.tfvars
-name                = "openshift"
+name                = "grapefruit"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
 resource_group_name = "peto"
-admin_key           = "/repo/openshift/keys/admin_key.rsa"
+admin_key           = "./keys/admin_key.rsa"
 ```
 
 Update the openshift configuration file <TBD>
@@ -53,7 +58,6 @@ Update the openshift configuration file <TBD>
 ### Provision OpenShift
 First, provision the basic infrastructure: vpc, security groups, ssh key, network server (provides dns) and the installation server (provides pxe services):
 ```
-cd /repo/openshift
 terraform init
 terraform apply -auto-approve -target=module.vpc
 terraform apply -auto-approve \
