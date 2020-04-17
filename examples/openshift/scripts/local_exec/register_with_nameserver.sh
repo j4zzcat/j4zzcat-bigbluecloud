@@ -1,7 +1,7 @@
 KEY_FILE=${1}
 NETWORK_SERVER_FIP=${2}
 DOMAIN=${3}
-shift; shift
+shift 3
 
 TMP_FILE=$(mktemp /tmp/XXX)
 for TUPLE in ${@}; do
@@ -10,5 +10,6 @@ for TUPLE in ${@}; do
   echo ${IP} ${HOSTNAME}.${DOMAIN} >> ${TMP_FILE}
 done
 
-cat ${TMP_FILE} | ssh -oStrictHostKeyChecking=no -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "cat >> /etc/hosts"
-ssh -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "systemctl restart dnsmasq"
+# trying to be idempotence
+cat ${TMP_FILE} | ssh -oStrictHostKeyChecking=no -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "cat > /etc/hosts.${DOMAIN}"
+ssh -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "systemctl restart dnsmasq" || true

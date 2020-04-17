@@ -11,6 +11,7 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
 
 cat <<EOT >/etc/dnsmasq.conf
 port=53
+addn-hosts=/etc/hosts.${DOMAIN}
 log-queries
 domain-needed
 bogus-priv
