@@ -11,5 +11,5 @@ for TUPLE in ${@}; do
 done
 
 # trying to be idempotence
-cat ${TMP_FILE} | ssh -oStrictHostKeyChecking=no -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "cat > /etc/hosts.${DOMAIN}"
-ssh -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "systemctl restart dnsmasq" || true
+cat ${TMP_FILE} | ssh -oStrictHostKeyChecking=no -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "cat > /etc/dnsmasq.hosts.${DOMAIN}"
+ssh -oStrictHostKeyChecking=no -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "systemctl restart dnsmasq" || true

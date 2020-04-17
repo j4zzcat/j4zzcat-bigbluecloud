@@ -87,10 +87,10 @@ resource "null_resource" "register_with_nameserver" {
           ${var.admin_key} \
           ${module.network_server.public_ip} \
           ${local.domain} \
-          network_server:${module.network_server.private_ip} \
-          installation_server:${module.installation_server.private_ip} \
-          haproxy_masters:${module.haproxy_masters.private_ip} \
-          haproxy_workers:${module.haproxy_workers.private_ip}
+          network-server:${module.network_server.private_ip} \
+          installation-server:${module.installation_server.private_ip} \
+          haproxy-masters:${module.haproxy_masters.private_ip} \
+          haproxy-workers:${module.haproxy_workers.private_ip}
 EOT
   }
 }
