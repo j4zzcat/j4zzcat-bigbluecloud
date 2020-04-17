@@ -37,7 +37,7 @@ ibmcloud login
 cd /repo/examples/openshift
 ```
 
-### Update the configuration
+### Update the infrastructure configuration
 Generate a new ssh key. This key will be provisioned onto every server allowing you to remotely login to the server.
 ```
 mkdir ./keys
@@ -54,9 +54,11 @@ resource_group_name = "peto"
 admin_key           = "./keys/admin_key.rsa"
 ```
 
-Update the openshift configuration file <TBD>
+### Update the OpenShift configuration
+Get your secret from `https://cloud.redhat.com/openshift/install/pull-secret` and place it in `./keys/pull_secret.txt`
 
-### Provision OpenShift
+
+### Provision the infrastructure
 First, provision the basic infrastructure: vpc, security groups, ssh key, network server (provides dns) and the installation server (provides pxe services):
 ```
 terraform init
@@ -68,21 +70,9 @@ terraform apply -auto-approve \
   -target=module.haproxy_masters \
   -target=module.haproxy_workers \
   -target=null_resource.register_with_nameserver
-
-  <!-- -target=module.master_1 \
-  -target=module.master_2 \
-  -target=module.master_3 \
-  -target=module.worker_1 \
-  -target=module.worker_2 -->
-
 ```
 
-Next, configure the naming service:
-```
-terraform apply -auto-approve -target=module.configure_network_server
-```
-
-And finally, install OpenShift:
+### Provision OpenShift
 ```
 terraform apply -auto-approve -target=module.install_openshift
 ```

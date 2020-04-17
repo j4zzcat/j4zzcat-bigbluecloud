@@ -35,3 +35,8 @@ domain=peto
     | awk '/primary_ipv4_address/{print $3}' \
     | awk -F '"' '{print $2}'
   ```
+
+### OpenShift
+* install-config.yaml
+  sed -e "s/\(pullSecret:\).*/\1 '"$(cat pull-secret.txt)"'/" install-config.yaml
+  
