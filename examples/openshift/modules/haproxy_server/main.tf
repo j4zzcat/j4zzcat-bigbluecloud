@@ -2,8 +2,8 @@ data "ibm_is_vpc" "vpc" {
   name = var.vpc_name
 }
 
-module "installation_server" {
-  source = "../../../terraform/modules/server"
+module "haproxy_server" {
+  source = "../../../../lib/terraform/server"
 
   name              = var.name
   vpc_name          = var.vpc_name
@@ -16,7 +16,7 @@ module "installation_server" {
     var.security_groups[ "allow_inbound_ping" ],
     var.security_groups[ "allow_inbound_ssh" ],
     var.security_groups[ "allow_inbound_http_https" ],
-    var.security_groups[ "allow_inbound_sinatra" ]
+    var.security_groups[ "allow_inbound_openshift_bootstrap" ]
   ]
 
   user_data = <<EOT
@@ -27,8 +27,7 @@ runcmd:
   - ln -s /usr/local/src/j4zzcat-ibmcloud /j4zzcat
   - bash /j4zzcat/openshift/scripts/ubuntu_18/upgrade_os.sh
   - bash /j4zzcat/openshift/scripts/ubuntu_18/install_basics.sh
-  - bash /j4zzcat/openshift/scripts/ubuntu_18/install_sinatra.sh
-  - bash /j4zzcat/openshift/scripts/ubuntu_18/install_openshift_client.sh
+  - bash /j4zzcat/openshift/scripts/ubuntu_18/install_haproxy.sh
   - bash /j4zzcat/openshift/scripts/ubuntu_18/configure_name_resolution.sh ${var.nameserver} ${var.vpc_name}
 power_state:
   mode: reboot

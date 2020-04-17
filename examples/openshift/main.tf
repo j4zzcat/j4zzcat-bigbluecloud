@@ -19,7 +19,7 @@ data "ibm_resource_group" "resource_group" {
 }
 
 module "vpc" {
-  source = "../terraform/modules/vpc"
+  source = "../../lib/terraform/vpc"
 
   name              = var.name
   zone_name         = var.zone_name

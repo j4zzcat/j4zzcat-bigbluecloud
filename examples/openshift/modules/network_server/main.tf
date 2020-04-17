@@ -3,7 +3,7 @@ data "ibm_is_vpc" "vpc" {
 }
 
 module "network_server" {
-  source = "../../../terraform/modules/server"
+  source = "../../../../lib/terraform/server"
 
   name              = var.name
   vpc_name          = var.vpc_name
