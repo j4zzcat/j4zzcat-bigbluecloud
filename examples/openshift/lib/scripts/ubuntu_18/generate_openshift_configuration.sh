@@ -1,5 +1,5 @@
-CLUSTER_NAME=maxi
-DOMAIN_NAME=nero
+CLUSTER_NAME=coppermine
+DOMAIN_NAME=dollar
 
 HOME_DIR=/opt/openshift
 INSTALL_DIR=${HOME_DIR}/install/${CLUSTER_NAME}.${DOMAIN_NAME}

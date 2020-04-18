@@ -1,6 +1,6 @@
 # file main.auto.tfvars
-cluster_name        = "tooli"
-domain_name         = "nero"
+cluster_name        = "coppermine"
+domain_name         = "dollar"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
 resource_group_name = "peto"

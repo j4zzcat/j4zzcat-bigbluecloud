@@ -49,7 +49,7 @@ resource "ibm_is_ssh_key" "default_admin_key" {
   tags           = null
   resource_group = ibm_is_vpc.vpc.resource_group
 
-  name       = join( "-", [ var.name, "default-admin-key" ] )
+  name       = join( "-", [ "default-admin-key", var.name ] )
   public_key = file( var.default_admin_key )
 }
 

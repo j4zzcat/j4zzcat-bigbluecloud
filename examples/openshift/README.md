@@ -72,7 +72,10 @@ terraform apply -auto-approve \
   -target=module.master_1 \
   -target=module.master_2 \
   -target=module.master_3 \
-  -target=null_resource.network_server_post_install
+  -target=module.worker_1 \
+  -target=module.worker_2 \
+  -target=null_resource.network_server_post_install \
+  -target=null_resource.haproxy_server_post_install
 ```
 
 ### Provision OpenShift

@@ -12,7 +12,7 @@ ENV TERRAFORM_VERSION          0.12.24
 ENV IBMCLOUD_TERRAFORM_VERSION 1.3.0
 
 RUN apt update \
-      && apt install -y curl git vim mc python3 python3-pip ruby2.5-dev \
+      && apt install -y curl git vim mc iputils-ping python3 python3-pip ruby2.5-dev \
       && apt install -y apt-utils apt-transport-https ca-certificates software-properties-common \
       && gem install --no-document docopt \
       && echo 'IRB.conf[ :AUTO_INDENT ] = true                                      \n\
