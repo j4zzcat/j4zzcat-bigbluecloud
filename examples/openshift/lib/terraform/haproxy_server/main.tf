@@ -28,7 +28,7 @@ runcmd:
   - bash /j4zzcat/lib/scripts/ubuntu_18/upgrade_os.sh
   - bash /j4zzcat/lib/scripts/ubuntu_18/install_basics.sh
   - bash /j4zzcat/lib/scripts/ubuntu_18/install_haproxy.sh
-  - bash /j4zzcat/lib/scripts/ubuntu_18/configure_name_resolution.sh ${var.nameserver} ${var.domain_name}
+  - bash /j4zzcat/lib/scripts/ubuntu_18/configure_systemd_resolve.sh ${var.nameserver} ${var.domain_name}
 power_state:
   mode: reboot
   timeout: 1

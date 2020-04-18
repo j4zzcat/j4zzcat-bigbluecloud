@@ -119,10 +119,10 @@ module "master_3" {
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 
-resource "null_resource" "nameserver_configuration" {
+resource "null_resource" "network_server_configuration" {
   provisioner "local-exec" {
     command = <<EOT
-      bash ./lib/scripts/local_exec/nameserver_add_host_records.sh \
+      bash ./lib/terraform/network_server/configure_host_records.sh \
         ${var.admin_key} ${module.network_server.public_ip} \
         ${var.cluster_name} ${var.domain_name} \
         network-server:${module.network_server.private_ip} \
@@ -137,7 +137,7 @@ EOT
 
   provisioner "local-exec" {
     command = <<EOT
-      bash ./lib/scripts/local_exec/nameserver_add_cluster_records.sh \
+      bash ./lib/terraform//network_server/confgiure_cluster_records.sh \
         ${var.admin_key} ${module.network_server.public_ip} \
         ${var.cluster_name} ${var.domain_name} \
         ${module.haproxy_masters.private_ip} \
