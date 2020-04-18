@@ -1,5 +1,5 @@
 # file main.auto.tfvars
-cluster_name        = "maxi"
+cluster_name        = "tooli"
 domain_name         = "nero"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"

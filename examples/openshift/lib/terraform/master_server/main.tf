@@ -2,7 +2,7 @@ data "ibm_is_vpc" "vpc" {
   name = var.vpc_name
 }
 
-module "haproxy_server" {
+module "master_server" {
   source = "../../../../../lib/terraform/server"
 
   name              = var.name

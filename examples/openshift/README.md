@@ -69,6 +69,9 @@ terraform apply -auto-approve \
   -target=module.installation_server \
   -target=module.haproxy_masters \
   -target=module.haproxy_workers \
+  -target=module.master_1 \
+  -target=module.master_2 \
+  -target=module.master_3 \
   -target=null_resource.register_with_nameserver
 ```
 

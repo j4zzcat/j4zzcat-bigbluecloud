@@ -7,7 +7,7 @@ variable admin_key           {}
 
 locals {
   admin_public_key = "${var.admin_key}.pub"
-  vpc_name         = cluster_name
+  vpc_name         = var.cluster_name
 }
 
 provider "ibm" {
