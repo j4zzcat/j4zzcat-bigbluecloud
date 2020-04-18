@@ -71,8 +71,13 @@ terraform apply -auto-approve \
   -target=module.haproxy_workers \
   -target=module.master_1 \
   -target=module.master_2 \
-  -target=module.master_3 \
-  -target=null_resource.register_with_nameserver
+  -target=module.master_3
+```
+
+TBD Wait for all nodes to finish installation, and only then run:
+
+```
+terraform apply -auto-approve -target=null_resource.nameserver_configuration
 ```
 
 ### Provision OpenShift

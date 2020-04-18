@@ -8,19 +8,22 @@ MASTER_1_PIP=${7}
 MASTER_2_PIP=${8}
 MASTER_3_PIP=${9}
 
+TMP_FILE=$(mktemp /tmp/XXX)
 FQDN=${CLUSTER_NAME}.${DOMAIN_NAME}
 
-echo -e "\n\
-host-record=api.${FQDN}.,${HAPROXY_MASTERS_PIP}\n\
-host-record=api-int.${FQDN}.,${HAPROXY_MASTERS_PIP}\n\
-host-record=*.apps.${FQDN}.,${HAPROXY_WORKERS_PIP}\n\
-host-record=etcd-0.${FQDN}.,${MASTER_1_PIP}\n\
-host-record=etcd-1.${FQDN}.,${MASTER_2_PIP}\n\
-host-record=etcd-2.${FQDN}.,${MASTER_3_PIP}\n\
-srv-host=_etcd-server-ssl._tcp.${FQDN}.,etcd-0.${FQDN},2380,0,10\n\
-srv-host=_etcd-server-ssl._tcp.${FQDN}.,etcd-1.${FQDN},2380,0,10\n\
-srv-host=_etcd-server-ssl._tcp.${FQDN}.,etcd-2.${FQDN},2380,0,10\n\
-" | ssh \
+cat <<EOT >${TMP_FILE}
+host-record=api.${FQDN}.,${HAPROXY_MASTERS_PIP}
+host-record=api-int.${FQDN}.,${HAPROXY_MASTERS_PIP}
+host-record=*.apps.${FQDN}.,${HAPROXY_WORKERS_PIP}
+host-record=etcd-0.${FQDN}.,${MASTER_1_PIP}
+host-record=etcd-1.${FQDN}.,${MASTER_2_PIP}
+host-record=etcd-2.${FQDN}.,${MASTER_3_PIP}
+srv-host=_etcd-server-ssl._tcp.${FQDN}.,etcd-0.${FQDN},2380,0,10
+srv-host=_etcd-server-ssl._tcp.${FQDN}.,etcd-1.${FQDN},2380,0,10
+srv-host=_etcd-server-ssl._tcp.${FQDN}.,etcd-2.${FQDN},2380,0,10
+EOT
+
+cat ${TMP_FILE} | ssh \
   -oStrictHostKeyChecking=no \
   -i ${KEY_FILE} \
   root@${NETWORK_SERVER_FIP} \

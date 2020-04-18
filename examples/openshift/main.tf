@@ -119,7 +119,7 @@ module "master_3" {
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 
-resource "null_resource" "register_with_nameserver" {
+resource "null_resource" "nameserver_configuration" {
   provisioner "local-exec" {
     command = <<EOT
       bash ./lib/scripts/local_exec/nameserver_add_host_records.sh \
