@@ -63,6 +63,7 @@ First, provision the basic infrastructure: vpc, security groups, ssh key, networ
 ```
 terraform init
 terraform apply -auto-approve -target=module.vpc
+
 terraform apply -auto-approve \
   -target=module.security_groups \
   -target=module.network_server \
@@ -72,7 +73,9 @@ terraform apply -auto-approve \
   -target=module.master_2 \
   -target=module.master_3 \
   -target=module.worker_1 \
-  -target=module.worker_2 \
+  -target=module.worker_2
+
+terraform apply -auto-approve \
   -target=null_resource.network_server_post_install \
   -target=null_resource.haproxy_server_post_install
 ```

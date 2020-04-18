@@ -60,10 +60,10 @@ module "bootstrap_server" {
   domain_name       = var.domain_name
 }
 
-module "haproxy" {
+module "haproxy_server" {
   source = "./lib/terraform/haproxy_server"
 
-  name              = "haproxy"
+  name              = "haproxy-server"
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
@@ -129,7 +129,7 @@ module "worker_2" {
 }
 
 
-resource "null_resource" "network_server_post_install" {
+resource "null_resource" "network_server_post_provision" {
   provisioner "local-exec" {
     command = <<EOT
       bash ./lib/terraform/network_server/configure_host_records.sh \
@@ -137,7 +137,7 @@ resource "null_resource" "network_server_post_install" {
         ${var.cluster_name} ${var.domain_name} \
         network-server:${module.network_server.private_ip} \
         bootstrap-server:${module.bootstrap_server.private_ip} \
-        haproxy:${module.haproxy.private_ip} \
+        haproxy-server:${module.haproxy_server.private_ip} \
         master-1:${module.master_1.private_ip} \
         master-2:${module.master_2.private_ip} \
         master-3:${module.master_3.private_ip} \
@@ -151,8 +151,8 @@ EOT
       bash ./lib/terraform/network_server/configure_cluster_records.sh \
         ${var.admin_key} ${module.network_server.public_ip} \
         ${var.cluster_name} ${var.domain_name} \
-        ${module.haproxy.private_ip} \
-        ${module.haproxy.private_ip} \
+        ${module.haproxy_server.private_ip} \
+        ${module.haproxy_server.private_ip} \
         ${module.master_1.private_ip} \
         ${module.master_2.private_ip} \
         ${module.master_3.private_ip}
@@ -160,7 +160,7 @@ EOT
   }
 }
 
-resource "null_resource" "haproxy_server_post_install" {
+resource "null_resource" "haproxy_server_post_provision" {
   provisioner "local-exec" {
     command = <<EOT
       bash ./lib/terraform/haproxy_server/configure_load_balancing.sh \
