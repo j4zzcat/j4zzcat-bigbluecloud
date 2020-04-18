@@ -47,8 +47,8 @@ module "network_server" {
   domain_name       = var.domain_name
 }
 
-module "installation_server" {
-  source = "./lib/terraform/installation_server"
+module "bootstrap_server" {
+  source = "./lib/terraform/bootstrap_server"
 
   name              = "installation-server"
   vpc_name          = local.vpc_name
@@ -126,7 +126,7 @@ resource "null_resource" "network_server_configuration" {
         ${var.admin_key} ${module.network_server.public_ip} \
         ${var.cluster_name} ${var.domain_name} \
         network-server:${module.network_server.private_ip} \
-        installation-server:${module.installation_server.private_ip} \
+        installation-server:${module.bootstrap_server.private_ip} \
         haproxy-masters:${module.haproxy_masters.private_ip} \
         haproxy-workers:${module.haproxy_workers.private_ip} \
         master-1:${module.master_1.private_ip} \

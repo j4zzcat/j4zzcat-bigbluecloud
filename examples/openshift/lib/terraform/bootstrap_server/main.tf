@@ -2,7 +2,7 @@ data "ibm_is_vpc" "vpc" {
   name = var.vpc_name
 }
 
-module "installation_server" {
+module "bootstrap_server" {
   source = "../../../../../lib/terraform/server"
 
   name              = var.name

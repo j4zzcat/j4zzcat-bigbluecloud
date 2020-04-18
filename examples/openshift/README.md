@@ -66,7 +66,7 @@ terraform apply -auto-approve -target=module.vpc
 terraform apply -auto-approve \
   -target=module.security_groups \
   -target=module.network_server \
-  -target=module.installation_server \
+  -target=module.bootstrap_server \
   -target=module.haproxy_masters \
   -target=module.haproxy_workers \
   -target=module.master_1 \
