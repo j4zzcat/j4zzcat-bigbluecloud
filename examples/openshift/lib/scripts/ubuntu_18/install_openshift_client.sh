@@ -1,24 +1,35 @@
-DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  apache2
+HOME_DIR=/opt/openshift
+RHCOS_DIR=${HOME_DIR}/rhcos
+HTTP_HOME=/var/www/html/openshift
 
-# install openshift client and files
+mkdir -p ${HOME_DIR}
+mkdir -p ${RHCOS_DIR}
+mkdir -p ${HTTP_HOME}
+
+# download openshift client and files
 cd /tmp
-for file in openshift-client-linux.tar.gz openshift-install-linux.tar.gz sha256sum.txt sha256sum.txt.sig; do
-  curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.3/${file}
+for FILE in openshift-client-linux.tar.gz openshift-install-linux.tar.gz sha256sum.txt sha256sum.txt.sig; do
+  curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.3/${FILE}
 done
 
 # TODO verify sha and sig
 gzip -d openshift*
 
-mkdir -p /opt/openshift
-cd /opt/openshift
+# untar openshift files
+cd ${HOME_DIR}
 tar -xvf /tmp/openshift-install*.tar
 tar -xvf /tmp/openshift-client*.tar
+rm -rf /tmp/openshift*.tar
 
-mkdir -p /var/www/html/images/rhcos
-cd /var/www/html/images/rhcos
-for file in installer-kernel-x86_64 installer-initramfs.x86_64.img installer.x86_64.iso metal.x86_64.raw.gz; do
-  curl -LO https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.3/4.3.8/rhcos-4.3.8-x86_64-${file}
+# download rhcos
+cd ${RHCOS_DIR}
+for FILE in installer-kernel-x86_64 installer-initramfs.x86_64.img installer.x86_64.iso metal.x86_64.raw.gz; do
+  curl -LO https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.3/4.3.8/rhcos-4.3.8-x86_64-${FILE}
 done
 
-mkdir -p /var/www/html/config
+# install apache2
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  apache2
+
+# link rhcos to http dir
+ln -s ${RHCOS_DIR} ${HTTP_HOME}

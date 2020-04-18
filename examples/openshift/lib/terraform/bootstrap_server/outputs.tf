@@ -1,3 +1,3 @@
 output "private_ip" {
-  value = module.installation_server.private_ip
+  value = module.bootstrap_server.private_ip
 }

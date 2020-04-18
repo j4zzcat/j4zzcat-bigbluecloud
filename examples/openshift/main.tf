@@ -50,7 +50,7 @@ module "network_server" {
 module "bootstrap_server" {
   source = "./lib/terraform/bootstrap_server"
 
-  name              = "installation-server"
+  name              = "bootstrap-server"
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
@@ -119,14 +119,14 @@ module "master_3" {
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 
-resource "null_resource" "network_server_configuration" {
+resource "null_resource" "network_server_post_install" {
   provisioner "local-exec" {
     command = <<EOT
       bash ./lib/terraform/network_server/configure_host_records.sh \
         ${var.admin_key} ${module.network_server.public_ip} \
         ${var.cluster_name} ${var.domain_name} \
         network-server:${module.network_server.private_ip} \
-        installation-server:${module.bootstrap_server.private_ip} \
+        bootstrap-server:${module.bootstrap_server.private_ip} \
         haproxy-masters:${module.haproxy_masters.private_ip} \
         haproxy-workers:${module.haproxy_workers.private_ip} \
         master-1:${module.master_1.private_ip} \
@@ -137,7 +137,7 @@ EOT
 
   provisioner "local-exec" {
     command = <<EOT
-      bash ./lib/terraform//network_server/confgiure_cluster_records.sh \
+      bash ./lib/terraform//network_server/configure_cluster_records.sh \
         ${var.admin_key} ${module.network_server.public_ip} \
         ${var.cluster_name} ${var.domain_name} \
         ${module.haproxy_masters.private_ip} \
