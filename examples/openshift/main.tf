@@ -168,3 +168,4 @@ resource "null_resource" "haproxy_server_post_install" {
         ${var.cluster_name} ${var.domain_name}
 EOT
   }
+}
