@@ -164,7 +164,7 @@ resource "null_resource" "haproxy_server_post_install" {
   provisioner "local-exec" {
     command = <<EOT
       bash ./lib/terraform/haproxy_server/configure_load_balancing.sh \
-        ${var.admin_key} ${module.network_server.public_ip} \
+        ${var.admin_key} ${module.haproxy_server.public_ip} \
         ${var.cluster_name} ${var.domain_name}
 EOT
   }

@@ -1,5 +1,5 @@
 KEY_FILE=${1}
-NETWORK_SERVER_FIP=${2}
+HAPROXY_SERVER_FIP=${2}
 CLUSTER_NAME=${3}
 DOMAIN_NAME=${4}
 
@@ -88,5 +88,5 @@ backend router_https
   server worker-2.${FQDN}:443 check
 EOT
 
-timeout 5m bash -c 'while :; do ping -c 1 '${NETWORK_SERVER_FIP}' && break; done'
-cat ${TMP_FILE} | ssh -oStrictHostKeyChecking=no -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "cat > /etc/haproxy/haproxy.cfg"
+timeout 5m bash -c 'while :; do ping -c 1 '${HAPROXY_SERVER_FIP}' && break; done'
+cat ${TMP_FILE} | ssh -oStrictHostKeyChecking=no -i ${KEY_FILE} root@${HAPROXY_SERVER_FIP} "cat > /etc/haproxy/haproxy.cfg"
