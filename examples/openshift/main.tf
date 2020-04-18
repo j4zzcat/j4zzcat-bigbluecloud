@@ -4,6 +4,7 @@ variable region_name         {}
 variable zone_name           {}
 variable resource_group_name {}
 variable admin_key           {}
+variable pull_secret         {}
 
 locals {
   admin_public_key = "${var.admin_key}.pub"
@@ -128,7 +129,6 @@ module "worker_2" {
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 
-
 resource "null_resource" "network_server_post_provision" {
   provisioner "local-exec" {
     command = <<EOT
@@ -166,6 +166,17 @@ resource "null_resource" "haproxy_server_post_provision" {
       bash ./lib/terraform/haproxy_server/configure_load_balancing.sh \
         ${var.admin_key} ${module.haproxy_server.public_ip} \
         ${var.cluster_name} ${var.domain_name}
+EOT
+  }
+}
+
+resource "null_resource" "bootstrap_server_post_provision" {
+  provisioner "local-exec" {
+    command = <<EOT
+      bash ./lib/terraform/bootstrap_server/upload_pull_secret.sh \
+        ${var.admin_key} ${module.bootstrap_server.public_ip} \
+        ${var.cluster_name} ${var.domain_name} \
+        ${var.pull_secret}
 EOT
   }
 }

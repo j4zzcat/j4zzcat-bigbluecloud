@@ -76,8 +76,9 @@ terraform apply -auto-approve \
   -target=module.worker_2
 
 terraform apply -auto-approve \
-  -target=null_resource.network_server_post_install \
-  -target=null_resource.haproxy_server_post_install
+  -target=null_resource.network_server_post_provision \
+  -target=null_resource.haproxy_server_post_provision \
+  -target=null_resource.bootstrap_server.post_provision
 ```
 
 ### Provision OpenShift

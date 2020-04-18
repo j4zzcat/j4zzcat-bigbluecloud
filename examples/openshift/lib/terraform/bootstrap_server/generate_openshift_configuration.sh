@@ -19,7 +19,7 @@ eval "$(ssh-agent -s)"
 ssh-add ${SECRET_KEY_FILE}
 PUBLIC_KEY=$(cat ${PUBLIC_KEY_FILE})
 
-# copy pull-secret.txt to /opt/openshift/install/${CLUSTER_NAME}
+mv ${HOME_DIR}/pull_secret.${CLUSTER_NAME}.${DOMAIN_NAME} ${INSTALL_DIR}/pull_secret.txt
 PULL_SECRET=$(cat ${INSTALL_DIR}/pull-secret.txt)
 
 cat <<EOT >${INSTALL_DIR}/install-config.yaml
