@@ -128,7 +128,10 @@ resource "null_resource" "register_with_nameserver" {
         network-server:${module.network_server.private_ip} \
         installation-server:${module.installation_server.private_ip} \
         haproxy-masters:${module.haproxy_masters.private_ip} \
-        haproxy-workers:${module.haproxy_workers.private_ip}
+        haproxy-workers:${module.haproxy_workers.private_ip} \
+        master-1:${module.master_1.private_ip} \
+        master-2:${module.master_2.private_ip} \
+        master-3:${module.master_3.private_ip}
 EOT
   }
 
