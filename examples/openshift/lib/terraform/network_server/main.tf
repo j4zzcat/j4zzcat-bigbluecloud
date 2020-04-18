@@ -3,7 +3,7 @@ data "ibm_is_vpc" "vpc" {
 }
 
 module "network_server" {
-  source = "../../../../lib/terraform/server"
+  source = "../../../../../lib/terraform/server"
 
   name              = var.name
   vpc_name          = var.vpc_name
@@ -28,7 +28,7 @@ runcmd:
   - bash /j4zzcat/lib/scripts/ubuntu_18/upgrade_os.sh
   - bash /j4zzcat/lib/scripts/ubuntu_18/install_basics.sh
   - bash /j4zzcat/lib/scripts/ubuntu_18/install_sinatra.sh
-  - bash /j4zzcat/lib/scripts/ubuntu_18/install_dnsmasq.sh ${var.vpc_name}
+  - bash /j4zzcat/examples/openshift/lib/scripts/ubuntu_18/install_dnsmasq.sh ${var.cluster_name} ${var.domain_name}
 power_state:
   mode: reboot
   timeout: 1
