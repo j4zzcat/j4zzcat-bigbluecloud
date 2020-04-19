@@ -93,7 +93,9 @@ TBD
 TBD
 
 ### If things go wrong
-Sometimes things go wrong and the terraform script fails or never finishes. This could be because of a user error, bug in the script, bug in terraform or a glitch in (god forbid) IBM Cloud (all have known to happen before). If this does happen, try the following:
-* If the scripts still runs after 15m (usually spitting a 'Still creating...' message for one specific vm):
-  * Stop the terraform script by typing CTRL+C **one time**. Terraform should stop gracefully. Afterwards, run the command again (terraform should recover).
-  * If it fails to stop gracefully, type CTRL+C **twice**. Terraform stops immediately but the state might get corrupted. Run `terraform destroy` to delete all the previously provisioned resources, then start over from the beginning. However, if the `destroy` fails, clean the terraform state by running `rm -rf .terraform terraform.tfstate*` and start over.
+Sometimes things go wrong and the terraform script fails or hangs (i.e., never finishes). This could be because of a user error, bug in the script, bug in terraform or a glitch in (god forbid) IBM Cloud (all have known to happen before). If this does happen, try the following:
+* Understand what went wrong and fix it.
+
+* For hanged scripts, stop terraform by pressing CTRL+C **one time**. Terraform should stop gracefully. Afterwards, run the command again (terraform should recover).
+
+* If terraform fails to stop gracefully, press CTRL+C **twice**. Terraform stops immediately but the state might get corrupted. Run `terraform destroy` to delete all the previously provisioned resources, then start over from the beginning. However, if the `destroy` fails, clean the terraform state by running `rm -rf .terraform terraform.tfstate*` and start over.
