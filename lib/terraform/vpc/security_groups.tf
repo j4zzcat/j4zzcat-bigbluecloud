@@ -17,6 +17,41 @@ resource "ibm_is_security_group_rule" "allow_inbound_from_any_rule" {
   remote     = "0.0.0.0/0"
 }
 
+# --- allow basic operation ---
+resource "ibm_is_security_group" "allow_basic_operation" {
+  resource_group = ibm_is_vpc.vpc.resource_group
+  name = "allow-basic-operation"
+  vpc  = ibm_is_vpc.vpc.id
+}
+
+resource "ibm_is_security_group_rule" "allow_basic_operation_outbound_to_any_rule" {
+  group      = ibm_is_security_group.allow_basic_operation.id
+  direction  = "outbound"
+  remote     = "0.0.0.0/0"
+}
+
+resource "ibm_is_security_group_rule" "allow_basic_operation_icmp_rule" {
+  group      = ibm_is_security_group.allow_basic_operation.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  icmp {
+    code = 0
+    type = 8
+  }
+}
+
+resource "ibm_is_security_group_rule" "allow_basic_operation_ssh_rule" {
+  group      = ibm_is_security_group.allow_basic_operation.id
+  direction  = "inbound"
+  remote     = "109.65.0.0/16" # TODO fix
+
+  tcp {
+    port_min = 22
+    port_max = 22
+  }
+}
+
 # --- allow outbound to any ---
 resource "ibm_is_security_group" "allow_outbound_any" {
   resource_group = ibm_is_vpc.vpc.resource_group

@@ -12,9 +12,7 @@ module "network_server" {
   resource_group_id = var.resource_group_id
 
   security_groups  = [
-    var.security_groups[ "allow_outbound_any" ],
-    var.security_groups[ "allow_inbound_ping" ],
-    var.security_groups[ "allow_inbound_ssh" ],
+    var.security_groups[ "allow_basic_operation" ],
     var.security_groups[ "allow_inbound_dns" ],
     var.security_groups[ "allow_inbound_sinatra" ]
   ]
