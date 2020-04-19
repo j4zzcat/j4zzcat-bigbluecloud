@@ -19,7 +19,7 @@ eval "$(ssh-agent -s)"
 ssh-add ${SECRET_KEY_FILE}
 PUBLIC_KEY=$(cat ${PUBLIC_KEY_FILE})
 
-mv ${HOME_DIR}/pull_secret.${CLUSTER_NAME}.${DOMAIN_NAME} ${INSTALL_DIR}/pull_secret.txt
+mv ${HOME_DIR}/pull-secret.${CLUSTER_NAME}.${DOMAIN_NAME} ${INSTALL_DIR}/pull-secret.txt
 PULL_SECRET=$(cat ${INSTALL_DIR}/pull-secret.txt)
 
 cat <<EOT >${INSTALL_DIR}/install-config.yaml

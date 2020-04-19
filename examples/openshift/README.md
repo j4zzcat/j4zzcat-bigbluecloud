@@ -78,7 +78,7 @@ terraform apply -auto-approve \
 terraform apply -auto-approve \
   -target=null_resource.network_server_post_provision \
   -target=null_resource.haproxy_server_post_provision \
-  -target=null_resource.bootstrap_server.post_provision
+  -target=null_resource.bootstrap_server_post_provision
 ```
 
 ### Provision OpenShift

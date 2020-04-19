@@ -8,4 +8,4 @@ HOME_DIR=/opt/openshift
 INSTALL_DIR=${HOME_DIR}/install/${CLUSTER_NAME}.${DOMAIN_NAME}
 
 timeout 5m bash -c 'while :; do ping -c 1 '${BOOTSTRAP_SERVER_FIP}' && break; done'
-scp -oStrictHostKeyChecking=no -i ${KEY_FILE} root@${BOOTSTRAP_SERVER_FIP} ${PULL_SECRET_FILE} /opt/openshift/pull_secret.${CLUSTER_NAME}.${DOMAIN_NAME}
+scp -oStrictHostKeyChecking=no -i ${KEY_FILE} ${PULL_SECRET_FILE} root@${BOOTSTRAP_SERVER_FIP}:/opt/openshift/pull-secret.${CLUSTER_NAME}.${DOMAIN_NAME}
