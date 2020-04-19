@@ -6,6 +6,7 @@ module "bootstrap_server" {
   source = "../../../../../lib/terraform/server"
 
   name              = var.name
+  profile           = var.profile
   vpc_name          = var.vpc_name
   subnet_id         = var.subnet_id
   key_id            = var.key_id

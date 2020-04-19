@@ -1,4 +1,5 @@
 variable name              {}
+variable profile           {}
 variable vpc_name          {}
 variable cluster_name      {}
 variable domain_name       {}

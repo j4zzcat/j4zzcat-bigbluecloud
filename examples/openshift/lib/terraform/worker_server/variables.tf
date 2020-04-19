@@ -1,4 +1,5 @@
 variable name              {}
+variable profile           {}
 variable vpc_name          {}
 variable subnet_id         {}
 variable key_id            {}

@@ -5,6 +5,9 @@ variable zone_name           {}
 variable resource_group_name {}
 variable admin_key           {}
 variable pull_secret         {}
+variable infra_profile       {}
+variable masters_profile     {}
+variable workers_profile     {}
 
 locals {
   admin_public_key = "${var.admin_key}.pub"
@@ -39,6 +42,7 @@ module "network_server" {
   source = "./lib/terraform/network_server"
 
   name              = "network-server"
+  profile           = var.infra_profile
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
@@ -52,6 +56,7 @@ module "bootstrap_server" {
   source = "./lib/terraform/bootstrap_server"
 
   name              = "bootstrap-server"
+  profile           = var.infra_profile
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
@@ -65,6 +70,7 @@ module "haproxy_server" {
   source = "./lib/terraform/haproxy_server"
 
   name              = "haproxy-server"
+  profile           = var.infra_profile
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
@@ -78,6 +84,7 @@ module "master_1" {
   source = "./lib/terraform/master_server"
 
   name              = "master-1"
+  profile           = var.masters_profile
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
@@ -89,6 +96,7 @@ module "master_2" {
   source = "./lib/terraform/master_server"
 
   name              = "master-2"
+  profile           = var.masters_profile
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
@@ -100,6 +108,7 @@ module "master_3" {
   source = "./lib/terraform/master_server"
 
   name              = "master-3"
+  profile           = var.masters_profile
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
@@ -111,6 +120,7 @@ module "worker_1" {
   source = "./lib/terraform/worker_server"
 
   name              = "worker-1"
+  profile           = var.workers_profile
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
@@ -122,6 +132,7 @@ module "worker_2" {
   source = "./lib/terraform/worker_server"
 
   name              = "worker-2"
+  profile           = var.workers_profile
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
