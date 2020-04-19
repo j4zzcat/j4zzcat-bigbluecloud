@@ -60,7 +60,7 @@ pull_secret         = "./key/pull_secret.txt"
 ```
 
 ### Provision the infrastructure
-Provision the  infrastructure, this usually takes a few minutes:
+Provision the infrastructure, this usually takes a few minutes:
 ```
 terraform init
 terraform apply -auto-approve -target=module.vpc
@@ -75,7 +75,11 @@ terraform apply -auto-approve \
   -target=module.master_3 \
   -target=module.worker_1 \
   -target=module.worker_2
+```
+Note the although the terraform script finishes, the provisioning continues in the background on each and every server. Wait for *at least 5 minutes* for the provisioning to finish. Suggestion: go get a cup of coffee.
 
+Next continue with this part:
+```
 terraform apply -auto-approve \
   -target=null_resource.network_server_post_provision \
   -target=null_resource.haproxy_server_post_provision \
