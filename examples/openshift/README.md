@@ -69,7 +69,9 @@ terraform apply -auto-approve \
   -target=module.security_groups \
   -target=module.network_server \
   -target=module.bootstrap_server \
-  -target=module.haproxy_server \
+  -target=module.haproxy_server
+
+terraform apply -auto-approve \  
   -target=module.master_1 \
   -target=module.master_2 \
   -target=module.master_3 \

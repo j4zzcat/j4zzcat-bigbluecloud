@@ -13,7 +13,6 @@ module "bootstrap_server" {
 
   security_groups  = [
     var.security_groups[ "allow_outbound_any" ],
-    var.security_groups[ "allow_inbound_ping" ],
     var.security_groups[ "allow_inbound_ssh" ],
     var.security_groups[ "allow_inbound_http_https" ],
     var.security_groups[ "allow_inbound_sinatra" ],
