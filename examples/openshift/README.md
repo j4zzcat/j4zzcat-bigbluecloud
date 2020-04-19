@@ -60,7 +60,7 @@ pull_secret         = "./key/pull_secret.txt"
 ```
 
 ### Provision the infrastructure
-First, provision the basic infrastructure: vpc, security groups, ssh key, network server (provides dns) and the installation server (provides pxe services):
+Provision the  infrastructure, this usually takes a few minutes:
 ```
 terraform init
 terraform apply -auto-approve -target=module.vpc
