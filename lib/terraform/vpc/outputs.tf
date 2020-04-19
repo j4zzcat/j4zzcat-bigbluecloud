@@ -18,6 +18,7 @@ output "security_groups" {
     allow_inbound_http_https = ibm_is_security_group.allow_inbound_http_https.id,
     allow_inbound_ssh        = ibm_is_security_group.allow_inbound_ssh.id,
     allow_inbound_dns        = ibm_is_security_group.allow_inbound_dns.id,
-    allow_inbound_dhcp       = ibm_is_security_group.allow_inbound_dhcp.id
+    allow_inbound_dhcp       = ibm_is_security_group.allow_inbound_dhcp.id,
+    allow_basic_operation    = ibm_is_security_group.allow_basic_operation.id
   }
 }
