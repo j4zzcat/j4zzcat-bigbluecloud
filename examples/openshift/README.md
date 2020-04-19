@@ -91,3 +91,9 @@ TBD
 
 ### Test the installation
 TBD
+
+### If things go wrong
+Sometimes things go wrong and the terraform script fails or never finish. This could be because of a user error, bug in the script, bug in terraform or a glitch in (god forbid) IBM Cloud (all have known to happen before). If this does happen, try the following:
+* If the scripts still runs after 15m (usually 'Still creating...' one specific vm to finish its provisioning):
+** Stop the terraform script by typing CTRL+C **one time**. Terraform should stop gracefully. Afterwards, run the command again and terraform should be able to recover.
+** If it fails to stop gracefully, type CTRL+C **twice**. Terraform stops immediately but the state might get corrupted. Run `terraform destroy` to delete all the previously provisioned resources, then start over from the beginning.
