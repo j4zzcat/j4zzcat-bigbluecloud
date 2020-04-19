@@ -98,4 +98,4 @@ Sometimes things go wrong and the terraform script fails or hangs (i.e., never f
 
 * For hanged scripts, stop terraform by pressing CTRL+C **one time**. Terraform should stop gracefully. Afterwards, run the command again (terraform should recover).
 
-* If terraform fails to stop gracefully, press CTRL+C **twice**. Terraform stops immediately but the state might get corrupted. Run `terraform destroy -auto-approve` to delete all the previously provisioned resources, then start over from the beginning. However, if the `destroy` fails, clean the terraform state by running `rm -rf .terraform terraform.tfstate*` and start over.
+* If terraform fails to stop gracefully, press CTRL+C **twice**. Terraform stops immediately but the state might get corrupted. Run `terraform destroy -auto-approve` to delete all the previously provisioned resources, then start over from the beginning. However, if the `destroy` fails, first clean the terraform state by running `rm -rf .terraform terraform.tfstate*`, next delete the resources using the IBM Cloud console or CLI and finally start over, this time crossing your fingers behind your back.
