@@ -54,7 +54,7 @@ cluster_name        = "grapefruit"
 domain_name         = "fruits"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
-resource_group_name = "peto"
+resource_group_name = "blackforest"
 admin_key           = "./keys/admin_key.rsa"
 pull_secret         = "./key/pull_secret.txt"
 ```
