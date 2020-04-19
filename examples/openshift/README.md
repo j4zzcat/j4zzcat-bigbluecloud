@@ -92,7 +92,7 @@ TBD
 ### Test the installation
 TBD
 
-### If things go wrong
+### When things go wrong
 Sometimes things go wrong and the terraform script fails or hangs (i.e., never finishes). This could be because of a user error, bug in the script, bug in terraform or a glitch in (god forbid) IBM Cloud (all have known to happen before). If this does happen, try the following:
 * Understand what went wrong and fix it.
 
