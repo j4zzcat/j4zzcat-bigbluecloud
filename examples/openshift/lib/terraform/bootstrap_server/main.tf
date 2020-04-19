@@ -16,7 +16,8 @@ module "bootstrap_server" {
     var.security_groups[ "allow_inbound_ping" ],
     var.security_groups[ "allow_inbound_ssh" ],
     var.security_groups[ "allow_inbound_http_https" ],
-    var.security_groups[ "allow_inbound_sinatra" ]
+    var.security_groups[ "allow_inbound_sinatra" ],
+    var.security_groups[ "allow_inbound_openshift_bootstrap" ]
   ]
 
   user_data = <<EOT

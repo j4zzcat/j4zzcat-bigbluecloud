@@ -39,14 +39,14 @@ class PoormansDDNS
       EOT
     end
 
-    get '/boot/:type' do
+    get '/boot/master' do
       type = params[ 'type' ]
       return <<~EOT
         #!ipxe
         dhcp
         route
-        kernel http://#{settings.my_ip}/images/rhcos/rhcos-4.3.8-x86_64-installer-kernel-x86_64 coreos.inst=yes coreos.inst.install_dev=sda coreos.inst.image_url=http://#{settings.my_ip}/images/rhcos/metal.x86_64.raw.gz coreos.inst.ignition_url=http://#{settings.my_ip}/config/#{type}_config.ign ip=dhcp
-        initrd http://#{settings.my_ip}/images/rhcos/rhcos-4.3.8-x86_64-installer-initramfs.x86_64.img
+        kernel http://#{settings.my_ip}/openshift/rhcos/rhcos-4.3.8-x86_64-installer-kernel-x86_64 coreos.inst=yes coreos.inst.install_dev=sda coreos.inst.image_url=http://#{settings.my_ip}/openshift/rhcos/metal.x86_64.raw.gz coreos.inst.ignition_url=http://#{settings.my_ip}/openshift/install/coppermine.dollar/master_config.ign ip=dhcp nameserver=10.242.0.6 rd.neednet=1
+        initrd http://#{settings.my_ip}/openshift/rhcos/rhcos-4.3.8-x86_64-installer-initramfs.x86_64.img
         boot
       EOT
     end
