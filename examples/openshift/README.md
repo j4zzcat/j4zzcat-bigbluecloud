@@ -1,4 +1,4 @@
-# Create a simple OpenShift 4.3 cluster on IBM Cloud
+# Simple OpenShift 4.3 cluster on IBM Cloud
 
 ### Clone this repository
 ```
@@ -32,31 +32,32 @@ The following commands should be executed within the ibmcloud cli docker contain
 ibmcloud login
 ```
 
-### Change to the OpenShift example dir
+### Prep dir structure
 ```
 cd /repo/examples/openshift
+mkdir ./keys
 ```
+
+### Pull Secret
+Get your pull secret from `https://cloud.redhat.com/openshift/install/pull-secret` and place it in `./keys/pull_secret.txt`
 
 ### Update the infrastructure configuration
 Generate a new ssh key. This key will be provisioned onto every server allowing you to remotely login to the server.
 ```
-mkdir ./keys
 ssh-keygen -t rsa -b 4096 -N "" -f ./keys/admin_key.rsa
 ```
 
-Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, location, the resource group etc. Note that the specified resource group should exist already. For example:
+Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, domain, location, the resource group etc. Note that the specified resource group should exist already. For example:
 ```
 # file main.auto.tfvars
-name                = "grapefruit"
+cluster_name        = "grapefruit"
+domain_name         = "fruits"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
 resource_group_name = "peto"
 admin_key           = "./keys/admin_key.rsa"
+pull_secret         = "./key/pull_secret.txt"
 ```
-
-### Update the OpenShift configuration
-Get your secret from `https://cloud.redhat.com/openshift/install/pull-secret` and place it in `./keys/pull_secret.txt`
-
 
 ### Provision the infrastructure
 First, provision the basic infrastructure: vpc, security groups, ssh key, network server (provides dns) and the installation server (provides pxe services):
@@ -82,9 +83,7 @@ terraform apply -auto-approve \
 ```
 
 ### Provision OpenShift
-```
-terraform apply -auto-approve -target=module.install_openshift
-```
+TBD
 
 ### Test the installation
-<TBD>
+TBD
