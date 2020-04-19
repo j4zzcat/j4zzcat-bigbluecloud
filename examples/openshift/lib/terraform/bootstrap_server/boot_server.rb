@@ -2,7 +2,7 @@ require 'sinatra/base'
 
 PORT = '7080'
 
-class PoormansDDNS
+class BootstrapServer
   def run
     WebApp.set :my_ip, %x[ ip address show dev ens3 | awk '/inet /{print $2}' ].chomp.split( '/' )[ 0 ]
     WebApp.set :my_port, PORT
