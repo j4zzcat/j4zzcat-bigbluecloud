@@ -1,6 +1,6 @@
 # Required
-cluster_name        = "coppermine"
-domain_name         = "dollar"
+cluster_name        = "tito"
+domain_name         = "local"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
 resource_group_name = "peto"

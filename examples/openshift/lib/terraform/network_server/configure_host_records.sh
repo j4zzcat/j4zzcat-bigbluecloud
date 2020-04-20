@@ -9,7 +9,7 @@ TMP_FILE=$(mktemp /tmp/XXX)
 for TUPLE in ${@}; do
   HOSTNAME=$(echo ${TUPLE} | awk -F ':' '{print $1}')
   PIP=$(echo ${TUPLE} | awk -F ':' '{print $2}')
-  echo ${PIP} ${HOSTNAME}.${DOMAIN_NAME} >> ${TMP_FILE}
+  echo ${PIP} ${HOSTNAME}.${CLUSTER_NAME}.${DOMAIN_NAME} >> ${TMP_FILE}
 done
 
 # trying to be idempotence
@@ -17,7 +17,7 @@ cat ${TMP_FILE} | ssh \
   -oStrictHostKeyChecking=no \
   -i ${KEY_FILE} \
   root@${NETWORK_SERVER_FIP} \
-  "cat > /etc/dnsmasq.hosts.${DOMAIN_NAME}"
+  "cat > /etc/dnsmasq.hosts"
 
 ssh \
   -oStrictHostKeyChecking=no \

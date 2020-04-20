@@ -2,18 +2,19 @@ CLUSTER_NAME=${1}
 DOMAIN_NAME=${2}
 
 HOME_DIR=/opt/openshift
-INSTALL_DIR=${HOME_DIR}/install/${CLUSTER_NAME}.${DOMAIN_NAME}
+INSTALL_DIR=${HOME_DIR}/install
 SECRET_KEY_FILE=${INSTALL_DIR}/${CLUSTER_NAME}-key.rsa
 PUBLIC_KEY_FILE=${INSTALL_DIR}/${CLUSTER_NAME}-key.rsa.pub
 
 HTTP_HOME=/var/www/html/openshift
-HTTP_INSTALL_DIR=${HTTP_HOME}/install/${CLUSTER_NAME}.${DOMAIN_NAME}
+HTTP_INSTALL_DIR=${HTTP_HOME}/install
 
 mkdir -p ${HTTP_HOME}
 mkdir -p ${HTTP_INSTALL_DIR}
 mkdir -p ${INSTALL_DIR}
 cd ${HOME_DIR}
 
+rm ${SECRET_KEY_FILE}
 ssh-keygen -t rsa -b 4096 -N '' -f ${SECRET_KEY_FILE}
 eval "$(ssh-agent -s)"
 ssh-add ${SECRET_KEY_FILE}

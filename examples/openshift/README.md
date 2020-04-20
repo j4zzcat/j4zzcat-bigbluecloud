@@ -46,7 +46,10 @@ Generate a new ssh key. This key will be provisioned onto every server allowing 
 ssh-keygen -t rsa -b 4096 -N "" -f ./keys/admin_key.rsa
 ```
 
-Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, domain, location, profile of the infra/masters/workers machine, the resource group etc. Note that the specified resource group should exist already. For example:
+Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, domain, location, profile of the infra/masters/workers machine, the resource group etc.
+* Note that the specified resource group should exist already
+* Note that the only supported regions are: **eu-gb**, **us-south**, **us-east** 
+
 ```
 # file main.auto.tfvars
 cluster_name        = "grapefruit"
