@@ -45,16 +45,16 @@ class BootstrapServer
       enable :logging
     end
 
-    get '/prepare/:type/:ip' do
+    get '/prepare/:type' do
       client_type = params[ 'type' ]
-      cilent_ip   = params[ 'ip' ]
+      client_ip   = request.ip
 
       return <<~EOT
         apt update
         apt install -y ipxe
         sed --in-place -e 's/GRUB_DEFAULT=0/GRUB_DEFAULT=ipxe/' /etc/default/grub
         sed --in-place -e 's/--class network {/--class network --id ipxe {/' /etc/grub.d/20_ipxe
-        sed --in-place -e 's|linux16.*|linux16 $IPXEPATH dhcp \\\\&\\\\& chain http://#{MY_IP.to_s}:#{MY_PORT}/boot/#{client_type}/#{client_ip}|' /etc/grub.d/20_ipxe
+        sed --in-place -e 's|linux16.*|linux16 $IPXEPATH dhcp \\\\\\&\\\\\\& chain http://#{MY_IP.to_s}:#{MY_PORT}/boot/#{client_type}/#{client_ip}|' /etc/grub.d/20_ipxe
         update-grub
         # reboot
       EOT
