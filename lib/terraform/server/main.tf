@@ -15,7 +15,7 @@ resource "ibm_is_instance" "server" {
 
   name           = var.name
   image          = data.ibm_is_image.ubuntu_1804.id
-  profile        = "bx2-2x8"
+  profile        = var.profile
   vpc            = data.ibm_is_vpc.vpc.id
   zone           = data.ibm_is_subnet.subnet.zone
   keys           = [ var.key_id ]
