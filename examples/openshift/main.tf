@@ -63,6 +63,7 @@ module "bootstrap_server" {
   key_id            = module.vpc.default_admin_key.id
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
   nameserver        = module.network_server.private_ip
+  cluster_name      = var.cluster_name
   domain_name       = var.domain_name
 }
 

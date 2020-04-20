@@ -16,10 +16,9 @@ docker build --rm -f ibmcloud-cli.dockerfile -t ibmcloud/cli:1.0 .
 ```
 docker run -it --rm \
   -v <absolute path to repo dir>:/repo \
-  -e IC_API_KEY=<your IBM Cloud API key> \
+  -e IBMCLOUD_API_KEY=<your IBM Cloud API key> \
   -e IAAS_CLASSIC_USERNAME=<your IBM Cloud API key> \
   -e IAAS_CLASSIC_API_KEY=<your IBM Cloud classic infra API key> \
-  -e IBMCLOUD_API_KEY=${IC_API_KEY} \
   -e IC_TIMEOUT=120 \
   -e IAAS_CLASSIC_TIMEOUT=120 \
   ibmcloud/cli:1.0

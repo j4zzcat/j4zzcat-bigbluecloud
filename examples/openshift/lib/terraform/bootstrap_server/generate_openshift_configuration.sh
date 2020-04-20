@@ -1,5 +1,5 @@
-CLUSTER_NAME=coppermine
-DOMAIN_NAME=dollar
+CLUSTER_NAME=${1}
+DOMAIN_NAME=${2}
 
 HOME_DIR=/opt/openshift
 INSTALL_DIR=${HOME_DIR}/install/${CLUSTER_NAME}.${DOMAIN_NAME}
