@@ -143,6 +143,14 @@ module "worker_2" {
 resource "null_resource" "network_server_post_provision" {
   provisioner "local-exec" {
     command = <<EOT
+      bash ../../../../lib/terraform/scripts/ubuntu_18/wait_for_cloud_init.sh \
+        ${var.admin_key} ${module.network_server.public_ip} \
+        600
+    EOT
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
       bash ./lib/terraform/network_server/configure_host_records.sh \
         ${var.admin_key} ${module.network_server.public_ip} \
         ${var.cluster_name} ${var.domain_name} \
@@ -154,7 +162,7 @@ resource "null_resource" "network_server_post_provision" {
         master-3:${module.master_3.private_ip} \
         worker-1:${module.worker_1.private_ip} \
         worker-2:${module.worker_2.private_ip}
-EOT
+    EOT
   }
 
   provisioner "local-exec" {
@@ -167,27 +175,43 @@ EOT
         ${module.master_1.private_ip} \
         ${module.master_2.private_ip} \
         ${module.master_3.private_ip}
-EOT
+    EOT
   }
 }
 
 resource "null_resource" "haproxy_server_post_provision" {
   provisioner "local-exec" {
     command = <<EOT
+      bash ../../../../lib/terraform/scripts/ubuntu_18/wait_for_cloud_init.sh \
+        ${var.admin_key} ${module.haproxy_server.public_ip} \
+        600
+    EOT
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
       bash ./lib/terraform/haproxy_server/configure_load_balancing.sh \
         ${var.admin_key} ${module.haproxy_server.public_ip} \
         ${var.cluster_name} ${var.domain_name}
-EOT
+    EOT
   }
 }
 
 resource "null_resource" "bootstrap_server_post_provision" {
   provisioner "local-exec" {
     command = <<EOT
+      bash ../../../../lib/terraform/scripts/ubuntu_18/wait_for_cloud_init.sh \
+        ${var.admin_key} ${module.bootstrap_server.public_ip} \
+        600
+    EOT
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
       bash ./lib/terraform/bootstrap_server/upload_pull_secret.sh \
         ${var.admin_key} ${module.bootstrap_server.public_ip} \
         ${var.cluster_name} ${var.domain_name} \
         ${var.pull_secret}
-EOT
+    EOT
   }
 }

@@ -23,7 +23,6 @@ srv-host=_etcd-server-ssl._tcp.${FQDN}.,etcd-1.${FQDN},2380,0,10
 srv-host=_etcd-server-ssl._tcp.${FQDN}.,etcd-2.${FQDN},2380,0,10
 EOT
 
-timeout 5m bash -c 'while :; do ping -c 1 '${NETWORK_SERVER_FIP}' && break; done'
 cat ${TMP_FILE} | ssh \
   -oStrictHostKeyChecking=no \
   -i ${KEY_FILE} \

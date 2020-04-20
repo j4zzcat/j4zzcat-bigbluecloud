@@ -9,33 +9,6 @@ function wait_for_host {
   local REMOTE_HOST=${1}
 }
 
-function wait_for_cloud_init {
-  local REMOTE_HOST=${1}
-  local KEY_FILE=${2}
-
-  MAX_WAIT=600
-  START_TIME=$(date +%s)
-
-  echo -n "Waiting for ${REMOTE_HOST}:22..."
-  nc -w ${MAX_WAIT} -z ${REMOTE_HOST} 22 \
-    || return 1
-  echo "ok"
-
-  REMAINING_TIME=$(( ${MAX_WAIT} - $(($(date +%s) - ${START_TIME})) ))
-
-  if [ "${REMAINING_TIME}" -gt "0" ]; then
-    echo "Waiting for cloud-init on ${REMOTE_HOST}..."
-    ssh \
-      -oStrictHostKeyChecking=no \
-      -i ${KEY_FILE} \
-      root@${REMOTE_HOST} \
-      "timeout ${REMAINING_TIME}s cloud-init status --wait" \
-      || return 1
-  else
-    return 1
-  fi
-}
-
 cat <<EOT >${TMP_FILE}
 global
   log 127.0.0.1 local2
@@ -118,11 +91,8 @@ backend router_https
   server worker-2.${DOMAIN_NAME}:443 check
 EOT
 
-wait_for_cloud_init ${HAPROXY_SERVER_FIP} ${KEY_FILE} \
-  || exit 1
-
 cat ${TMP_FILE} | ssh \
   -oStrictHostKeyChecking=no \
   -i ${KEY_FILE} \
   root@${HAPROXY_SERVER_FIP} \
-  "cloud-init status --wait; cat > /etc/haproxy/haproxy.cfg"
+  "cat > /etc/haproxy/haproxy.cfg"

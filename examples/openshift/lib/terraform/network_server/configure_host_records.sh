@@ -13,6 +13,14 @@ for TUPLE in ${@}; do
 done
 
 # trying to be idempotence
-timeout 5m bash -c 'while :; do ping -c 1 '${NETWORK_SERVER_FIP}' && break; done'
-cat ${TMP_FILE} | ssh -oStrictHostKeyChecking=no -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "cat > /etc/dnsmasq.hosts.${DOMAIN_NAME}"
-ssh -oStrictHostKeyChecking=no -i ${KEY_FILE} root@${NETWORK_SERVER_FIP} "systemctl restart dnsmasq" || true
+cat ${TMP_FILE} | ssh \
+  -oStrictHostKeyChecking=no \
+  -i ${KEY_FILE} \
+  root@${NETWORK_SERVER_FIP} \
+  "cat > /etc/dnsmasq.hosts.${DOMAIN_NAME}"
+
+ssh \
+  -oStrictHostKeyChecking=no \
+  -i ${KEY_FILE} \
+  root@${NETWORK_SERVER_FIP} \
+  "systemctl restart dnsmasq" || true
