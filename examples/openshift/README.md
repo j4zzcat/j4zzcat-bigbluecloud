@@ -15,13 +15,13 @@ docker build --rm -f ibmcloud-cli.dockerfile -t ibmcloud/cli:1.0 .
 ### Run the IBM Cloud cli docker image
 ```
 docker run -it --rm \
-  -v <abs path to repo dir>:/repo \
+  -v <absolute path to repo dir>:/repo \
   -e IC_API_KEY=<your IBM Cloud API key> \
   -e IAAS_CLASSIC_USERNAME=<your IBM Cloud API key> \
   -e IAAS_CLASSIC_API_KEY=<your IBM Cloud classic infra API key> \
   -e IBMCLOUD_API_KEY=${IC_API_KEY} \
-  -e IC_TIMEOUT=60 \
-  -e IAAS_CLASSIC_TIMEOUT=60 \
+  -e IC_TIMEOUT=120 \
+  -e IAAS_CLASSIC_TIMEOUT=120 \
   ibmcloud/cli:1.0
 ```
 
@@ -51,7 +51,7 @@ Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, do
 ```
 # file main.auto.tfvars
 cluster_name        = "grapefruit"
-domain_name         = "fruits"
+domain_name         = "fruits.local"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
 resource_group_name = "blackforest"

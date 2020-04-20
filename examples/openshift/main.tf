@@ -143,7 +143,7 @@ module "worker_2" {
 resource "null_resource" "network_server_post_provision" {
   provisioner "local-exec" {
     command = <<EOT
-      bash ../../../../lib/terraform/scripts/ubuntu_18/wait_for_cloud_init.sh \
+      bash ../../lib/scripts/ubuntu_18/wait_for_cloud_init.sh \
         ${var.admin_key} ${module.network_server.public_ip} \
         600
     EOT
@@ -182,7 +182,7 @@ resource "null_resource" "network_server_post_provision" {
 resource "null_resource" "haproxy_server_post_provision" {
   provisioner "local-exec" {
     command = <<EOT
-      bash ../../../../lib/terraform/scripts/ubuntu_18/wait_for_cloud_init.sh \
+      bash ../../lib/scripts/ubuntu_18/wait_for_cloud_init.sh \
         ${var.admin_key} ${module.haproxy_server.public_ip} \
         600
     EOT
@@ -200,7 +200,7 @@ resource "null_resource" "haproxy_server_post_provision" {
 resource "null_resource" "bootstrap_server_post_provision" {
   provisioner "local-exec" {
     command = <<EOT
-      bash ../../../../lib/terraform/scripts/ubuntu_18/wait_for_cloud_init.sh \
+      bash ../../lib/scripts/ubuntu_18/wait_for_cloud_init.sh \
         ${var.admin_key} ${module.bootstrap_server.public_ip} \
         600
     EOT
