@@ -211,7 +211,6 @@ resource "null_resource" "bootstrap_server_post_provision" {
     command = <<EOT
       bash ./lib/terraform/bootstrap_server/upload_pull_secret.sh \
         ${var.admin_key} ${module.bootstrap_server.public_ip} \
-        ${var.cluster_name} ${var.domain_name} \
         ${var.pull_secret}
     EOT
   }
