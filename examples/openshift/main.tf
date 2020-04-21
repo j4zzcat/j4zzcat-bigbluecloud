@@ -153,7 +153,7 @@ resource "null_resource" "network_server_post_provision" {
       host        = module.network_server.public_ip
     }
 
-    content = <<EOT
+    content = <<-EOT
       port=53
       no-hosts
       addn-hosts=/etc/dnsmasq.hosts
@@ -173,7 +173,7 @@ resource "null_resource" "network_server_post_provision" {
       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-0.${var.cluster_name}.${var.domain_name},2380,0,10
       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-1.${var.cluster_name}.${var.domain_name},2380,0,10
       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-2.${var.cluster_name}.${var.domain_name},2380,0,10
-EOT
+    EOT
   }
 
   provisioner "file" {
@@ -187,7 +187,7 @@ EOT
       host        = module.network_server.public_ip
     }
 
-    content = <<EOT
+    content = <<-EOT
       ${module.bootstrap_server.private_ip} ${module.bootstrap_server.name}.${var.cluster_name}.${var.domain_name}
       ${module.network_server.private_ip} ${module.network_server.name}.${var.cluster_name}.${var.domain_name}
       ${module.haproxy_server.private_ip} ${module.haproxy_server.name}.${var.cluster_name}.${var.domain_name}
@@ -196,7 +196,7 @@ EOT
       ${module.master_3.private_ip} ${module.master_3.name}.${var.cluster_name}.${var.domain_name}
       ${module.worker_1.private_ip} ${module.worker_1.name}.${var.cluster_name}.${var.domain_name}
       ${module.worker_2.private_ip} ${module.worker_2.name}.${var.cluster_name}.${var.domain_name}
-EOT
+    EOT
   }
 }
 
@@ -212,7 +212,7 @@ resource "null_resource" "haproxy_server_post_provision" {
       host        = module.haproxy_server.public_ip
     }
 
-    content = <<EOT
+    content = <<-EOT
       global
         log 127.0.0.1 local2
         chroot /var/lib/haproxy
@@ -292,7 +292,7 @@ resource "null_resource" "haproxy_server_post_provision" {
         mode tcp
         server ${module.worker_1.name}.${var.cluster_name}.${var.domain_name}:443 check
         server ${module.worker_2.name}.${var.cluster_name}.${var.domain_name}:443 check
-EOT
+    EOT
   }
 }
 
