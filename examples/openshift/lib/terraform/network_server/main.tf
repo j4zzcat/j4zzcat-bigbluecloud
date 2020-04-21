@@ -9,7 +9,7 @@ module "network_server" {
   profile           = var.profile
   vpc_name          = var.vpc_name
   subnet_id         = var.subnet_id
-  key_id            = var.key_id
+  keys              = var.keys
   resource_group_id = var.resource_group_id
 
   security_groups  = [
@@ -25,9 +25,9 @@ runcmd:
   - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
   - ln -s /usr/local/src/j4zzcat-ibmcloud /j4zzcat
   - bash /j4zzcat/lib/scripts/ubuntu_18/upgrade_os.sh
+  - bash /j4zzcat/lib/scripts/ubuntu_18/install_dnsmasq.sh
   - bash /j4zzcat/lib/scripts/ubuntu_18/install_basics.sh
   - bash /j4zzcat/lib/scripts/ubuntu_18/install_sinatra.sh
-  - bash /j4zzcat/lib/scripts/ubuntu_18/install_dnsmasq.sh
 power_state:
   mode: reboot
   timeout: 1

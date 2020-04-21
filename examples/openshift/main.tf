@@ -46,7 +46,7 @@ module "network_server" {
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
-  key_id            = module.vpc.default_admin_key.id
+  keys              = [ module.vpc.default_admin_key.id ]
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
   cluster_name      = var.cluster_name
   domain_name       = var.domain_name
@@ -60,7 +60,7 @@ module "bootstrap_server" {
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
-  key_id            = module.vpc.default_admin_key.id
+  keys              = [ module.vpc.default_admin_key.id ]
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
   nameserver        = module.network_server.private_ip
   cluster_name      = var.cluster_name
@@ -75,7 +75,7 @@ module "haproxy_server" {
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
-  key_id            = module.vpc.default_admin_key.id
+  keys              = [ module.vpc.default_admin_key.id ]
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
   nameserver        = module.network_server.private_ip
   domain_name       = var.domain_name
@@ -89,7 +89,7 @@ module "master_1" {
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
-  key_id            = module.vpc.default_admin_key.id
+  keys              = [ module.vpc.default_admin_key.id ]
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 
@@ -101,7 +101,7 @@ module "master_2" {
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
-  key_id            = module.vpc.default_admin_key.id
+  keys              = [ module.vpc.default_admin_key.id ]
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 
@@ -113,7 +113,7 @@ module "master_3" {
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
-  key_id            = module.vpc.default_admin_key.id
+  keys              = [ module.vpc.default_admin_key.id ]
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 
@@ -125,7 +125,7 @@ module "worker_1" {
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
-  key_id            = module.vpc.default_admin_key.id
+  keys              = [ module.vpc.default_admin_key.id ]
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 
@@ -137,7 +137,7 @@ module "worker_2" {
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
   resource_group_id = data.ibm_resource_group.resource_group.id
-  key_id            = module.vpc.default_admin_key.id
+  keys              = [ module.vpc.default_admin_key.id ]
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
 }
 

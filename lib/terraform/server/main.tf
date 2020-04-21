@@ -18,7 +18,7 @@ resource "ibm_is_instance" "server" {
   profile        = var.profile
   vpc            = data.ibm_is_vpc.vpc.id
   zone           = data.ibm_is_subnet.subnet.zone
-  keys           = [ var.key_id ]
+  keys           = var.keys
   user_data      = var.user_data
 
   primary_network_interface {

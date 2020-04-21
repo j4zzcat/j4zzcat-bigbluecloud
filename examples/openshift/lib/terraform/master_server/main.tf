@@ -9,7 +9,7 @@ module "master_server" {
   profile           = var.profile
   vpc_name          = var.vpc_name
   subnet_id         = var.subnet_id
-  key_id            = var.key_id
+  keys              = var.keys
   resource_group_id = var.resource_group_id
 
   security_groups  = [
