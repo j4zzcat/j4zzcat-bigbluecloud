@@ -5,8 +5,8 @@ MAX_WAIT=${3}
 # wait for host to become available
 echo "Waiting for ${REMOTE_HOST}:22..."
 START_TIME=$(date +%s)
-nc -w ${MAX_WAIT} -z ${REMOTE_HOST} 22 \
-  || exit 1
+timeout ${MAX_WAIT}s bash -c "while ! nc -z ${REMOTE_HOST} 22; do sleep 1; done"
+[ ! "${?}" = "0" ] && exit ${?}
 
 WAITED_TIME=$(($(date +%s) - ${START_TIME}))
 echo "Waited ${WAITED_TIME}s"
@@ -17,7 +17,7 @@ if [ "${REMAINING_TIME}" -le "0" ]; then
   exit 1
 fi
 
-sleep 10
+sleep 5
 echo "Waiting for cloud-init on ${REMOTE_HOST}..."
 START_TIME=$(date +%s)
 ssh \
