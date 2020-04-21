@@ -19,21 +19,13 @@ module "bootstrap_server" {
     var.security_groups[ "allow_inbound_openshift_bootstrap" ]
   ]
 
-  user_data = <<EOT
-#cloud-config
-runcmd:
-  - timeout 1m bash -c 'while :; do ping -c 1 github.com && break; done'
-  - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
-  - ln -s /usr/local/src/j4zzcat-ibmcloud /j4zzcat
-  - bash /j4zzcat/lib/scripts/ubuntu_18/upgrade_os.sh
-  - bash /j4zzcat/lib/scripts/ubuntu_18/install_basics.sh
-  - bash /j4zzcat/lib/scripts/ubuntu_18/install_sinatra.sh
-  - bash /j4zzcat/examples/openshift/lib/terraform/bootstrap_server/install_openshift_client.sh
-  - bash /j4zzcat/examples/openshift/lib/terraform/bootstrap_server/generate_openshift_configuration.sh ${var.cluster_name} ${var.domain_name}
-  - bash /j4zzcat/lib/scripts/ubuntu_18/configure_systemd_resolve.sh ${var.nameserver} ${var.domain_name}
-power_state:
-  mode: reboot
-  timeout: 1
-  condition: True
-EOT
+  user_data = join( "\n", [
+    "#cloud-config", "runcmd:",
+    "-", file( "${path.module}/../../scripts/ubuntu_18/upgrade_os.sh" ),
+    "-", file( "${path.module}/../../scripts/ubuntu_18/install_basics.sh" ),
+    "-", file( "${path.module}/../../scripts/ubuntu_18/install_sinatra.sh" ),
+    "-", templatefile( "${path.module}/../../scripts/ubuntu_18/config_resolve.sh", { domain_name = var.domain_name, nameserver_ip = var.nameserver_ip } ),
+    "-", file( "${path.module}/../../scripts/openshift/install_client.sh" ),
+    "-", file( "${path.module}/../../scripts/openshift/generate_config.sh" ),
+    "power_state:\nmode: reboot\ntimeout: 1\ncondition: True" ] )
 }

@@ -62,9 +62,9 @@ module "bootstrap_server" {
   resource_group_id = data.ibm_resource_group.resource_group.id
   keys              = [ module.vpc.default_admin_key.id ]
   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
-  nameserver        = module.network_server.private_ip
   cluster_name      = var.cluster_name
   domain_name       = var.domain_name
+  nameserver_ip     = module.network_server.private_ip
 }
 
 module "haproxy_server" {
@@ -210,6 +210,19 @@ resource "null_resource" "network_server_post_provision" {
       ${module.worker_1.private_ip} ${module.worker_1.name}.${var.cluster_name}.${var.domain_name}
       ${module.worker_2.private_ip} ${module.worker_2.name}.${var.cluster_name}.${var.domain_name}
     EOT
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "systemctl restart dnsmasq"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "root"
+      private_key = file( var.admin_key )
+      host        = module.network_server.public_ip
+    }
   }
 }
 

@@ -25,9 +25,9 @@ runcmd:
   - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
   - ln -s /usr/local/src/j4zzcat-ibmcloud /j4zzcat
   - bash /j4zzcat/lib/scripts/ubuntu_18/upgrade_os.sh
-  - bash /j4zzcat/lib/scripts/ubuntu_18/install_dnsmasq.sh
   - bash /j4zzcat/lib/scripts/ubuntu_18/install_basics.sh
   - bash /j4zzcat/lib/scripts/ubuntu_18/install_sinatra.sh
+  - bash /j4zzcat/lib/scripts/ubuntu_18/install_dnsmasq.sh
 power_state:
   mode: reboot
   timeout: 1

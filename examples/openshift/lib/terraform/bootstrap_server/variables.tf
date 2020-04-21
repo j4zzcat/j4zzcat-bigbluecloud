@@ -5,6 +5,6 @@ variable cluster_name      {}
 variable domain_name       {}
 variable subnet_id         {}
 variable keys              {}
-variable nameserver        {}
+variable nameserver_ip     {}
 variable resource_group_id {}
 variable security_groups   {}
