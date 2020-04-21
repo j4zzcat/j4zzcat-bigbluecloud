@@ -1,9 +1,6 @@
 KEY_FILE=${1}
 BOOTSTRAP_SERVER_FIP=${2}
-PULL_SECRET_FILE=${5}
-
-HOME_DIR=/opt/openshift
-INSTALL_DIR=${HOME_DIR}/install/${CLUSTER_NAME}.${DOMAIN_NAME}
+PULL_SECRET_FILE=${3}
 
 scp \
   -oStrictHostKeyChecking=no \

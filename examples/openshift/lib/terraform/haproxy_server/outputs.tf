@@ -1,3 +1,7 @@
+output "name" {
+  value = module.haproxy_server.name
+}
+
 output "private_ip" {
   value = module.haproxy_server.private_ip
 }

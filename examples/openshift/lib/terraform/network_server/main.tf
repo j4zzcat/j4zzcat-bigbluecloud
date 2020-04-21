@@ -27,7 +27,7 @@ runcmd:
   - bash /j4zzcat/lib/scripts/ubuntu_18/upgrade_os.sh
   - bash /j4zzcat/lib/scripts/ubuntu_18/install_basics.sh
   - bash /j4zzcat/lib/scripts/ubuntu_18/install_sinatra.sh
-  - bash /j4zzcat/examples/openshift/lib/terraform/network_server/install_dnsmasq.sh ${var.cluster_name} ${var.domain_name}
+  - bash /j4zzcat/lib/scripts/ubuntu_18/install_dnsmasq.sh
 power_state:
   mode: reboot
   timeout: 1

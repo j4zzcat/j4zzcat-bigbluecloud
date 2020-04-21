@@ -1,6 +1,3 @@
-CLUSTER_NAME=${1}
-DOMAIN_NAME=${2}
-
 # install and configure dnsmasq
 systemctl stop systemd-resolved
 systemctl disable systemd-resolved
@@ -9,15 +6,3 @@ echo -e "nameserver 161.26.0.10\nnameserver 161.26.0.11" > /etc/resolv.conf
 
 DEBIAN_FRONTEND=noninteractive apt install -y \
   dnsmasq
-
-cat <<EOT >/etc/dnsmasq.conf
-port=53
-no-hosts
-addn-hosts=/etc/dnsmasq.hosts
-log-queries
-domain-needed
-bogus-priv
-expand-hosts
-local=/${CLUSTER_NAME}.${DOMAIN_NAME}/
-domain=${CLUSTER_NAME}.${DOMAIN_NAME}
-EOT
