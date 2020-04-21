@@ -142,6 +142,19 @@ module "worker_2" {
 }
 
 resource "null_resource" "network_server_post_provision" {
+  provisioner "remote-exec" {
+    inline = [
+      "cloud-init status --wait"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "root"
+      private_key = file( var.admin_key )
+      host        = module.network_server.public_ip
+    }
+  }
+
   provisioner "file" {
     source      = var.pull_secret
     destination = "/etc/dnsmasq.conf"
