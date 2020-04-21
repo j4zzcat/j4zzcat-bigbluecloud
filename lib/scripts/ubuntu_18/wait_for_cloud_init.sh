@@ -17,6 +17,7 @@ if [ "${REMAINING_TIME}" -le "0" ]; then
   exit 1
 fi
 
+sleep 10
 echo "Waiting for cloud-init on ${REMOTE_HOST}..."
 START_TIME=$(date +%s)
 ssh \
