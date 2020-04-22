@@ -1,25 +1,21 @@
-resource "null_resource" "create_dir" {
-  provisioner "local-exec" {
-    command = "mkdir -p ${var.dir} || true"
-  }
+resource "ibm_is_ssh_key" "ssh_key" {
+  depends_on     = [ null_resource.ssh_key_generate_key ]
+
+  count          = length( var.keys )
+  name           = var.keys[ count.index ]
+  public_key     = file( "${var.dir}/${var.keys[ count.index ]}.rsa.pub" )
+  resource_group = var.resource_group_id
 }
 
-resource "null_resource" "generate_key" {
-  count = length( var.keys )
+resource "null_resource" "ssh_key_generate_key" {
+  count = 2
   provisioner "local-exec" {
     command = <<-EOT
-      case "${var.overwrite}" in
-        true)  yes 'y' | ssh-keygen -t rsa -b 4096 -N '' -f ${var.dir}/${var.keys[ 0 ]} ;;
-        false) yes 'n' | ssh-keygen -t rsa -b 4096 -N '' -f ${var.dir}/${var.keys[ 0 ]} ;;
+      mkdir -p ${var.dir} || true
+      case ${var.overwrite} in
+        true)  yes 'y' | ssh-keygen -t rsa -b 4096 -N '' -f ${var.dir}/${var.keys[ count.index ]} ;;
+        *)     yes 'n' | ssh-keygen -t rsa -b 4096 -N '' -f ${var.dir}/${var.keys[ count.index ]} ;;
       esac
     EOT
   }
-}
-
-resource "ibm_is_ssh_key" "ssh_key" {
-  count = length( var.keys )
-
-  name           = var.keys[ count.index ]
-  public_key     = file( "${var.dir}/${var.keys[ count.index ]}.pub" )
-  resource_group = var.resource_group_id
 }

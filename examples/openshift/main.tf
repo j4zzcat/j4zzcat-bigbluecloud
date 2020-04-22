@@ -5,6 +5,11 @@ variable zone_name           {}
 variable resource_group_name {}
 variable pull_secret         {}
 
+locals {
+  vpc_name = var.cluster_name
+  keys     = [ "admin-key", "bastion-key" ]
+}
+
 provider "ibm" {
   region     = var.region_name
   generation = 2
@@ -12,10 +17,6 @@ provider "ibm" {
 
 data "ibm_resource_group" "resource_group" {
   name = var.resource_group_name
-}
-
-locals {
-  vpc_name = var.cluster_name
 }
 
 module "vpc" {
@@ -29,14 +30,7 @@ module "vpc" {
 module "security_groups" {
   source            = "./lib/terraform/security_groups"
 
-  vpc_name          = local.vpc_name
-  resource_group_id = data.ibm_resource_group.resource_group.id
-}
-
-module "ssh_key" {
-  source = "../../lib/terraform/j4zzcat_ssh_key"
-
-  keys              = [ "admin_key", "bastion_key" ]
+  vpc_name          = module.vpc.name
   resource_group_id = data.ibm_resource_group.resource_group.id
 }
 
@@ -44,6 +38,27 @@ locals {
   security_groups = merge( module.security_groups.security_groups,
                            module.vpc.security_groups )
 }
+
+resource "null_resource" "ssh_key_generate_key" {
+  count = length( local.keys )
+  provisioner "local-exec" {
+    command = <<-EOT
+      mkdir -p './keys' || true
+      yes 'y' | ssh-keygen -t rsa -b 4096 -N '' -f ./keys/${local.keys[ count.index ]}.rsa
+    EOT
+  }
+}
+
+resource "ibm_is_ssh_key" "ssh_key" {
+  depends_on     = [ null_resource.ssh_key_generate_key ]
+
+  count          = length( local.keys )
+  name           = local.keys[ count.index ]
+  public_key     = file( "./keys/${local.keys[ count.index ]}.rsa.pub" )
+  resource_group = data.ibm_resource_group.resource_group.id
+}
+
+
 
 # module "network_server" {
 #   source = "./lib/terraform/network_server"
@@ -64,7 +79,7 @@ module "bootstrap_server" {
   profile           = "bx2-2x8"
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
-  keys              = module.ssh_key.ids
+  keys              = [ "module.ssh_key.ids" ]
   security_groups   = [ local.security_groups[ "allow_basic_operation" ],
                         local.security_groups[ "allow_inbound_http_https" ],
                         local.security_groups[ "allow_inbound_sinatra" ],

@@ -1,3 +1,7 @@
+output "name" {
+  value = var.name
+}
+
 output "id" {
   value = ibm_is_vpc.vpc.id
 }
