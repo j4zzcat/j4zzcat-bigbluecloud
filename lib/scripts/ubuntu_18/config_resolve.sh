@@ -10,11 +10,3 @@ sed --in-place \
   /etc/netplan/50-cloud-init.yaml
 
 netplan apply
-
-# register my ip and hostname with the dns
-# timeout 5m bash -c 'while :; do ping -c 1 '${NAMESERVER}' && break; done'
-# MY_IP=$(hostname -I)
-# MY_HOSTNAME=$(hostname)
-# curl -X POST \
-#   --data "hostname=${MY_HOSTNAME}" \
-#   http://${NAMESERVER}:7080/registar/${MY_IP}

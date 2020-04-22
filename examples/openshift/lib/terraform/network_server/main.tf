@@ -17,20 +17,22 @@ module "network_server" {
     var.security_groups[ "allow_inbound_dns" ],
     var.security_groups[ "allow_inbound_sinatra" ]
   ]
+}
 
-  user_data = <<EOT
-#cloud-config
-runcmd:
-  - timeout 1m bash -c 'while :; do ping -c 1 github.com && break; done'
-  - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
-  - ln -s /usr/local/src/j4zzcat-ibmcloud /j4zzcat
-  - bash /j4zzcat/lib/scripts/ubuntu_18/upgrade_os.sh
-  - bash /j4zzcat/lib/scripts/ubuntu_18/install_basics.sh
-  - bash /j4zzcat/lib/scripts/ubuntu_18/install_sinatra.sh
-  - bash /j4zzcat/lib/scripts/ubuntu_18/install_dnsmasq.sh
-power_state:
-  mode: reboot
-  timeout: 1
-  condition: True
-EOT
+resource "null_resource" "network_server_post_provision" {
+  connection {
+    type        = "ssh"
+    user        = "root"
+    private_key = file( var.keys[ 0 ] )
+    host        = module.network_server.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud",
+      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
+      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_dnsmasq.sh",
+      "reboot"
+    ]
+  }
 }

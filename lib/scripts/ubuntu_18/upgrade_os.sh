@@ -13,3 +13,6 @@ DEBIAN_FRONTEND=noninteractive apt-get \
   --allow-remove-essential \
   --allow-change-held-packages \
   -y dist-upgrade
+
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  mc vim

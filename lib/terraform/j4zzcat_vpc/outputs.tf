@@ -6,10 +6,6 @@ output "default_subnet" {
   value = ibm_is_subnet.default_subnet
 }
 
-output "default_admin_key" {
-  value = ibm_is_ssh_key.default_admin_key
-}
-
 output "security_groups" {
   value = {
     allow_any_to_any         = ibm_is_security_group.allow_any_to_any.id,

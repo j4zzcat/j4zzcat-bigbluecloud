@@ -30,6 +30,7 @@ class BootstrapServer
   class WebApp < Sinatra::Base
     configure do
       enable :logging
+      set :public_folder, '/var/sinatra/www'
     end
 
     get '/prepare/:type' do

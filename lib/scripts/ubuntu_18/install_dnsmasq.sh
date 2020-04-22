@@ -1,4 +1,4 @@
-# install and configure dnsmasq
+# install and configure dnsmasq for IBM Cloud
 systemctl stop systemd-resolved
 systemctl disable systemd-resolved
 rm /etc/resolv.conf

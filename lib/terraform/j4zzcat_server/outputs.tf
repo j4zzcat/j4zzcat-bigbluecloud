@@ -7,5 +7,5 @@ output "private_ip" {
 }
 
 output "public_ip" {
-  value = ibm_is_floating_ip.server_fip.address
+  value = var.fip ? ibm_is_floating_ip.server_fip[ 0 ].address : null
 }

@@ -44,15 +44,6 @@ resource "ibm_is_public_gateway" "public_gateway" {
   zone     = var.zone_name
 }
 
-# --- ssh key ---
-resource "ibm_is_ssh_key" "default_admin_key" {
-  tags           = null
-  resource_group = ibm_is_vpc.vpc.resource_group
-
-  name       = join( "-", [ "default-admin-key", var.name ] )
-  public_key = file( var.default_admin_key )
-}
-
 # ---- cloud object storage ---
 # resource "ibm_iam_authorization_policy" "l1v_vpc_image_reader_g_cos" {
 #   source_service_name         = "is"

@@ -29,7 +29,24 @@ resource "ibm_is_instance" "server" {
 }
 
 resource "ibm_is_floating_ip" "server_fip" {
-  resource_group = var.resource_group_id
+  count = var.fip == true ? 1 : 0
+
   name           = "${ibm_is_instance.server.name}-fip"
   target         = ibm_is_instance.server.primary_network_interface[ 0 ].id
+  resource_group = var.resource_group_id
+}
+
+resource "null_resource" "j4zzcat_server_post_provision" {
+  count = var.post_provision == null ? 0 : 1
+
+  connection {
+    type        = "ssh"
+    user        = "root"
+    private_key = file( var.keys[ 0 ] )
+    host        = var.fip ? ibm_is_floating_ip.server_fip[ 0 ].address : ibm_is_instance.server.primary_network_interface[ 0 ].primary_ipv4_address
+  }
+
+  provisioner "remote-exec" {
+    inline = var.post_provision
+  }
 }
