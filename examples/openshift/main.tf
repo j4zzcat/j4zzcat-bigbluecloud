@@ -3,11 +3,14 @@ variable domain_name         {}
 variable region_name         {}
 variable zone_name           {}
 variable resource_group_name {}
+variable admin_key           {}
+variable bastion_key         {}
 variable pull_secret         {}
 
 locals {
-  vpc_name = var.cluster_name
-  keys     = [ "admin-key", "bastion-key" ]
+  vpc_name           = var.cluster_name
+  admin_public_key   = abspath( "${var.admin_key}.pub" )
+  bastion_public_key = abspath( "${var.bastion_key}.pub" )
 }
 
 provider "ibm" {
@@ -39,25 +42,27 @@ locals {
                            module.vpc.security_groups )
 }
 
-resource "null_resource" "ssh_key_generate_key" {
-  count = length( local.keys )
-  provisioner "local-exec" {
-    command = <<-EOT
-      mkdir -p './keys' || true
-      yes 'y' | ssh-keygen -t rsa -b 4096 -N '' -f ./keys/${local.keys[ count.index ]}.rsa
-    EOT
-  }
+module "ssh_keys" {
+  source = "../../lib/terraform/j4zzcat_ssh_key"
+
+  keys = {
+    "admin-key-${local.vpc_name}"   = local.admin_public_key,
+    "bations-key-${local.vpc_name}" = local.bastion_public_key }
+  resource_group_id = data.ibm_resource_group.resource_group.id
 }
 
-resource "ibm_is_ssh_key" "ssh_key" {
-  depends_on     = [ null_resource.ssh_key_generate_key ]
 
-  count          = length( local.keys )
-  name           = local.keys[ count.index ]
-  public_key     = file( "./keys/${local.keys[ count.index ]}.rsa.pub" )
-  resource_group = data.ibm_resource_group.resource_group.id
-}
-
+# resource "ibm_is_ssh_key" "ssh_key_admin" {
+#   name           = "admin-key-${var.cluster_name}"
+#   public_key     = file( local.admin_public_key )
+#   resource_group = data.ibm_resource_group.resource_group.id
+# }
+#
+# resource "ibm_is_ssh_key" "ssh_key_bastion" {
+#   name           = "bastion-key-${var.cluster_name}"
+#   public_key     = file( local.bastion_public_key )
+#   resource_group = data.ibm_resource_group.resource_group.id
+# }
 
 
 # module "network_server" {
@@ -79,21 +84,26 @@ module "bootstrap_server" {
   profile           = "bx2-2x8"
   vpc_name          = local.vpc_name
   subnet_id         = module.vpc.default_subnet.id
-  keys              = [ "module.ssh_key.ids" ]
+  fip               = true
+  keys              = module.ssh_keys.ids
+  resource_group_id = data.ibm_resource_group.resource_group.id
   security_groups   = [ local.security_groups[ "allow_basic_operation" ],
                         local.security_groups[ "allow_inbound_http_https" ],
                         local.security_groups[ "allow_inbound_sinatra" ],
                         local.security_groups[ "allow_inbound_openshift_bootstrap" ] ]
-  resource_group_id = data.ibm_resource_group.resource_group.id
-  post_provision    = [
-    "git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud",
-    "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
-    "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ipxe.sh",
-    "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_sinatra.sh",
-    "bash /usr/local/src/j4zzcat-ibmcloud/examples/openshift/lib/scripts/openshift/install_client.sh",
-    "bash /usr/local/src/j4zzcat-ibmcloud/examples/openshift/lib/scripts/openshift/generate_config.sh",
-    "reboot"
-  ]
+  post_provision    = {
+    ssh_key = file( var.admin_key ),
+    inline  = [
+      "git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud",
+      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
+      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ipxe.sh",
+      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_sinatra.sh",
+      "bash /usr/local/src/j4zzcat-ibmcloud/examples/openshift/lib/scripts/openshift/install_client.sh",
+      "bash /usr/local/src/j4zzcat-ibmcloud/examples/openshift/lib/scripts/openshift/generate_config.sh",
+      "reboot"
+    ]
+  }
+
   # nameserver_ip     = module.network_server.private_ip
 }
 

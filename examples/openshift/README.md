@@ -38,12 +38,13 @@ mkdir ./keys
 ```
 
 ### Pull Secret
-Get your pull secret from `https://cloud.redhat.com/openshift/install/pull-secret` and place it in `./keys/pull_secret.txt`
+Get your pull secret from `https://cloud.redhat.com/openshift/install/pull-secret` and place it in `./keys/pull-secret.txt`
 
 ### Update the infrastructure configuration
 Generate a new ssh key. This key will be provisioned onto every server allowing you to remotely login to the server.
 ```
-ssh-keygen -t rsa -b 4096 -N "" -f ./keys/admin_key.rsa
+ssh-keygen -t rsa -b 4096 -N "" -f ./keys/admin-key.rsa
+ssh-keygen -t rsa -b 4096 -N "" -f ./keys/bastion-key.rsa
 ```
 
 Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, domain, location, profile of the infra/masters/workers machine, the resource group etc.
@@ -52,28 +53,28 @@ Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, do
 
 ```
 # file main.auto.tfvars
-cluster_name        = "grapefruit"
-domain_name         = "fruits.local"
+cluster_name        = "blinki"
+domain_name         = "local"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
 resource_group_name = "blackforest"
-admin_key           = "./keys/admin_key.rsa"
-pull_secret         = "./key/pull_secret.txt"
-infra_profile       = "bx2-2x8"
-masters_profile     = "bx2-2x8"
-workers_profile     = "bx2-2x8"
+admin_key           = "./keys/admin-key.rsa"
+bastion_key         = "./keys/bastion-key.rsa"
+pull_secret         = "./key/pull-secret.txt"
 ```
 
 ### Provision the infrastructure
 Provision the infrastructure, this usually takes a few minutes:
 ```
+
 terraform init
 terraform apply -auto-approve -target=module.vpc
 
 terraform apply -auto-approve \
+  -target=module.ssh_keys \
   -target=module.security_groups \
-  -target=module.network_server \
   -target=module.bootstrap_server \
+  -target=module.network_server \
   -target=module.haproxy_server
 
 terraform apply -auto-approve \

@@ -42,11 +42,11 @@ resource "null_resource" "j4zzcat_server_post_provision" {
   connection {
     type        = "ssh"
     user        = "root"
-    private_key = file( var.keys[ 0 ] )
+    private_key = var.post_provision[ "ssh_key" ]
     host        = var.fip ? ibm_is_floating_ip.server_fip[ 0 ].address : ibm_is_instance.server.primary_network_interface[ 0 ].primary_ipv4_address
   }
 
   provisioner "remote-exec" {
-    inline = var.post_provision
+    inline = var.post_provision[ "inline" ]
   }
 }
