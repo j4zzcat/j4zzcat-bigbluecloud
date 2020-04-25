@@ -10,6 +10,6 @@ variable bastion {
   default = false
 }
 
-variable bastion_key {
+variable bastion_public_key {
   default = null
 }

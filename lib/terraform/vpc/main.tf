@@ -20,7 +20,6 @@ resource "ibm_is_subnet" "default_subnet" {
   total_ipv4_address_count = "256"
 }
 
-
 ####
 # Security Groups
 #
@@ -198,11 +197,6 @@ resource "ibm_is_security_group_rule" "dhcp_rule" {
 # Bastion
 #
 
-locals {
-  bastion_key_file_private = file( var.bastion_key[ "private" ] )
-  bastion_key_file_public  = file( var.bastion_key[ "public" ] )
-}
-
 resource "ibm_is_subnet" "bastion_subnet" {
   count          = var.bastion ? 1 : 0
 
@@ -219,17 +213,7 @@ data "ibm_is_image" "ubuntu_1804" {
 
 resource "ibm_is_ssh_key" "bastion_key" {
   name           = "${ibm_is_vpc.vpc.name}-bastion-key"
-  public_key     = local.bastion_key_file_public
-  resource_group = var.resource_group_id
-
-  provisioner "local-exec" {
-    command = "ssh-keygen -t rsa -b 4096 -N '' -f ./keys/internal-key.rsa"
-  }
-}
-
-resource "ibm_is_ssh_key" "internal_key" {
-  name           = "${ibm_is_vpc.vpc.name}-internal-key"
-  public_key     = "./keys/internl-key.rsa.pub"
+  public_key     = file( var.bastion_public_key )
   resource_group = var.resource_group_id
 }
 
@@ -245,13 +229,16 @@ module "bastion_server" {
   resource_group_id = var.resource_group_id
   security_groups   = [ ibm_is_security_group.allow_basic_operation.id,
                         ibm_is_security_group.allow_inbound_ssh.id ]
-  post_provision = {
-    ssh_key      = local.bastion_key_file_private
-    remote_exec  = [
-      "git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud",
-      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
-      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh" ]
-  }
+  user_data = <<-EOT
+    #cloud-config
+    runcmd:
+      - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
+      - bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh
+      - bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh
+    power_state:
+      mode: reboot
+      condition: true
+    EOT
 }
 
 

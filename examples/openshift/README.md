@@ -41,10 +41,10 @@ mkdir ./keys
 Get your pull secret from `https://cloud.redhat.com/openshift/install/pull-secret` and place it in `./keys/pull-secret.txt`
 
 ### Update the infrastructure configuration
-Generate a new ssh key. This key will be provisioned onto every server allowing you to remotely login to the server.
+Generate some ssh keys, these will allow you to ssh into the servers:
 ```
-ssh-keygen -t rsa -b 4096 -N "" -f ./keys/admin-key.rsa
 ssh-keygen -t rsa -b 4096 -N "" -f ./keys/bastion-key.rsa
+ssh-keygen -t rsa -b 4096 -N "" -f ./keys/fortress-key.rsa
 ```
 
 Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, domain, location, profile of the infra/masters/workers machine, the resource group etc.
@@ -58,8 +58,8 @@ domain_name         = "local"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
 resource_group_name = "blackforest"
-admin_key           = "./keys/admin-key.rsa"
 bastion_key         = "./keys/bastion-key.rsa"
+fortress_key        = "./keys/fortress-key.rsa"
 pull_secret         = "./key/pull-secret.txt"
 ```
 
