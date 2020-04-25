@@ -1,5 +1,7 @@
-# proper upgrade
-apt update
+#!/usr/bin/env bash
+
+echo "Upgrading OS to the latest level..."
+apt update -q
 
 rm /boot/grub/menu.lst
 ucf --purge /var/run/grub/menu.lst
@@ -12,7 +14,10 @@ DEBIAN_FRONTEND=noninteractive apt-get \
   --allow-downgrades \
   --allow-remove-essential \
   --allow-change-held-packages \
-  -qq -y dist-upgrade
+  -qq -y dist-upgrade \
+  >/dev/null
 
+echo "Installing basic software..."
 DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
-  mc vim
+  mc vim \
+  >/dev/null
