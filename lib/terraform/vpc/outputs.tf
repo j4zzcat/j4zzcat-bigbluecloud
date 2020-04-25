@@ -7,7 +7,7 @@ output "id" {
 }
 
 output "default_subnet" {
-  value = ibm_is_subnet.default_subnet
+  value = ibm_is_subnet.fortress_subnet
 }
 
 output "security_groups" {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo "Upgrading OS to the latest level..."
+echo "Upgrading OS to the latest level..." >/dev/stderr
 apt update -q
 
 rm /boot/grub/menu.lst
@@ -14,10 +14,9 @@ DEBIAN_FRONTEND=noninteractive apt-get \
   --allow-downgrades \
   --allow-remove-essential \
   --allow-change-held-packages \
-  -qq -y dist-upgrade \
-  >/dev/null
+  -qq -y dist-upgrade
 
 echo "Installing basic software..."
-DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
-  mc vim \
-  >/dev/null
+DEBIAN_FRONTEND=noninteractive apt-get \
+  install -qq -y \
+    mc vim

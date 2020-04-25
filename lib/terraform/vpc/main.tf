@@ -26,8 +26,8 @@ resource "ibm_is_public_gateway" "public_gateway" {
   zone     = var.zone_name
 }
 
-resource "ibm_is_subnet" "default_subnet" {
-  name           = "default-subnet"
+resource "ibm_is_subnet" "fortress_subnet" {
+  name           = "fortress-subnet"
   vpc            = ibm_is_vpc.vpc.id
   zone           = var.zone_name
   public_gateway = ibm_is_public_gateway.public_gateway.id
@@ -268,8 +268,8 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
     }
 
     inline = [
-      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/upgrade_os.sh | bash",
-      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh | bash"
+      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/upgrade_os.sh | bash >/dev/null",
+      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh | bash >/dev/null"
     ]
   }
 }
