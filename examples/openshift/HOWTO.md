@@ -15,6 +15,9 @@ local=/peto/
 domain=peto
 ```
 
+### Bastion
+ssh -o ProxyCommand="ssh -W %h:%p -i keys/bastion-key.rsa root@<bastion_fip>" -i keys/bastion-key.rsa root@<server_in_fortress>
+
 ### Terraform
 * Show available instances:  `terraform state list`
 * Show state of instance:
@@ -39,4 +42,3 @@ domain=peto
 ### OpenShift
 * install-config.yaml
   sed -e "s/\(pullSecret:\).*/\1 '"$(cat pull-secret.txt)"'/" install-config.yaml
-  

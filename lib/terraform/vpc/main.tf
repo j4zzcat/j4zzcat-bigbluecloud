@@ -38,40 +38,21 @@ resource "ibm_is_subnet" "fortress_subnet" {
 # Security Groups
 #
 
-# --- any_to_any ---
-resource "ibm_is_security_group" "allow_any_to_any" {
-  resource_group = ibm_is_vpc.vpc.resource_group
-  name = "allow-any-to-any"
-  vpc  = ibm_is_vpc.vpc.id
-}
-
-resource "ibm_is_security_group_rule" "allow_outbound_to_any_rule" {
-  group      = ibm_is_security_group.allow_any_to_any.id
-  direction  = "outbound"
-  remote     = "0.0.0.0/0"
-}
-
-resource "ibm_is_security_group_rule" "allow_inbound_from_any_rule" {
-  group      = ibm_is_security_group.allow_any_to_any.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-}
-
 # --- allow basic operation ---
-resource "ibm_is_security_group" "allow_basic_operation" {
+resource "ibm_is_security_group" "fortress_default" {
   resource_group = ibm_is_vpc.vpc.resource_group
-  name = "allow-basic-operation"
+  name = "${ibm_is_vpc.name}-fortress-default"
   vpc  = ibm_is_vpc.vpc.id
 }
 
-resource "ibm_is_security_group_rule" "allow_basic_operation_outbound_to_any_rule" {
-  group      = ibm_is_security_group.allow_basic_operation.id
-  direction  = "outbound"
-  remote     = "0.0.0.0/0"
+resource "ibm_is_security_group_rule" "fortress_default_sgr_self" {
+  group      = ibm_is_security_group.fortress_default.id
+  direction  = "inbound"
+  remote     = ibm_is_security_group.fortress_default.id
 }
 
-resource "ibm_is_security_group_rule" "allow_basic_operation_icmp_rule" {
-  group      = ibm_is_security_group.allow_basic_operation.id
+resource "ibm_is_security_group_rule" "fortress_default_sgr_ping" {
+  group      = ibm_is_security_group.fortress_default.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
 
@@ -81,48 +62,9 @@ resource "ibm_is_security_group_rule" "allow_basic_operation_icmp_rule" {
   }
 }
 
-# --- allow outbound to any ---
-resource "ibm_is_security_group" "allow_outbound_any" {
-  resource_group = ibm_is_vpc.vpc.resource_group
-  name = "allow-outbound-any"
-  vpc  = ibm_is_vpc.vpc.id
-}
-
-resource "ibm_is_security_group_rule" "allow_outbound_to_any_rule_2" {
-  group      = ibm_is_security_group.allow_outbound_any.id
+resource "ibm_is_security_group_rule" "fortress_default_sgr_http" {
+  group      = ibm_is_security_group.fortress_default.id
   direction  = "outbound"
-  remote     = "0.0.0.0/0"
-}
-
-# --- allow inbound ping ---
-resource "ibm_is_security_group" "allow_inbound_ping" {
-  resource_group = ibm_is_vpc.vpc.resource_group
-  name = "allow-inbound-ping"
-  vpc  = ibm_is_vpc.vpc.id
-}
-
-resource "ibm_is_security_group_rule" "icmp_rule" {
-  group      = ibm_is_security_group.allow_inbound_ping.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  icmp {
-    code = 0
-    type = 8
-  }
-}
-
-# --- allow inbound http/https ---
-resource "ibm_is_security_group" "allow_inbound_http_https" {
-  resource_group = ibm_is_vpc.vpc.resource_group
-
-  name = "allow-inbound-http-https"
-  vpc  = ibm_is_vpc.vpc.id
-}
-
-resource "ibm_is_security_group_rule" "http_rule" {
-  group      = ibm_is_security_group.allow_inbound_http_https.id
-  direction  = "inbound"
   remote     = "0.0.0.0/0"
 
   tcp {
@@ -131,9 +73,9 @@ resource "ibm_is_security_group_rule" "http_rule" {
   }
 }
 
-resource "ibm_is_security_group_rule" "https_rule" {
-  group      = ibm_is_security_group.allow_inbound_http_https.id
-  direction  = "inbound"
+resource "ibm_is_security_group_rule" "fortress_default_sgr_https" {
+  group      = ibm_is_security_group.fortress_default.id
+  direction  = "outbound"
   remote     = "0.0.0.0/0"
 
   tcp {
@@ -142,34 +84,9 @@ resource "ibm_is_security_group_rule" "https_rule" {
   }
 }
 
-# --- allow inbound ssh ---
-resource "ibm_is_security_group" "allow_inbound_ssh" {
-  resource_group = ibm_is_vpc.vpc.resource_group
-  name = "allow-inbound-ssh"
-  vpc  = ibm_is_vpc.vpc.id
-}
-
-resource "ibm_is_security_group_rule" "ssh_rule" {
-  group      = ibm_is_security_group.allow_inbound_ssh.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 22
-    port_max = 22
-  }
-}
-
-# --- allow inbound dns ---
-resource "ibm_is_security_group" "allow_inbound_dns" {
-  resource_group = ibm_is_vpc.vpc.resource_group
-  name = "allow-inbound-dns"
-  vpc  = ibm_is_vpc.vpc.id
-}
-
-resource "ibm_is_security_group_rule" "dns_tcp_rule" {
-  group      = ibm_is_security_group.allow_inbound_dns.id
-  direction  = "inbound"
+resource "ibm_is_security_group_rule" "fortress_default_sgr_dns" {
+  group      = ibm_is_security_group.fortress_default.id
+  direction  = "outbound"
   remote     = "0.0.0.0/0"
 
   tcp {
@@ -178,9 +95,9 @@ resource "ibm_is_security_group_rule" "dns_tcp_rule" {
   }
 }
 
-resource "ibm_is_security_group_rule" "dns_udp_rule" {
-  group      = ibm_is_security_group.allow_inbound_dns.id
-  direction  = "inbound"
+resource "ibm_is_security_group_rule" "fortress_default_sgr_dns_udp" {
+  group      = ibm_is_security_group.fortress_default.id
+  direction  = "outbound"
   remote     = "0.0.0.0/0"
 
   udp {
@@ -189,21 +106,14 @@ resource "ibm_is_security_group_rule" "dns_udp_rule" {
   }
 }
 
-# --- allow inbound dhcp ---
-resource "ibm_is_security_group" "allow_inbound_dhcp" {
-  resource_group = ibm_is_vpc.vpc.resource_group
-  name = "allow-inbound-dhcp"
-  vpc  = ibm_is_vpc.vpc.id
-}
-
-resource "ibm_is_security_group_rule" "dhcp_rule" {
-  group      = ibm_is_security_group.allow_inbound_dhcp.id
-  direction  = "inbound"
+resource "ibm_is_security_group_rule" "fortress_default_sgr_ntp" {
+  group      = ibm_is_security_group.fortress_default.id
+  direction  = "outbound"
   remote     = "0.0.0.0/0"
 
   udp {
-    port_min = 67
-    port_max = 67
+    port_min = 123
+    port_max = 123
   }
 }
 
@@ -219,6 +129,53 @@ resource "ibm_is_subnet" "bastion_subnet" {
   zone           = var.zone_name
   public_gateway = ibm_is_public_gateway.public_gateway.id
   total_ipv4_address_count = "256"
+}
+
+resource "ibm_is_security_group" "bastion_default" {
+  count = var.bastion ? 1 : 0
+
+  resource_group = ibm_is_vpc.vpc.resource_group
+  name = "${ibm_is_vpc.vpc.name}-bastion-default"
+  vpc  = ibm_is_vpc.vpc.id
+}
+
+resource "ibm_is_security_group_rule" "bastion_default_sgr_ping" {
+  group      = ibm_is_security_group.bastion_default[ 0 ].id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  icmp {
+    code = 0
+    type = 8
+  }
+}
+
+resource "ibm_is_security_group_rule" "bastion_default_sgr_ssh" {
+  group      = ibm_is_security_group.bastion_default[ 0 ].id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 22
+    port_max = 22
+  }
+}
+
+resource "ibm_is_security_group_rule" "bastion_default_sgr_outbound" {
+  group      = ibm_is_security_group.bastion_default[ 0 ].id
+  direction  = "outbound"
+  remote     = "0.0.0.0/0"
+}
+
+resource "ibm_is_security_group_rule" "fortress_default_sgr_bastion" {
+  group      = ibm_is_security_group.fortress_default.id
+  direction  = "inbound"
+  remote     = ibm_is_security_group.bastion_default[ 0 ].id
+
+  tcp {
+    port_min = 22
+    port_max = 22
+  }
 }
 
 data "ibm_is_image" "ubuntu_1804" {
@@ -247,8 +204,7 @@ resource "ibm_is_instance" "bastion_server" {
   primary_network_interface {
     name            = "eth0"
     subnet          = ibm_is_subnet.bastion_subnet[ 0 ].id
-    security_groups = [ ibm_is_security_group.allow_basic_operation.id,
-                        ibm_is_security_group.allow_inbound_ssh.id]
+    security_groups = [ ibm_is_security_group.bastion_default[ 0 ].id ]
   }
 }
 
@@ -268,10 +224,8 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
     }
 
     inline = [
-      "for script in 'upgrade_os.sh install_ibmcloud_cli.sh'; do
-         echo \"Running script ${script}...\"
-         curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/${script} | bash >/dev/null
-       done"
+      "echo 'Upgrading OS...'",
+      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/upgrade_os.sh | bash >/dev/null"
     ]
   }
 }
