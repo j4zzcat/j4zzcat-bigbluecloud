@@ -254,8 +254,8 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
     }
 
     inline = [
-      "curl -sSL https://github.com/j4zzcat/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
-      "curl -sSL https://github.com/j4zzcat/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh"
+      "curl -sSL https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master/lib/scripts/ubuntu_18/upgrade_os.sh | bash",
+      "curl -sSL https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh | bash"
     ]
   }
 }
