@@ -23,7 +23,7 @@ data "ibm_resource_group" "resource_group" {
 }
 
 module "vpc" {
-  source = "github.com/j4zzcat/j4zzcat-ibmcloud/lib/terraform/vpc"
+  source = "../../lib/terraform/vpc"
 
   name              = local.vpc_name
   zone_name         = var.zone_name
