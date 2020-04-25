@@ -43,8 +43,8 @@ module "bastion_server" {
   fip               = true
   keys              = [ ibm_is_ssh_key.bastion_key.id ]
   resource_group_id = data.ibm_resource_group.resource_group.id
-  security_groups   = [ local.security_groups[ "allow_basic_operation" ],
-                        local.security_groups[ "allow_inbound_ssh" ] ]
+  security_groups   = [ ibm_is_security_group.allow_basic_operation.id,
+                        ibm_is_security_group.allow_inbound_ssh.id ]
   post_provision = {
     ssh_key      = file( local.bastion_key_file_private ),
     remote_exec  = [
