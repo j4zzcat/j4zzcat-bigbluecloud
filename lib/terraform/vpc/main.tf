@@ -268,8 +268,10 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
     }
 
     inline = [
-      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/upgrade_os.sh | bash >/dev/null",
-      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh | bash >/dev/null"
+      "for script in 'upgrade_os.sh install_ibmcloud_cli.sh'; do
+         echo \"Running script ${script}...\"
+         curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/${script} | bash >/dev/null
+       done"
     ]
   }
 }
