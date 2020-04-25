@@ -12,7 +12,7 @@ DEBIAN_FRONTEND=noninteractive apt-get \
   --allow-downgrades \
   --allow-remove-essential \
   --allow-change-held-packages \
-  -y dist-upgrade
+  -qq -y dist-upgrade
 
-DEBIAN_FRONTEND=noninteractive apt-get install -y \
+DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
   mc vim
