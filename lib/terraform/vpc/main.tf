@@ -1,3 +1,17 @@
+####
+# Some locals
+#
+
+locals {
+  repo_home     = "https://github.com/j4zzcat/j4zzcat-ibmcloud"
+  repo_home_raw = "https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master"
+
+}
+
+####
+# VPC, Subnet and Public Gateway
+#
+
 resource "ibm_is_vpc" "vpc" {
   resource_group = var.resource_group_id
   name           = var.name
@@ -222,7 +236,7 @@ resource "ibm_is_ssh_key" "bastion_key" {
 resource "ibm_is_instance" "bastion_server" {
   count = var.bastion ? 1 : 0
 
-  name           = "${ibm_is_vpc.vpc.name}-bastion-server"
+  name           = "${ibm_is_vpc.vpc.name}-bastion"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = ibm_is_vpc.vpc.id
@@ -254,8 +268,8 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
     }
 
     inline = [
-      "curl -sSL https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master/lib/scripts/ubuntu_18/upgrade_os.sh | bash",
-      "curl -sSL https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh | bash"
+      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/upgrade_os.sh | bash",
+      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh | bash"
     ]
   }
 }
