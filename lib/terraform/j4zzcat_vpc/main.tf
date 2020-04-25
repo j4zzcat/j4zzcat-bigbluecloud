@@ -12,6 +12,10 @@ resource "ibm_is_subnet" "default_subnet" {
   total_ipv4_address_count = "256"
 }
 
+
+
+
+
 # resource "ibm_is_network_acl" "l1v_conn_with_l1i" {
 #   provider = ibm.l1
 #

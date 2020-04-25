@@ -47,6 +47,6 @@ resource "null_resource" "j4zzcat_server_post_provision" {
   }
 
   provisioner "remote-exec" {
-    inline = var.post_provision[ "inline" ]
+    inline = var.post_provision[ "remote_exec" ]
   }
 }

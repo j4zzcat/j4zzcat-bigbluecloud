@@ -8,9 +8,9 @@ variable bastion_key         {}
 variable pull_secret         {}
 
 locals {
-  vpc_name           = var.cluster_name
-  admin_public_key   = abspath( "${var.admin_key}.pub" )
-  bastion_public_key = abspath( "${var.bastion_key}.pub" )
+  vpc_name         = var.cluster_name
+  admin_key        = abspath( var.admin_key )
+  admin_key_public = abspath( "${var.admin_key}.pub" )
 }
 
 provider "ibm" {
@@ -23,89 +23,77 @@ data "ibm_resource_group" "resource_group" {
 }
 
 module "vpc" {
-  source = "../../lib/terraform/j4zzcat_vpc"
+  source = "${path.root}/../../lib/terraform/j4zzcat_vpc"
 
   name              = local.vpc_name
   zone_name         = var.zone_name
+  bastion           = true
+  bastion_key       = { private = local.admin_key,
+                        public  = local.admin_key_public }
   resource_group_id = data.ibm_resource_group.resource_group.id
 }
 
-module "security_groups" {
-  source            = "./lib/terraform/security_groups"
-
-  vpc_name          = module.vpc.name
-  resource_group_id = data.ibm_resource_group.resource_group.id
-}
-
-locals {
-  security_groups = merge( module.security_groups.security_groups,
-                           module.vpc.security_groups )
-}
-
-module "ssh_keys" {
-  source = "../../lib/terraform/j4zzcat_ssh_key"
-
-  keys = {
-    "admin-key-${local.vpc_name}"   = local.admin_public_key,
-    "bations-key-${local.vpc_name}" = local.bastion_public_key }
-  resource_group_id = data.ibm_resource_group.resource_group.id
-}
-
-
-# resource "ibm_is_ssh_key" "ssh_key_admin" {
-#   name           = "admin-key-${var.cluster_name}"
-#   public_key     = file( local.admin_public_key )
-#   resource_group = data.ibm_resource_group.resource_group.id
+# module "security_groups" {
+#   source            = "./lib/terraform/security_groups"
+#
+#   vpc_name          = module.vpc.name
+#   resource_group_id = data.ibm_resource_group.resource_group.id
 # }
 #
-# resource "ibm_is_ssh_key" "ssh_key_bastion" {
-#   name           = "bastion-key-${var.cluster_name}"
-#   public_key     = file( local.bastion_public_key )
-#   resource_group = data.ibm_resource_group.resource_group.id
+# locals {
+#   security_groups = merge( module.security_groups.security_groups,
+#                            module.vpc.security_groups )
 # }
-
-
-# module "network_server" {
-#   source = "./lib/terraform/network_server"
 #
-#   name              = "network-server"
-#   profile           = var.infra_profile
+# module "ssh_keys" {
+#   source = "../../lib/terraform/j4zzcat_ssh_key"
+#
+#   keys = {
+#     "admin-key-${local.vpc_name}"   = local.admin_public_key,
+#     "bastion-key-${local.vpc_name}" = local.bastion_public_key }
+#   resource_group_id = data.ibm_resource_group.resource_group.id
+# }
+#
+# module "bootstrap_server" {
+#   source = "../../lib/terraform/j4zzcat_server"
+#
+#   name              = "bootstrap-server"
+#   profile           = "bx2-2x8"
 #   vpc_name          = local.vpc_name
 #   subnet_id         = module.vpc.default_subnet.id
+#   fip               = true
 #   keys              = module.ssh_keys.ids
-#   security_groups   = merge( module.vpc.security_groups, module.security_groups.security_groups )
+#   resource_group_id = data.ibm_resource_group.resource_group.id
+#   security_groups   = [ local.security_groups[ "allow_basic_operation" ],
+#                         local.security_groups[ "allow_inbound_http_https" ],
+#                         local.security_groups[ "allow_inbound_sinatra" ],
+#                         local.security_groups[ "allow_inbound_openshift_bootstrap" ] ]
+#   post_provision = {
+#     ssh_key      = file( var.admin_key ),
+#     remote_exec  = [
+#       "git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud",
+#       "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
+#       "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ipxe.sh",
+#       "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_sinatra.sh",
+#       "bash /usr/local/src/j4zzcat-ibmcloud/examples/openshift/lib/scripts/openshift/install_client.sh",
+#       "reboot" ]
+#   }
+# }
+#
+# module "network_server" {
+#   source = "../../lib/terraform/j4zzcat_server"
+#
+#   name              = "network-server"
+#   profile           = "bx2-2x8"
+#   vpc_name          = local.vpc_name
+#   subnet_id         = module.vpc.default_subnet.id
+#   fip               = false
+#   keys              = module.ssh_keys.ids
+#   security_groups   = [ local.security_groups[ "allow_basic_operation" ],
+#                         local.security_groups[ "allow_inbound_dns" ] ]
 #   resource_group_id = data.ibm_resource_group.resource_group.id
 # }
 
-module "bootstrap_server" {
-  source = "../../lib/terraform/j4zzcat_server"
-
-  name              = "bootstrap-server"
-  profile           = "bx2-2x8"
-  vpc_name          = local.vpc_name
-  subnet_id         = module.vpc.default_subnet.id
-  fip               = true
-  keys              = module.ssh_keys.ids
-  resource_group_id = data.ibm_resource_group.resource_group.id
-  security_groups   = [ local.security_groups[ "allow_basic_operation" ],
-                        local.security_groups[ "allow_inbound_http_https" ],
-                        local.security_groups[ "allow_inbound_sinatra" ],
-                        local.security_groups[ "allow_inbound_openshift_bootstrap" ] ]
-  post_provision    = {
-    ssh_key = file( var.admin_key ),
-    inline  = [
-      "git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud",
-      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
-      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ipxe.sh",
-      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_sinatra.sh",
-      "bash /usr/local/src/j4zzcat-ibmcloud/examples/openshift/lib/scripts/openshift/install_client.sh",
-      "bash /usr/local/src/j4zzcat-ibmcloud/examples/openshift/lib/scripts/openshift/generate_config.sh",
-      "reboot"
-    ]
-  }
-
-  # nameserver_ip     = module.network_server.private_ip
-}
 
 # module "haproxy_server" {
 #   source = "./lib/terraform/haproxy_server"

@@ -41,16 +41,16 @@ resource "ibm_is_security_group_rule" "allow_basic_operation_icmp_rule" {
   }
 }
 
-resource "ibm_is_security_group_rule" "allow_basic_operation_ssh_rule" {
-  group      = ibm_is_security_group.allow_basic_operation.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 22
-    port_max = 22
-  }
-}
+# resource "ibm_is_security_group_rule" "allow_basic_operation_ssh_rule" {
+#   group      = ibm_is_security_group.allow_basic_operation.id
+#   direction  = "inbound"
+#   remote     = "0.0.0.0/0"
+#
+#   tcp {
+#     port_min = 22
+#     port_max = 22
+#   }
+# }
 
 # --- allow outbound to any ---
 resource "ibm_is_security_group" "allow_outbound_any" {
