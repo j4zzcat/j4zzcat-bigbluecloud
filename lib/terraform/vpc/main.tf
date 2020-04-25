@@ -198,7 +198,7 @@ resource "ibm_is_security_group_rule" "dhcp_rule" {
 #
 
 resource "ibm_is_subnet" "bastion_subnet" {
-  count          = var.bastion ? 1 : 0
+  count = var.bastion ? 1 : 0
 
   name           = "bastion-subnet"
   vpc            = ibm_is_vpc.vpc.id
@@ -212,36 +212,53 @@ data "ibm_is_image" "ubuntu_1804" {
 }
 
 resource "ibm_is_ssh_key" "bastion_key" {
+  count = var.bastion ? 1 : 0
+
   name           = "${ibm_is_vpc.vpc.name}-bastion-key"
-  public_key     = file( var.bastion_public_key )
+  public_key     = file( "${var.bastion_key}.pub" )
   resource_group = var.resource_group_id
 }
 
-module "bastion_server" {
-  source = "../server"
+resource "ibm_is_instance" "bastion_server" {
+  count = var.bastion ? 1 : 0
 
-  name              = "${ibm_is_vpc.vpc.name}-bastion-server"
-  profile           = "bx2-2x8"
-  vpc_name          = ibm_is_vpc.vpc.name
-  subnet_id         = ibm_is_subnet.bastion_subnet[ 0 ].id
-  fip               = true
-  keys              = [ ibm_is_ssh_key.bastion_key.id ]
-  resource_group_id = var.resource_group_id
-  security_groups   = [ ibm_is_security_group.allow_basic_operation.id,
-                        ibm_is_security_group.allow_inbound_ssh.id ]
-  user_data = <<-EOT
-    #cloud-config
-    runcmd:
-      - git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud
-      - bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh
-      - bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh
-    power_state:
-      mode: reboot
-      condition: true
-    EOT
+  name           = "${ibm_is_vpc.vpc.name}-bastion-server"
+  image          = data.ibm_is_image.ubuntu_1804.id
+  profile        = "bx2-2x8"
+  vpc            = ibm_is_vpc.vpc.id
+  zone           = ibm_is_subnet.bastion_subnet[ 0 ].zone
+  keys           = [ ibm_is_ssh_key.bastion_key[ 0 ].id ]
+  resource_group = var.resource_group_id
+
+  primary_network_interface {
+    name            = "eth0"
+    subnet          = ibm_is_subnet.bastion_subnet[ 0 ].id
+    security_groups = [ ibm_is_security_group.allow_basic_operation.id,
+                        ibm_is_security_group.allow_inbound_ssh.id]
+  }
 }
 
+resource "ibm_is_floating_ip" "bastion_server_fip" {
+  count = var.bastion ? 1 : 0
 
+  name           = "${ibm_is_instance.bastion_server[ 0 ].name}-fip"
+  target         = ibm_is_instance.bastion_server[ 0 ].primary_network_interface[ 0 ].id
+  resource_group = var.resource_group_id
+
+  provisioner "remote-exec" {
+    connection {
+      type        = "ssh"
+      user        = "root"
+      private_key = file( var.bastion_key )
+      host        = ibm_is_floating_ip.bastion_server_fip[ 0 ].address
+    }
+
+    inline = [
+      "curl -sSL https://github.com/j4zzcat/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
+      "curl -sSL https://github.com/j4zzcat/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh"
+    ]
+  }
+}
 
 # resource "ibm_is_network_acl" "l1v_conn_with_l1i" {
 #   provider = ibm.l1

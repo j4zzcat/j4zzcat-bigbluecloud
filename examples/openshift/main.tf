@@ -8,7 +8,7 @@ variable fortress_key        {}
 variable pull_secret         {}
 
 locals {
-  vpc_name          = var.cluster_name
+  vpc_name = var.cluster_name
 }
 
 provider "ibm" {
@@ -23,11 +23,11 @@ data "ibm_resource_group" "resource_group" {
 module "vpc" {
   source = "../../lib/terraform/vpc"
 
-  name               = local.vpc_name
-  zone_name          = var.zone_name
-  bastion            = true
-  bastion_public_key = "${var.bastion_key}.pub"
-  resource_group_id  = data.ibm_resource_group.resource_group.id
+  name                = local.vpc_name
+  zone_name           = var.zone_name
+  bastion             = true
+  bastion_key         = var.bastion_key
+  resource_group_id   = data.ibm_resource_group.resource_group.id
 }
 
 # module "security_groups" {
