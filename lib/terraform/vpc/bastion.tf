@@ -34,22 +34,22 @@ resource "ibm_is_ssh_key" "internal_key" {
 }
 
 module "bastion_server" {
-  source = "${path.module}/../j4zzcat_server"
-    name              = "bastion-server-${ibm_is_vpc.name}"
-    profile           = "bx2-2x8"
-    vpc_name          = ibm_is_vpc.name
-    subnet_id         = ibm_is_subnet.bastion_subnet.id
-    fip               = true
-    keys              = [ ibm_is_ssh_key.bastion_key.id ]
-    resource_group_id = data.ibm_resource_group.resource_group.id
-    security_groups   = [ local.security_groups[ "allow_basic_operation" ],
-                          local.security_groups[ "allow_inbound_ssh" ] ]
-    post_provision = {
-      ssh_key      = file( local.bastion_key_file_private ),
-      remote_exec  = [
-        "git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud",
-        "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
-        "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh" ]
-    }
+  source = "github.com/j4zzcat/j4zzcat-ibmcloud/lib/terraform/server"
+
+  name              = "${ibm_is_vpc.name}-bastion-server"
+  profile           = "bx2-2x8"
+  vpc_name          = ibm_is_vpc.name
+  subnet_id         = ibm_is_subnet.bastion_subnet.id
+  fip               = true
+  keys              = [ ibm_is_ssh_key.bastion_key.id ]
+  resource_group_id = data.ibm_resource_group.resource_group.id
+  security_groups   = [ local.security_groups[ "allow_basic_operation" ],
+                        local.security_groups[ "allow_inbound_ssh" ] ]
+  post_provision = {
+    ssh_key      = file( local.bastion_key_file_private ),
+    remote_exec  = [
+      "git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud",
+      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
+      "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ibmcloud_cli.sh" ]
   }
 }
