@@ -217,25 +217,29 @@ resource "ibm_is_instance" "bootstrap_server" {
     security_groups = [ module.vpc.security_groups[ "fortress_default" ] ]
   }
 
-  provisioner "remote-exec" {
-    connection {
-      type             = "ssh"
-      bastion_user     = "root"
-      bastion_private_key = file( var.bastion_key )
-      bastion_host     = module.vpc.bastion_fip
-      host             = ibm_is_instance.bootstrap_server.primary_network_interface[ 0 ].primary_ipv4_address
-      user             = "root"
-      private_key      = file( local.fortress_key )
-    }
+  connection {
+    type             = "ssh"
+    bastion_user     = "root"
+    bastion_private_key = file( var.bastion_key )
+    bastion_host     = module.vpc.bastion_fip
+    host             = ibm_is_instance.bootstrap_server.primary_network_interface[ 0 ].primary_ipv4_address
+    user             = "root"
+    private_key      = file( local.fortress_key )
+  }
 
-    inline = [
-      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/upgrade_os.sh | bash",
-      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/install_ipxe.sh | bash",
-      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/install_sinatra.sh | bash",
-      "curl -sSL ${local.repo_home_raw}/examples/openshift/lib/scripts/openshift/install_client.sh | bash",
-      "reboot" ]
+  provisioner "remote-exec" {
+    scripts = [
+      "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
+      "${path.module}/../../lib/scripts/ubuntu_18/install_ipxe.sh",
+      "${path.module}/../../lib/scripts/ubuntu_18/install_sinatra.sh",
+      "${path.module}/lib/scripts/openshift/install_client.sh" ]
+  }
+
+  provisioner "remote-exec" {
+    inline = [ "shutdown -r +1" ]
   }
 }
+
 #
 # module "network_server" {
 #   source = "../../lib/terraform/j4zzcat_server"
