@@ -5,7 +5,6 @@
 locals {
   repo_home     = "https://github.com/j4zzcat/j4zzcat-ibmcloud"
   repo_home_raw = "https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master"
-
 }
 
 ####
@@ -38,10 +37,9 @@ resource "ibm_is_subnet" "fortress_subnet" {
 # Security Groups
 #
 
-# --- allow basic operation ---
 resource "ibm_is_security_group" "fortress_default" {
   resource_group = ibm_is_vpc.vpc.resource_group
-  name = "${ibm_is_vpc.name}-fortress-default"
+  name = "${ibm_is_vpc.vpc.name}-fortress-default"
   vpc  = ibm_is_vpc.vpc.id
 }
 
@@ -224,8 +222,8 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
     }
 
     inline = [
-      "echo 'Upgrading OS...'",
-      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/upgrade_os.sh | bash >/dev/null"
+      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/upgrade_os.sh | bash",
+      "reboot"
     ]
   }
 }

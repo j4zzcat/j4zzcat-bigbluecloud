@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Upgrading OS to the latest level..."
-apt update -q
+apt update -qq
 
 rm /boot/grub/menu.lst
 ucf --purge /var/run/grub/menu.lst

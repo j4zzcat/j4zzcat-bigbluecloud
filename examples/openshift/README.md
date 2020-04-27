@@ -44,7 +44,7 @@ Get your pull secret from `https://cloud.redhat.com/openshift/install/pull-secre
 Generate some ssh keys, these will allow you to ssh into the servers:
 ```
 ssh-keygen -t rsa -b 4096 -N "" -f ./keys/bastion-key.rsa
-ssh-keygen -t rsa -b 4096 -N "" -f ./keys/fortress-key.rsa
+ssh-keygen -t rsa -b 4096 -N "" -f ./keys/cluster-key.rsa
 ```
 
 Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, domain, location, profile of the infra/masters/workers machine, the resource group etc.
@@ -59,7 +59,7 @@ region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
 resource_group_name = "blackforest"
 bastion_key         = "./keys/bastion-key.rsa"
-fortress_key        = "./keys/fortress-key.rsa"
+cluster_key         = "./keys/cluster-key.rsa"
 pull_secret         = "./key/pull-secret.txt"
 ```
 

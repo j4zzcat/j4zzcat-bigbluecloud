@@ -4,11 +4,14 @@ variable region_name         {}
 variable zone_name           {}
 variable resource_group_name {}
 variable bastion_key         {}
-variable fortress_key        {}
+variable cluster_key         {}
 variable pull_secret         {}
 
 locals {
-  vpc_name = var.cluster_name
+  vpc_name      = var.cluster_name
+  repo_home     = "https://github.com/j4zzcat/j4zzcat-ibmcloud"
+  repo_home_raw = "https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master"
+  fortress_key  = var.cluster_key
 }
 
 provider "ibm" {
@@ -29,6 +32,149 @@ module "vpc" {
   bastion_key         = var.bastion_key
   resource_group_id   = data.ibm_resource_group.resource_group.id
 }
+
+####
+# OpenShift bootstrap security group
+#
+
+resource "ibm_is_security_group" "openshift_bootstrap" {
+  resource_group = data.ibm_resource_group.resource_group.id
+
+  name = "openshift-bootstrap"
+  vpc  = module.vpc.id
+}
+
+resource "ibm_is_security_group_rule" "openshift_bootstrap_sgr_6443" {
+  group      = ibm_is_security_group.openshift_bootstrap.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 6443
+    port_max = 6443
+  }
+}
+
+resource "ibm_is_security_group_rule" "penshift_bootstrap_sgr_22623" {
+  group      = ibm_is_security_group.openshift_bootstrap.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 22623
+    port_max = 22623
+  }
+}
+
+####
+# OpenShift internode comm security group
+#
+
+resource "ibm_is_security_group" "openshift_internode" {
+  resource_group = data.ibm_resource_group.resource_group.id
+
+  name = "openshift-internode"
+  vpc  = module.vpc.id
+}
+
+resource "ibm_is_security_group_rule" "openshift_internode_sgr_2379_2380" {
+  group      = ibm_is_security_group.openshift_internode.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 2379
+    port_max = 2380
+  }
+}
+
+resource "ibm_is_security_group_rule" "openshift_internode_sgr_6443" {
+  group      = ibm_is_security_group.openshift_internode.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 6443
+    port_max = 6443
+  }
+}
+
+resource "ibm_is_security_group_rule" "openshift_internode_sgr_9000_9999" {
+  group      = ibm_is_security_group.openshift_internode.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 9000
+    port_max = 9999
+  }
+}
+
+resource "ibm_is_security_group_rule" "openshift_internode_sgr_10249_10259" {
+  group      = ibm_is_security_group.openshift_internode.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  tcp {
+    port_min = 10249
+    port_max = 10259
+  }
+}
+
+resource "ibm_is_security_group_rule" "openshift_internode_sgr_4789" {
+  group      = ibm_is_security_group.openshift_internode.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  udp {
+    port_min = 4789
+    port_max = 4789
+  }
+}
+
+resource "ibm_is_security_group_rule" "openshift_internode_sgr_6081" {
+  group      = ibm_is_security_group.openshift_internode.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  udp {
+    port_min = 6081
+    port_max = 6081
+  }
+}
+
+resource "ibm_is_security_group_rule" "openshift_internode_sgr_9000_9999_udp" {
+  group      = ibm_is_security_group.openshift_internode.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  udp {
+    port_min = 9000
+    port_max = 9999
+  }
+}
+
+resource "ibm_is_security_group_rule" "openshift_internode_sgr_30000_32767" {
+  group      = ibm_is_security_group.openshift_internode.id
+  direction  = "inbound"
+  remote     = "0.0.0.0/0"
+
+  udp {
+    port_min = 30000
+    port_max = 32767
+  }
+}
+
+####
+# Fortress SSH Key
+#
+
+resource "ibm_is_ssh_key" "fortress_key" {
+  name           = "${local.vpc_name}-fortress-key"
+  public_key     = file( "${local.fortress_key}.pub" )
+  resource_group = data.ibm_resource_group.resource_group.id
+}
+
 
 # module "security_groups" {
 #   source            = "./lib/terraform/security_groups"
@@ -51,31 +197,45 @@ module "vpc" {
 #   resource_group_id = data.ibm_resource_group.resource_group.id
 # }
 #
-# module "bootstrap_server" {
-#   source = "../../lib/terraform/j4zzcat_server"
-#
-#   name              = "bootstrap-server"
-#   profile           = "bx2-2x8"
-#   vpc_name          = local.vpc_name
-#   subnet_id         = module.vpc.default_subnet.id
-#   fip               = true
-#   keys              = module.ssh_keys.ids
-#   resource_group_id = data.ibm_resource_group.resource_group.id
-#   security_groups   = [ local.security_groups[ "allow_basic_operation" ],
-#                         local.security_groups[ "allow_inbound_http_https" ],
-#                         local.security_groups[ "allow_inbound_sinatra" ],
-#                         local.security_groups[ "allow_inbound_openshift_bootstrap" ] ]
-#   post_provision = {
-#     ssh_key      = file( var.admin_key ),
-#     remote_exec  = [
-#       "git clone https://github.com/j4zzcat/j4zzcat-ibmcloud.git /usr/local/src/j4zzcat-ibmcloud",
-#       "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/upgrade_os.sh",
-#       "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_ipxe.sh",
-#       "bash /usr/local/src/j4zzcat-ibmcloud/lib/scripts/ubuntu_18/install_sinatra.sh",
-#       "bash /usr/local/src/j4zzcat-ibmcloud/examples/openshift/lib/scripts/openshift/install_client.sh",
-#       "reboot" ]
-#   }
-# }
+
+data "ibm_is_image" "ubuntu_1804" {
+  name = "ibm-ubuntu-18-04-64"
+}
+
+resource "ibm_is_instance" "bootstrap_server" {
+  name           = "bootstrap-server"
+  image          = data.ibm_is_image.ubuntu_1804.id
+  profile        = "bx2-2x8"
+  vpc            = module.vpc.id
+  zone           = module.vpc.fortress_subnet.zone
+  keys           = [ ibm_is_ssh_key.fortress_key.id ]
+  resource_group = data.ibm_resource_group.resource_group.id
+
+  primary_network_interface {
+    name            = "eth0"
+    subnet          = module.vpc.fortress_subnet.id
+    security_groups = [ module.vpc.security_groups[ "fortress_default" ] ]
+  }
+
+  provisioner "remote-exec" {
+    connection {
+      type             = "ssh"
+      bastion_user     = "root"
+      bastion_private_key = file( var.bastion_key )
+      bastion_host     = module.vpc.bastion_fip
+      host             = ibm_is_instance.bootstrap_server.primary_network_interface[ 0 ].primary_ipv4_address
+      user             = "root"
+      private_key      = file( local.fortress_key )
+    }
+
+    inline = [
+      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/upgrade_os.sh | bash",
+      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/install_ipxe.sh | bash",
+      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/install_sinatra.sh | bash",
+      "curl -sSL ${local.repo_home_raw}/examples/openshift/lib/scripts/openshift/install_client.sh | bash",
+      "reboot" ]
+  }
+}
 #
 # module "network_server" {
 #   source = "../../lib/terraform/j4zzcat_server"
