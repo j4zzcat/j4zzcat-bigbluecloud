@@ -213,18 +213,19 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
   target         = ibm_is_instance.bastion_server[ 0 ].primary_network_interface[ 0 ].id
   resource_group = var.resource_group_id
 
-  provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      user        = "root"
-      private_key = file( var.bastion_key )
-      host        = ibm_is_floating_ip.bastion_server_fip[ 0 ].address
-    }
+  connection {
+    type        = "ssh"
+    user        = "root"
+    private_key = file( var.bastion_key )
+    host        = ibm_is_floating_ip.bastion_server_fip[ 0 ].address
+  }
 
-    inline = [
-      "curl -sSL ${local.repo_home_raw}/lib/scripts/ubuntu_18/upgrade_os.sh | bash",
-      "reboot"
-    ]
+  provisioner "remote-exec" {
+    script = "${path.module}/../../scripts/ubuntu_18/upgrade_os.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [ "shutdown -r +1" ]
   }
 }
 

@@ -11,7 +11,7 @@ locals {
   vpc_name      = var.cluster_name
   repo_home     = "https://github.com/j4zzcat/j4zzcat-ibmcloud"
   repo_home_raw = "https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master"
-  fortress_key  = var.cluster_key
+  cluster_key  = var.cluster_key
 }
 
 provider "ibm" {
@@ -28,24 +28,25 @@ module "vpc" {
 
   name                = local.vpc_name
   zone_name           = var.zone_name
+  classic_access      = true
   bastion             = true
   bastion_key         = var.bastion_key
   resource_group_id   = data.ibm_resource_group.resource_group.id
 }
 
 ####
-# OpenShift bootstrap security group
+# OpenShift install security group
 #
 
-resource "ibm_is_security_group" "openshift_bootstrap" {
+resource "ibm_is_security_group" "openshift_install" {
   resource_group = data.ibm_resource_group.resource_group.id
 
-  name = "openshift-bootstrap"
+  name = "openshift-install"
   vpc  = module.vpc.id
 }
 
-resource "ibm_is_security_group_rule" "openshift_bootstrap_sgr_6443" {
-  group      = ibm_is_security_group.openshift_bootstrap.id
+resource "ibm_is_security_group_rule" "openshift_install_sgr_6443" {
+  group      = ibm_is_security_group.openshift_install.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
 
@@ -55,8 +56,8 @@ resource "ibm_is_security_group_rule" "openshift_bootstrap_sgr_6443" {
   }
 }
 
-resource "ibm_is_security_group_rule" "penshift_bootstrap_sgr_22623" {
-  group      = ibm_is_security_group.openshift_bootstrap.id
+resource "ibm_is_security_group_rule" "penshift_install_sgr_22623" {
+  group      = ibm_is_security_group.openshift_install.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
 
@@ -166,12 +167,12 @@ resource "ibm_is_security_group_rule" "openshift_internode_sgr_30000_32767" {
 }
 
 ####
-# Fortress SSH Key
+# cluster SSH Key
 #
 
-resource "ibm_is_ssh_key" "fortress_key" {
-  name           = "${local.vpc_name}-fortress-key"
-  public_key     = file( "${local.fortress_key}.pub" )
+resource "ibm_is_ssh_key" "cluster_key" {
+  name           = "${local.vpc_name}-cluster-key"
+  public_key     = file( "${local.cluster_key}.pub" )
   resource_group = data.ibm_resource_group.resource_group.id
 }
 
@@ -202,29 +203,29 @@ data "ibm_is_image" "ubuntu_1804" {
   name = "ibm-ubuntu-18-04-64"
 }
 
-resource "ibm_is_instance" "bootstrap_server" {
-  name           = "bootstrap-server"
+resource "ibm_is_instance" "install_server" {
+  name           = "install-server"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
-  zone           = module.vpc.fortress_subnet.zone
-  keys           = [ ibm_is_ssh_key.fortress_key.id ]
+  zone           = module.vpc.cluster_subnet.zone
+  keys           = [ ibm_is_ssh_key.cluster_key.id ]
   resource_group = data.ibm_resource_group.resource_group.id
 
   primary_network_interface {
     name            = "eth0"
-    subnet          = module.vpc.fortress_subnet.id
-    security_groups = [ module.vpc.security_groups[ "fortress_default" ] ]
+    subnet          = module.vpc.cluster_subnet.id
+    security_groups = [ module.vpc.security_groups[ "cluster_default" ] ]
   }
 
   connection {
-    type             = "ssh"
-    bastion_user     = "root"
+    type                = "ssh"
+    bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
-    bastion_host     = module.vpc.bastion_fip
-    host             = ibm_is_instance.bootstrap_server.primary_network_interface[ 0 ].primary_ipv4_address
-    user             = "root"
-    private_key      = file( local.fortress_key )
+    bastion_host        = module.vpc.bastion_fip
+    host                = ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address
+    user                = "root"
+    private_key         = file( local.cluster_key )
   }
 
   provisioner "remote-exec" {
@@ -239,6 +240,47 @@ resource "ibm_is_instance" "bootstrap_server" {
     inline = [ "shutdown -r +1" ]
   }
 }
+
+resource "ibm_is_instance" "master_server" {
+  count = 1
+
+  name           = "master-server-${count.index}"
+  image          = data.ibm_is_image.ubuntu_1804.id
+  profile        = "bx2-2x8"
+  vpc            = module.vpc.id
+  zone           = module.vpc.cluster_subnet.zone
+  keys           = [ ibm_is_ssh_key.cluster_key.id ]
+  resource_group = data.ibm_resource_group.resource_group.id
+
+  primary_network_interface {
+    name            = "eth0"
+    subnet          = module.vpc.cluster_subnet.id
+    security_groups = [ module.vpc.security_groups[ "cluster_default" ] ]
+  }
+
+  # connection {
+  #   type                = "ssh"
+  #   bastion_user        = "root"
+  #   bastion_private_key = file( var.bastion_key )
+  #   bastion_host        = module.vpc.bastion_fip
+  #   host                = ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address
+  #   user                = "root"
+  #   private_key         = file( local.cluster_key )
+  # }
+  #
+  # provisioner "remote-exec" {
+  #   scripts = [
+  #     "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
+  #     "${path.module}/../../lib/scripts/ubuntu_18/install_ipxe.sh",
+  #     "${path.module}/../../lib/scripts/ubuntu_18/install_sinatra.sh",
+  #     "${path.module}/lib/scripts/openshift/install_client.sh" ]
+  # }
+  #
+  # provisioner "remote-exec" {
+  #   inline = [ "shutdown -r +1" ]
+  # }
+}
+
 
 #
 # module "network_server" {
@@ -376,7 +418,7 @@ resource "ibm_is_instance" "bootstrap_server" {
 #     destination = "/etc/dnsmasq.hosts"
 #
 #     content = <<-EOT
-#       ${module.bootstrap_server.private_ip} ${module.bootstrap_server.name}.${var.cluster_name}.${var.domain_name}
+#       ${module.install_server.private_ip} ${module.install_server.name}.${var.cluster_name}.${var.domain_name}
 #       ${module.network_server.private_ip} ${module.network_server.name}.${var.cluster_name}.${var.domain_name}
 #       ${module.haproxy_server.private_ip} ${module.haproxy_server.name}.${var.cluster_name}.${var.domain_name}
 #       ${module.master_1.private_ip} ${module.master_1.name}.${var.cluster_name}.${var.domain_name}
@@ -464,7 +506,7 @@ resource "ibm_is_instance" "bootstrap_server" {
 #       backend masters_api
 #         mode tcp
 #         balance source
-#         server bootstrap-server.${var.cluster_name}.${var.domain_name}:6443 check
+#         server install-server.${var.cluster_name}.${var.domain_name}:6443 check
 #         server ${module.master_1.name}.${var.cluster_name}.${var.domain_name}:6443 check
 #         server ${module.master_2.name}.${var.cluster_name}.${var.domain_name}:6443 check
 #         server ${module.master_3.name}.${var.cluster_name}.${var.domain_name}:6443 check
@@ -472,7 +514,7 @@ resource "ibm_is_instance" "bootstrap_server" {
 #       backend masters_machine_config
 #         mode tcp
 #         balance source
-#         server bootstrap-server.${var.cluster_name}.${var.domain_name}:22623 check
+#         server install-server.${var.cluster_name}.${var.domain_name}:22623 check
 #         server ${module.master_1.name}.${var.cluster_name}.${var.domain_name}:22623 check
 #         server ${module.master_2.name}.${var.cluster_name}.${var.domain_name}:22623 check
 #         server ${module.master_3.name}.${var.cluster_name}.${var.domain_name}:22623 check
@@ -490,12 +532,12 @@ resource "ibm_is_instance" "bootstrap_server" {
 #   }
 # }
 #
-# resource "null_resource" "bootstrap_server_post_provision" {
+# resource "null_resource" "install_server_post_provision" {
 #   connection {
 #      type        = "ssh"
 #      user        = "root"
 #      private_key = file( var.admin_key )
-#      host        = module.bootstrap_server.public_ip
+#      host        = module.install_server.public_ip
 #    }
 #
 #   provisioner "file" {

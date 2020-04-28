@@ -42,3 +42,7 @@ ssh -o ProxyCommand="ssh -W %h:%p -i keys/bastion-key.rsa root@<bastion_fip>" -i
 ### OpenShift
 * install-config.yaml
   sed -e "s/\(pullSecret:\).*/\1 '"$(cat pull-secret.txt)"'/" install-config.yaml
+
+### Classic infra
+* Create server
+* Assign 'allow_all' and 'allow_outbound' to the private interface

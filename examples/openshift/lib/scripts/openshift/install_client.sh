@@ -3,7 +3,6 @@ RHCOS_DIR=${HOME_DIR}/rhcos
 
 mkdir -p ${HOME_DIR}
 mkdir -p ${RHCOS_DIR}
-mkdir -p ${HTTP_HOME}
 
 # download openshift client and files
 cd /tmp

@@ -17,6 +17,5 @@ DEBIAN_FRONTEND=noninteractive apt-get \
   -qq -y dist-upgrade
 
 echo "Installing basic software..."
-DEBIAN_FRONTEND=noninteractive apt-get \
-  install -qq -y \
+DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
     mc vim
