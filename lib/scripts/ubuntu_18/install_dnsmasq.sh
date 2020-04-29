@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # install and configure dnsmasq for IBM Cloud
 systemctl stop systemd-resolved
 systemctl disable systemd-resolved

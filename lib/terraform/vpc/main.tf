@@ -43,13 +43,13 @@ resource "ibm_is_security_group" "fortress_default" {
   vpc  = ibm_is_vpc.vpc.id
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgr_self" {
+resource "ibm_is_security_group_rule" "fortress_default_sgri_self" {
   group      = ibm_is_security_group.fortress_default.id
   direction  = "inbound"
   remote     = ibm_is_security_group.fortress_default.id
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgr_ping" {
+resource "ibm_is_security_group_rule" "fortress_default_sgri_ping" {
   group      = ibm_is_security_group.fortress_default.id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
@@ -60,7 +60,18 @@ resource "ibm_is_security_group_rule" "fortress_default_sgr_ping" {
   }
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgr_http" {
+resource "ibm_is_security_group_rule" "fortress_default_sgro_ping" {
+  group      = ibm_is_security_group.fortress_default.id
+  direction  = "outbound"
+  remote     = "0.0.0.0/0"
+
+  icmp {
+    code = 0
+    type = 8
+  }
+}
+
+resource "ibm_is_security_group_rule" "fortress_default_sgro_http" {
   group      = ibm_is_security_group.fortress_default.id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
@@ -71,7 +82,7 @@ resource "ibm_is_security_group_rule" "fortress_default_sgr_http" {
   }
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgr_https" {
+resource "ibm_is_security_group_rule" "fortress_default_sgro_https" {
   group      = ibm_is_security_group.fortress_default.id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
@@ -82,7 +93,7 @@ resource "ibm_is_security_group_rule" "fortress_default_sgr_https" {
   }
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgr_dns" {
+resource "ibm_is_security_group_rule" "fortress_default_sgro_dns" {
   group      = ibm_is_security_group.fortress_default.id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
@@ -93,7 +104,7 @@ resource "ibm_is_security_group_rule" "fortress_default_sgr_dns" {
   }
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgr_dns_udp" {
+resource "ibm_is_security_group_rule" "fortress_default_sgro_dns_udp" {
   group      = ibm_is_security_group.fortress_default.id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
@@ -104,7 +115,7 @@ resource "ibm_is_security_group_rule" "fortress_default_sgr_dns_udp" {
   }
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgr_ntp" {
+resource "ibm_is_security_group_rule" "fortress_default_sgro_ntp" {
   group      = ibm_is_security_group.fortress_default.id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
@@ -137,7 +148,7 @@ resource "ibm_is_security_group" "bastion_default" {
   vpc  = ibm_is_vpc.vpc.id
 }
 
-resource "ibm_is_security_group_rule" "bastion_default_sgr_ping" {
+resource "ibm_is_security_group_rule" "bastion_default_sgri_ping" {
   group      = ibm_is_security_group.bastion_default[ 0 ].id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
@@ -148,7 +159,7 @@ resource "ibm_is_security_group_rule" "bastion_default_sgr_ping" {
   }
 }
 
-resource "ibm_is_security_group_rule" "bastion_default_sgr_ssh" {
+resource "ibm_is_security_group_rule" "bastion_default_sgri_ssh" {
   group      = ibm_is_security_group.bastion_default[ 0 ].id
   direction  = "inbound"
   remote     = "0.0.0.0/0"
@@ -159,13 +170,13 @@ resource "ibm_is_security_group_rule" "bastion_default_sgr_ssh" {
   }
 }
 
-resource "ibm_is_security_group_rule" "bastion_default_sgr_outbound" {
+resource "ibm_is_security_group_rule" "bastion_default_sgro_outbound" {
   group      = ibm_is_security_group.bastion_default[ 0 ].id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgr_bastion" {
+resource "ibm_is_security_group_rule" "fortress_default_sgro_bastion" {
   group      = ibm_is_security_group.fortress_default.id
   direction  = "inbound"
   remote     = ibm_is_security_group.bastion_default[ 0 ].id
@@ -221,11 +232,17 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
   }
 
   provisioner "remote-exec" {
-    script = "${path.module}/../../scripts/ubuntu_18/upgrade_os.sh"
+    scripts = [
+      "${path.module}/../../scripts/ubuntu_18/upgrade_os.sh",
+      "${path.module}/../../scripts/ubuntu_18/do_shutdown.sh" ]
+  }
+
+  provisioner "local-exec" {
+    command = "sleep 15"
   }
 
   provisioner "remote-exec" {
-    inline = [ "shutdown -r +1" ]
+    inline = [ "echo 'Dummy!'" ]
   }
 }
 

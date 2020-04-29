@@ -11,7 +11,7 @@ locals {
   vpc_name      = var.cluster_name
   repo_home     = "https://github.com/j4zzcat/j4zzcat-ibmcloud"
   repo_home_raw = "https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master"
-  cluster_key  = var.cluster_key
+  fortress_key  = var.cluster_key
 }
 
 provider "ibm" {
@@ -167,12 +167,12 @@ resource "ibm_is_security_group_rule" "openshift_internode_sgr_30000_32767" {
 }
 
 ####
-# cluster SSH Key
+# Fortress SSH Key
 #
 
-resource "ibm_is_ssh_key" "cluster_key" {
+resource "ibm_is_ssh_key" "fortress_key" {
   name           = "${local.vpc_name}-cluster-key"
-  public_key     = file( "${local.cluster_key}.pub" )
+  public_key     = file( "${local.fortress_key}.pub" )
   resource_group = data.ibm_resource_group.resource_group.id
 }
 
@@ -208,14 +208,14 @@ resource "ibm_is_instance" "install_server" {
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
-  zone           = module.vpc.cluster_subnet.zone
-  keys           = [ ibm_is_ssh_key.cluster_key.id ]
+  zone           = module.vpc.fortress_subnet.zone
+  keys           = [ ibm_is_ssh_key.fortress_key.id ]
   resource_group = data.ibm_resource_group.resource_group.id
 
   primary_network_interface {
     name            = "eth0"
-    subnet          = module.vpc.cluster_subnet.id
-    security_groups = [ module.vpc.security_groups[ "cluster_default" ] ]
+    subnet          = module.vpc.fortress_subnet.id
+    security_groups = [ module.vpc.security_groups[ "fortress_default" ] ]
   }
 
   connection {
@@ -225,7 +225,7 @@ resource "ibm_is_instance" "install_server" {
     bastion_host        = module.vpc.bastion_fip
     host                = ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address
     user                = "root"
-    private_key         = file( local.cluster_key )
+    private_key         = file( local.fortress_key )
   }
 
   provisioner "remote-exec" {
@@ -233,12 +233,13 @@ resource "ibm_is_instance" "install_server" {
       "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/install_ipxe.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/install_sinatra.sh",
-      "${path.module}/lib/scripts/openshift/install_client.sh" ]
+      "${path.module}/lib/scripts/openshift/install_client.sh",
+      "${path.module}/../../lib/scripts/ubuntu_18/do_shutdown.sh" ]
   }
 
-  provisioner "remote-exec" {
-    inline = [ "shutdown -r +1" ]
-  }
+  # provisioner "remote-exec" {
+  #   inline = [ "shutdown -r +1" ]
+  # }
 }
 
 resource "ibm_is_instance" "master_server" {
@@ -248,14 +249,14 @@ resource "ibm_is_instance" "master_server" {
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
-  zone           = module.vpc.cluster_subnet.zone
-  keys           = [ ibm_is_ssh_key.cluster_key.id ]
+  zone           = module.vpc.fortress_subnet.zone
+  keys           = [ ibm_is_ssh_key.fortress_key.id ]
   resource_group = data.ibm_resource_group.resource_group.id
 
   primary_network_interface {
     name            = "eth0"
-    subnet          = module.vpc.cluster_subnet.id
-    security_groups = [ module.vpc.security_groups[ "cluster_default" ] ]
+    subnet          = module.vpc.fortress_subnet.id
+    security_groups = [ module.vpc.security_groups[ "fortress_default" ] ]
   }
 
   # connection {
@@ -265,7 +266,7 @@ resource "ibm_is_instance" "master_server" {
   #   bastion_host        = module.vpc.bastion_fip
   #   host                = ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address
   #   user                = "root"
-  #   private_key         = file( local.cluster_key )
+  #   private_key         = file( local.fortress_key )
   # }
   #
   # provisioner "remote-exec" {

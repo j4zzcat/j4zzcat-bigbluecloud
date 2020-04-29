@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-echo "Upgrading OS to the latest level..."
+echo "upgrade_os.sh is starting..."
+
 apt update -qq
 
 rm /boot/grub/menu.lst

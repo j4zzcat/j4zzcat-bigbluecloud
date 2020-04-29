@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+
+echo "config_resolve.sh is starting..."
+
 # enable manual nameserver with dhcp
 echo 'UseDNS=false' >> /run/systemd/network/10-netplan-ens3.network
 

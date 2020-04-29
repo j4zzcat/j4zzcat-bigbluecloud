@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+
+echo "Installing OpenShift Client..."
+
 HOME_DIR=/opt/openshift
 RHCOS_DIR=${HOME_DIR}/rhcos
 
@@ -18,6 +22,8 @@ cd ${HOME_DIR}
 tar -xvf /tmp/openshift-install*.tar
 tar -xvf /tmp/openshift-client*.tar
 rm -rf /tmp/openshift*.tar
+
+echo "Downloading RHCOS..."
 
 # download rhcos
 cd ${RHCOS_DIR}

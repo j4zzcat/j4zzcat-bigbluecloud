@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+
+echo "install_sinatra.sh is starting..."
+
 DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
   ruby2.5-dev gcc g++ make
 
