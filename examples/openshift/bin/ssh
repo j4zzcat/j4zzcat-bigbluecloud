@@ -1,0 +1,7 @@
+
+target_host=${1}
+bastion_host="bastion"
+bastion_fip=$(cat bin/hosts | grep ${bastion_host} | awk '{print $1}')
+bastion_key=$(cat bin/hosts | grep ${bastion_host} | awk '{print $3}')
+
+ssh -o ProxyCommand="ssh -W %h:%p -i ${bastion_key} root@bastion_fip" -i keys/bastion-key.rsa root@<server_in_fortress>
