@@ -9,6 +9,9 @@ HELPER_GATEWAY = %x[ ip route show default | awk '/#{HELPER_IP.to_s}/{print $3}'
 HELPER_DNS     = %x[ systemd-resolve --status | tail | awk -F ':' '/DNS Servers/{print $2}'].strip
 HELPER_DOMAIN  = %x[ systemd-resolve --status | tail | awk -F ':' '/DNS Domain/{print $2}'].strip
 
+HELPER_STATE_DIR = "."
+HELPER_REGISTAR  = "#{HELPER_STATE_DIR}/#{File.basename( $0, File.extname( $0 ) )}.registar"
+
 # OPENSHIFT_CLUSTER_NAME = %x[ ls -l /opt/openshift/install | awk '/#{HELPER_DOMAIN}/{print $9}' | awk -F '.' '{print $1}' ]
 OPENSHIFT_CLUSTER_NAME = 'rover'
 
@@ -41,8 +44,9 @@ class BootstrapServer
       IPAddress::IPv4.new( net_address ).netmask
     end
 
-    get '/prepare' do
-      client_ip = request.ip
+    get '/prepare/:openshift_node_type' do
+      client_ip           = request.ip
+      openshift_node_type = params[ 'openshift_node_type' ]
 
       probe = <<~EOT
         instance_id=$(cloud-init query instance_id)
@@ -56,6 +60,7 @@ class BootstrapServer
           --data "net_ip=${net_ip}" \
           --data "net_netmask=${net_netmask}" \
           --data "net_gateway=${net_gateway}" \
+          --data "openshift_node_type=#{openshift_node_type}" \
           http://#{HELPER_IP}:#{HELPER_PORT}/register/${instance_id}
       EOT
 
@@ -73,33 +78,18 @@ class BootstrapServer
       EOT
 
       return "#{probe}\n#{install_ipxe}\n#{prepare_grub}"
-
-
-
-
-      # if device_type == 'vs'
-      #
-      #     sed --in-place -e 's|linux16.*|linux16 $IPXEPATH ifopen net0 \\\\\\&\\\\\\& set net0/ip #{client_ip} \\\\\\&\\\\\\& set net0/gateway '${CLIENT_GATEWAY}' \\\\\\&\\\\\\& chain http://#{HELPER_IP.to_s}:#{HELPER_PORT}/boot/#{openshift_server_type}|' /etc/grub.d/20_ipxe
-      #     update-grub
-      #     # reboot
-      #   EOT
-      # elsif device_type == 'bm'
-      #   return BAD_REQUEST
-      # elsif device_type == 'is'
-      #
-      #   return BAD_REQUEST
-      # else
-      #   return BAD_REQUEST
-      # end
     end
 
     post '/register/:instance_id' do
-      instance_id = params[ 'instance_id' ]
-      net_ip      = params[ 'net_ip' ]
-      net_netmask = params[ 'net_netmask' ]
-      net_gateway = params[ 'net_gateway' ]
+      instance_id         = params[ 'instance_id' ]
+      net_ip              = params[ 'net_ip' ]
+      net_netmask         = params[ 'net_netmask' ]
+      net_gateway         = params[ 'net_gateway' ]
+      openshift_node_type = params[ 'openshift_node_type' ]
 
-      logger.info "Registering '#{instance_id}:#{net_ip}:#{net_netmask}:#{net_gateway}'..."
+      record = "#{instance_id} #{net_ip} #{net_netmask} #{net_gateway} #{openshift_node_type}"
+      %x[ sed --in-place -e "d/^#{instance_id} .*/" #{HELPER_REGISTAR} ]
+      %x[ echo "#{record}" >> #{HELPER_REGISTAR} ]
     end
 
 
