@@ -57,7 +57,7 @@ class BootstrapServer
         net_netmask=$(curl -X GET \
                         --data "net_address=${net_address}" \
                         http://#{HELPER_IP}:#{HELPER_PORT}/netmask_of)
-        net_ip=$(echo ${net_address} | awk -F ':' '{print $1}')
+        net_ip=$(echo ${net_address} | awk -F '/' '{print $1}')
         net_gateway=$(ip route show default | awk '{print $3}')
         curl -X POST \
           --data "net_ip=${net_ip}" \
