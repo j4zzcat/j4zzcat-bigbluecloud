@@ -138,8 +138,8 @@ resource "ibm_is_instance" "install_server" {
   }
 }
 
-resource "ibm_is_instance" "haproxy_server" {
-  name           = "haproxy-server"
+resource "ibm_is_instance" "np_haproxy_server" {
+  name           = "np-haproxy-server"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
@@ -158,7 +158,7 @@ resource "ibm_is_instance" "haproxy_server" {
     bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
     bastion_host        = module.vpc.bastion_fip
-    host                = ibm_is_instance.haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address
+    host                = ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address
     user                = "root"
     private_key         = file( local.vpc_key )
   }
@@ -260,8 +260,8 @@ resource "ibm_is_instance" "haproxy_server" {
   }
 }
 
-resource "ibm_is_instance" "name_server" {
-  name           = "name-server"
+resource "ibm_is_instance" "np_name_server" {
+  name           = "np-name-server"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
@@ -280,7 +280,7 @@ resource "ibm_is_instance" "name_server" {
     bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
     bastion_host        = module.vpc.bastion_fip
-    host                = ibm_is_instance.name_server.primary_network_interface[ 0 ].primary_ipv4_address
+    host                = ibm_is_instance.np_name_server.primary_network_interface[ 0 ].primary_ipv4_address
     user                = "root"
     private_key         = file( local.vpc_key )
   }
@@ -306,9 +306,9 @@ resource "ibm_is_instance" "name_server" {
       local=/${var.cluster_name}.${var.domain_name}/
       domain=${var.cluster_name}.${var.domain_name}
 
-      host-record=api.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=api-int.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=*.apps.${var.cluster_name}.${ibm_is_instance.haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address}
+      host-record=api.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address}
+      host-record=api-int.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address}
+      host-record=*.apps.${var.cluster_name}.${ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address}
       host-record=etcd-0.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.cp_master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address}
       host-record=etcd-1.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.cp_master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address}
       host-record=etcd-2.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.cp_master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address}
@@ -318,35 +318,39 @@ resource "ibm_is_instance" "name_server" {
     EOT
   }
 
+  provisioner "file" {
+    destination = "/etc/dnsmasq.hosts"
+    content = <<-EOT
+      ${ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.install_server.name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.np_haproxy_server.name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.np_name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.np_name_server.name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.cp_master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.cp_master[ 0 ].name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.cp_master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.cp_master[ 1 ].name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.cp_master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.cp_master[ 2 ].name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.cp_worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.cp_worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.cp_worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.cp_worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}
+    EOT
+  }
+
   provisioner "remote-exec" {
     script = "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh"
   }
 
-  provisioner "remote-exec" {
-    connection {
-      type                = "ssh"
-      bastion_user        = "root"
-      bastion_private_key = file( var.bastion_key )
-      bastion_host        = module.vpc.bastion_fip
-      host                = ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address
-      user                = "root"
-      private_key         = file( local.vpc_key )
-    }
-
-    inline = "bash -c "$(config_resolve.sh)" -- ${ibm_is_instance.name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}"
+  provisioner "local-exec" {
+    command = <<-EOT
+      cat ${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh \
+        | ssh -o StrictHostKeyChecking=accept-new \
+              -o ProxyCommand="ssh -W %h:%p -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address} \
+              bash -s - ${ibm_is_instance.np_name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
+    EOT
   }
 
-  provisioner "remote-exec" {
-    connection {
-      type                = "ssh"
-      bastion_user        = "root"
-      bastion_private_key = file( var.bastion_key )
-      bastion_host        = module.vpc.bastion_fip
-      host                = ibm_is_instance.haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address
-      user                = "root"
-      private_key         = file( local.vpc_key )
-    }
-
-    script = "${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh ${ibm_is_instance.name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}"
+  provisioner "local-exec" {
+    command = <<-EOT
+      cat ${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh \
+        | ssh -o StrictHostKeyChecking=accept-new \
+              -o ProxyCommand="ssh -W %h:%p -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address} \
+              bash -s - ${ibm_is_instance.np_name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
+    EOT
   }
 }
