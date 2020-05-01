@@ -38,7 +38,7 @@ class BootstrapServer
 
     get '/netmask_of' do
       net_address = params[ 'net_address' ]
-      IPAddress::IPv4.new( net_address ).network
+      IPAddress::IPv4.new( net_address ).netmask
     end
 
     get '/prepare' do
