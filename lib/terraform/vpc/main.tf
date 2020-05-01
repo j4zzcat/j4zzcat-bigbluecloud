@@ -20,7 +20,7 @@ resource "ibm_is_vpc" "vpc" {
 resource "ibm_is_public_gateway" "public_gateway" {
   resource_group = ibm_is_vpc.vpc.resource_group
 
-  name     = "${ibm_is_vpc.vpc.name}-public-gateway"
+  name     = "public-gateway"
   vpc      = ibm_is_vpc.vpc.id
   zone     = var.zone_name
 }
@@ -35,11 +35,14 @@ resource "ibm_is_subnet" "fortress_subnet" {
 
 ####
 # Security Groups
+# Inbound: members of the VPC
+# Inbound: members of the 10.0.0./8 network (IaaS)
+# Outbound: No restrictions
 #
 
 resource "ibm_is_security_group" "fortress_default" {
   resource_group = ibm_is_vpc.vpc.resource_group
-  name = "${ibm_is_vpc.vpc.name}-fortress-default"
+  name = "fortress-default"
   vpc  = ibm_is_vpc.vpc.id
 }
 
@@ -49,81 +52,18 @@ resource "ibm_is_security_group_rule" "fortress_default_sgri_self" {
   remote     = ibm_is_security_group.fortress_default.id
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgri_ping" {
+resource "ibm_is_security_group_rule" "fortress_default_sgri_iaas" {
+  count = var.classic_access ? 1 : 0
+
   group      = ibm_is_security_group.fortress_default.id
   direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  icmp {
-    code = 0
-    type = 8
-  }
+  remote     = "10.0.0.0/8"
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgro_ping" {
+resource "ibm_is_security_group_rule" "fortress_default_sgro_any" {
   group      = ibm_is_security_group.fortress_default.id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
-
-  icmp {
-    code = 0
-    type = 8
-  }
-}
-
-resource "ibm_is_security_group_rule" "fortress_default_sgro_http" {
-  group      = ibm_is_security_group.fortress_default.id
-  direction  = "outbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 80
-    port_max = 80
-  }
-}
-
-resource "ibm_is_security_group_rule" "fortress_default_sgro_https" {
-  group      = ibm_is_security_group.fortress_default.id
-  direction  = "outbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 443
-    port_max = 443
-  }
-}
-
-resource "ibm_is_security_group_rule" "fortress_default_sgro_dns" {
-  group      = ibm_is_security_group.fortress_default.id
-  direction  = "outbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 53
-    port_max = 53
-  }
-}
-
-resource "ibm_is_security_group_rule" "fortress_default_sgro_dns_udp" {
-  group      = ibm_is_security_group.fortress_default.id
-  direction  = "outbound"
-  remote     = "0.0.0.0/0"
-
-  udp {
-    port_min = 53
-    port_max = 53
-  }
-}
-
-resource "ibm_is_security_group_rule" "fortress_default_sgro_ntp" {
-  group      = ibm_is_security_group.fortress_default.id
-  direction  = "outbound"
-  remote     = "0.0.0.0/0"
-
-  udp {
-    port_min = 123
-    port_max = 123
-  }
 }
 
 ####
@@ -140,11 +80,18 @@ resource "ibm_is_subnet" "bastion_subnet" {
   total_ipv4_address_count = "256"
 }
 
+####
+# Bastion security groups
+# Inbound: Ping from anywhere
+# Inbound: SSH from specified CIDR
+# Outbound: No restrictions
+#
+
 resource "ibm_is_security_group" "bastion_default" {
   count = var.bastion ? 1 : 0
 
   resource_group = ibm_is_vpc.vpc.resource_group
-  name = "${ibm_is_vpc.vpc.name}-bastion-default"
+  name = "bastion-default"
   vpc  = ibm_is_vpc.vpc.id
 }
 
@@ -162,7 +109,7 @@ resource "ibm_is_security_group_rule" "bastion_default_sgri_ping" {
 resource "ibm_is_security_group_rule" "bastion_default_sgri_ssh" {
   group      = ibm_is_security_group.bastion_default[ 0 ].id
   direction  = "inbound"
-  remote     = "0.0.0.0/0"
+  remote     = "0.0.0.0/0" # TODO tighten
 
   tcp {
     port_min = 22
@@ -174,17 +121,6 @@ resource "ibm_is_security_group_rule" "bastion_default_sgro_outbound" {
   group      = ibm_is_security_group.bastion_default[ 0 ].id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
-}
-
-resource "ibm_is_security_group_rule" "fortress_default_sgro_bastion" {
-  group      = ibm_is_security_group.fortress_default.id
-  direction  = "inbound"
-  remote     = ibm_is_security_group.bastion_default[ 0 ].id
-
-  tcp {
-    port_min = 22
-    port_max = 22
-  }
 }
 
 data "ibm_is_image" "ubuntu_1804" {

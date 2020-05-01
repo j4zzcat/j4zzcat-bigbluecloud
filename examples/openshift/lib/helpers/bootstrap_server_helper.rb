@@ -92,17 +92,22 @@ class BootstrapServer
       %x[ echo "#{record}" >> #{HELPER_REGISTAR} ]
     end
 
+    get '/boot/:instance_id' do
+      instance_id = params[ 'instance_id' ]
+      pk, net_ip, net_netmask, net_gateway, openshift_node_type = %x[ cat #{HELPER_REGISTAR} | grep -e '^#{instance_id}' ].chomp.split
 
+      # client_type = params[ 'type' ]
+      # client_ip   = request.ip
+      # client_fqhn = %x[ nslookup #{client_ip} | head -n 1 | awk -F '=' '{print $2}' ].strip[ 0..-2 ]
 
+      configure_ip = <<~EOT
+        ifopen net0
+        set net0/ip #{net_ip}
+        set net0/netmask #{net_netmask}
+        set net0/gateway #{net_gateway}
+      EOT
 
-
-
-    get '/boot/:type' do
-      client_type = params[ 'type' ]
-      client_ip   = request.ip
-      client_fqhn = %x[ nslookup #{client_ip} | head -n 1 | awk -F '=' '{print $2}' ].strip[ 0..-2 ]
-
-      kernel_cmd = <<~EOT
+      kernel = <<~EOT
         kernel http://#{HELPER_IP}/openshift/rhcos/rhcos-4.3.8-x86_64-installer-kernel-x86_64 \
           coreos.inst=yes \
           coreos.inst.install_dev=sda \
@@ -111,16 +116,15 @@ class BootstrapServer
           ip=#{client_ip}::#{HELPER_GATEWAY}:#{HELPER_NETMASK}:#{client_fqhn} nameserver=#{HELPER_DNS}
       EOT
 
-      initrd_cmd = <<~EOT
+      initrd = <<~EOT
         http://#{HELPER_IP}/openshift/rhcos/rhcos-4.3.8-x86_64-installer-initramfs.x86_64.img
       EOT
 
       return <<~EOT
         #!ipxe
-        dhcp
-        route
-        #{kernel_cmd}
-        #{initrd_cmd}
+        #{configure_ip}
+        #{kernel}
+        #{initrd}
         boot
       EOT
     end

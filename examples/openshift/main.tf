@@ -36,138 +36,6 @@ module "vpc" {
 }
 
 ####
-# OpenShift install security group
-#
-
-resource "ibm_is_security_group" "openshift_install" {
-  resource_group = data.ibm_resource_group.resource_group.id
-
-  name = "openshift-install"
-  vpc  = module.vpc.id
-}
-
-resource "ibm_is_security_group_rule" "openshift_install_sgr_6443" {
-  group      = ibm_is_security_group.openshift_install.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 6443
-    port_max = 6443
-  }
-}
-
-resource "ibm_is_security_group_rule" "penshift_install_sgr_22623" {
-  group      = ibm_is_security_group.openshift_install.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 22623
-    port_max = 22623
-  }
-}
-
-####
-# OpenShift internode comm security group
-#
-
-resource "ibm_is_security_group" "openshift_internode" {
-  resource_group = data.ibm_resource_group.resource_group.id
-
-  name = "openshift-internode"
-  vpc  = module.vpc.id
-}
-
-resource "ibm_is_security_group_rule" "openshift_internode_sgr_2379_2380" {
-  group      = ibm_is_security_group.openshift_internode.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 2379
-    port_max = 2380
-  }
-}
-
-resource "ibm_is_security_group_rule" "openshift_internode_sgr_6443" {
-  group      = ibm_is_security_group.openshift_internode.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 6443
-    port_max = 6443
-  }
-}
-
-resource "ibm_is_security_group_rule" "openshift_internode_sgr_9000_9999" {
-  group      = ibm_is_security_group.openshift_internode.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 9000
-    port_max = 9999
-  }
-}
-
-resource "ibm_is_security_group_rule" "openshift_internode_sgr_10249_10259" {
-  group      = ibm_is_security_group.openshift_internode.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  tcp {
-    port_min = 10249
-    port_max = 10259
-  }
-}
-
-resource "ibm_is_security_group_rule" "openshift_internode_sgr_4789" {
-  group      = ibm_is_security_group.openshift_internode.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  udp {
-    port_min = 4789
-    port_max = 4789
-  }
-}
-
-resource "ibm_is_security_group_rule" "openshift_internode_sgr_6081" {
-  group      = ibm_is_security_group.openshift_internode.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  udp {
-    port_min = 6081
-    port_max = 6081
-  }
-}
-
-resource "ibm_is_security_group_rule" "openshift_internode_sgr_9000_9999_udp" {
-  group      = ibm_is_security_group.openshift_internode.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  udp {
-    port_min = 9000
-    port_max = 9999
-  }
-}
-
-resource "ibm_is_security_group_rule" "openshift_internode_sgr_30000_32767" {
-  group      = ibm_is_security_group.openshift_internode.id
-  direction  = "inbound"
-  remote     = "0.0.0.0/0"
-
-  udp {
-    port_min = 30000
-    port_max = 32767
-  }
-}
-
-####
 # Fortress SSH Key
 #
 
@@ -176,29 +44,6 @@ resource "ibm_is_ssh_key" "fortress_key" {
   public_key     = file( "${local.fortress_key}.pub" )
   resource_group = data.ibm_resource_group.resource_group.id
 }
-
-
-# module "security_groups" {
-#   source            = "./lib/terraform/security_groups"
-#
-#   vpc_name          = module.vpc.name
-#   resource_group_id = data.ibm_resource_group.resource_group.id
-# }
-#
-# locals {
-#   security_groups = merge( module.security_groups.security_groups,
-#                            module.vpc.security_groups )
-# }
-#
-# module "ssh_keys" {
-#   source = "../../lib/terraform/j4zzcat_ssh_key"
-#
-#   keys = {
-#     "admin-key-${local.vpc_name}"   = local.admin_public_key,
-#     "bastion-key-${local.vpc_name}" = local.bastion_public_key }
-#   resource_group_id = data.ibm_resource_group.resource_group.id
-# }
-#
 
 data "ibm_is_image" "ubuntu_1804" {
   name = "ibm-ubuntu-18-04-64"
@@ -234,32 +79,80 @@ resource "ibm_is_instance" "install_server" {
       "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/install_ipxe.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/install_sinatra.sh",
-      "${path.module}/../../lib/scripts/ubuntu_18/install_dnsmasq.sh",
       "${path.module}/lib/scripts/openshift/install_client.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/do_shutdown.sh" ]
   }
-
-  # provisioner "remote-exec" {
-  #   inline = [ "shutdown -r +1" ]
-  # }
 }
 
-# resource "ibm_is_instance" "master_server" {
-#   count = 1
-#
-#   name           = "master-server-${count.index}"
-#   image          = data.ibm_is_image.ubuntu_1804.id
-#   profile        = "bx2-2x8"
-#   vpc            = module.vpc.id
-#   zone           = module.vpc.fortress_subnet.zone
-#   keys           = [ ibm_is_ssh_key.fortress_key.id ]
-#   resource_group = data.ibm_resource_group.resource_group.id
-#
-#   primary_network_interface {
-#     name            = "eth0"
-#     subnet          = module.vpc.fortress_subnet.id
-#     security_groups = [ module.vpc.security_groups[ "fortress_default" ] ]
-#   }
+resource "ibm_is_instance" "dns_server" {
+  name           = "dns-server"
+  image          = data.ibm_is_image.ubuntu_1804.id
+  profile        = "bx2-2x8"
+  vpc            = module.vpc.id
+  zone           = module.vpc.fortress_subnet.zone
+  keys           = [ ibm_is_ssh_key.fortress_key.id ]
+  resource_group = data.ibm_resource_group.resource_group.id
+
+  primary_network_interface {
+    name            = "eth0"
+    subnet          = module.vpc.fortress_subnet.id
+    security_groups = [ module.vpc.security_groups[ "fortress_default" ] ]
+  }
+
+  connection {
+    type                = "ssh"
+    bastion_user        = "root"
+    bastion_private_key = file( var.bastion_key )
+    bastion_host        = module.vpc.bastion_fip
+    host                = ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address
+    user                = "root"
+    private_key         = file( local.fortress_key )
+  }
+
+  provisioner "remote-exec" {
+    scripts = [
+      "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
+      "${path.module}/../../lib/scripts/ubuntu_18/install_dnsmasq.sh",
+      "${path.module}/../../lib/scripts/ubuntu_18/do_shutdown.sh" ]
+  }
+}
+
+resource "ibm_is_instance" "master_server" {
+  count = 3
+
+  name           = "master-${count.index + 1}"
+  image          = data.ibm_is_image.ubuntu_1804.id
+  profile        = "bx2-2x8"
+  vpc            = module.vpc.id
+  zone           = module.vpc.fortress_subnet.zone
+  keys           = [ ibm_is_ssh_key.fortress_key.id ]
+  resource_group = data.ibm_resource_group.resource_group.id
+
+  primary_network_interface {
+    name            = "eth0"
+    subnet          = module.vpc.fortress_subnet.id
+    security_groups = [ module.vpc.security_groups[ "fortress_default" ] ]
+  }
+}
+
+resource "ibm_is_instance" "worker_server" {
+  count = 2
+
+  name           = "is-worker-${count.index + 1}"
+  image          = data.ibm_is_image.ubuntu_1804.id
+  profile        = "bx2-2x8"
+  vpc            = module.vpc.id
+  zone           = module.vpc.fortress_subnet.zone
+  keys           = [ ibm_is_ssh_key.fortress_key.id ]
+  resource_group = data.ibm_resource_group.resource_group.id
+
+  primary_network_interface {
+    name            = "eth0"
+    subnet          = module.vpc.fortress_subnet.id
+    security_groups = [ module.vpc.security_groups[ "fortress_default" ] ]
+  }
+}
+
 
   # connection {
   #   type                = "ssh"
