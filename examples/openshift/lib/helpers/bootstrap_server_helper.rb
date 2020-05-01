@@ -66,7 +66,7 @@ class BootstrapServer
           http://#{HELPER_IP}:#{HELPER_PORT}/register/${instance_id}
       EOT
 
-      return probe + install_ipxe
+      # return "#{probe}\n#{install_ipxe}"
 
 
 
@@ -93,7 +93,7 @@ class BootstrapServer
       net_netmask = params[ 'net_netmask' ]
       net_gateway = params[ 'net_gateway' ]
 
-      puts "Registering '#{instance_id}:#{net_ip}:#{netmask}:#{net_gateway}'..."
+      puts "Registering '#{instance_id}:#{net_ip}:#{net_netmask}:#{net_gateway}'..."
     end
 
 
