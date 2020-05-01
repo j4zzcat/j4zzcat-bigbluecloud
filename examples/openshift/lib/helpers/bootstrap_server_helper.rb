@@ -44,13 +44,6 @@ class BootstrapServer
     get '/prepare' do
       client_ip = request.ip
 
-      install_ipxe = <<~EOT
-        apt update
-        apt install -y ipxe
-        sed --in-place -e 's/GRUB_DEFAULT=0/GRUB_DEFAULT=ipxe/' /etc/default/grub
-        sed --in-place -e 's/--class network {/--class network --id ipxe {/' /etc/grub.d/20_ipxe
-      EOT
-
       probe = <<~EOT
         instance_id=$(cloud-init query instance_id)
         net_address=$(ip addr | grep -e 'inet ' | grep #{client_ip} | awk '{print $2}')
@@ -66,7 +59,20 @@ class BootstrapServer
           http://#{HELPER_IP}:#{HELPER_PORT}/register/${instance_id}
       EOT
 
-      return "#{probe}\n#{install_ipxe}"
+      install_ipxe = <<~EOT
+        apt update
+        apt install -y ipxe
+        sed --in-place -e 's/GRUB_DEFAULT=0/GRUB_DEFAULT=ipxe/' /etc/default/grub
+        sed --in-place -e 's/--class network {/--class network --id ipxe {/' /etc/grub.d/20_ipxe
+      EOT
+
+      prepare_grub = <<~EOT
+        sed --in-place -e 's|linux16.*|linux16 $IPXEPATH ifopen net0 \\\\\\&\\\\\\& set net0/ip #{client_ip} \\\\\\&\\\\\\& set net0/netmask '${net_netmask}' \\\\\\&\\\\\\& set net0/gateway '${net_gateway}' \\\\\\&\\\\\\& chain http://#{HELPER_IP.to_s}:#{HELPER_PORT}/boot/'${instance_id}'|' /etc/grub.d/20_ipxe
+        update-grub
+        # reboot
+      EOT
+
+      return "#{probe}\n#{install_ipxe}\n#{prepare_grub}"
 
 
 
