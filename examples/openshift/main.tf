@@ -50,10 +50,10 @@ resource "ibm_is_ssh_key" "vpc_key" {
 # Provision the control plane
 #
 
-resource "ibm_is_instance" "cp_master" {
+resource "ibm_is_instance" "master" {
   count = 3
 
-  name           = "cp-master-${count.index + 1}"
+  name           = "master-${count.index + 1}"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
@@ -68,10 +68,10 @@ resource "ibm_is_instance" "cp_master" {
   }
 }
 
-resource "ibm_is_instance" "cp_worker" {
+resource "ibm_is_instance" "worker" {
   count = 2
 
-  name           = "cp-worker-${count.index + 1}"
+  name           = "worker-${count.index + 1}"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
@@ -94,8 +94,8 @@ data "ibm_is_image" "ubuntu_1804" {
   name = "ibm-ubuntu-18-04-64"
 }
 
-resource "ibm_is_instance" "install_server" {
-  name           = "install-server"
+resource "ibm_is_instance" "bootstrap" {
+  name           = "bootstrap"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
@@ -114,7 +114,7 @@ resource "ibm_is_instance" "install_server" {
     bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
     bastion_host        = module.vpc.bastion_fip
-    host                = ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address
+    host                = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address
     user                = "root"
     private_key         = file( local.vpc_key )
   }
@@ -138,8 +138,8 @@ resource "ibm_is_instance" "install_server" {
   }
 }
 
-resource "ibm_is_instance" "np_haproxy_server" {
-  name           = "np-haproxy-server"
+resource "ibm_is_instance" "load_balancer" {
+  name           = "load-balancer"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
@@ -158,7 +158,7 @@ resource "ibm_is_instance" "np_haproxy_server" {
     bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
     bastion_host        = module.vpc.bastion_fip
-    host                = ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address
+    host                = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address
     user                = "root"
     private_key         = file( local.vpc_key )
   }
@@ -170,7 +170,7 @@ resource "ibm_is_instance" "np_haproxy_server" {
   }
 
   provisioner "file" {
-    destination = "/etc/haproxy.conf"
+    destination = "/etc/haproxy/haproxy.cfg"
 
     content = <<-EOT
       global
@@ -203,65 +203,61 @@ resource "ibm_is_instance" "np_haproxy_server" {
         timeout check 10s
         maxconn 3000
 
-      frontend masters_api
+      frontend openshift_api_server
         mode tcp
         option tcplog
         bind api.${var.cluster_name}.${var.domain_name}:6443
-        default_backend masters_api
+        default_backend openshift_api_server
 
-      frontend masters_machine_config
-        mode tcp
-        option tcplog
-        bind api.${var.cluster_name}.${var.domain_name}:22623
-        default_backend masters_machine_config
-
-      frontend router_http
-        mode tcp
-        option tcplog
-        bind apps.${var.cluster_name}.${var.domain_name}:80
-        default_backend router_http
-
-      frontend router_https
-        mode tcp
-        option tcplog
-        bind apps.${var.cluster_name}.${var.domain_name}:443
-        default_backend router_https
-
-      backend masters_api
+      backend openshift_api_server
         mode tcp
         balance source
-        server ${ibm_is_instance.install_server.name}.${var.cluster_name}.${var.domain_name}:6443 check
-        server master-1.${var.cluster_name}.${var.domain_name}:6443 check
-        server master-2.${var.cluster_name}.${var.domain_name}:6443 check
-        server master-3.${var.cluster_name}.${var.domain_name}:6443 check
+        server ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:6443 check
+        server ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
+        server ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
+        server ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
 
-      backend masters_machine_config
+      frontend machine_config_server
+        mode tcp
+        option tcplog
+        bind *:22623
+        default_backend machine_config_server
+
+      backend machine_config_server
         mode tcp
         balance source
-        server ${ibm_is_instance.install_server.name}.${var.cluster_name}.${var.domain_name}:22623 check
-        server ${ibm_is_instance.cp_master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
-        server ${ibm_is_instance.cp_master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
-        server ${ibm_is_instance.cp_master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
+        server ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:22623 check
+        server ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
+        server ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
+        server ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
 
-      backend router_http
+      frontend ingress_http
         mode tcp
-        server ${ibm_is_instance.cp_worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}:80 check
-        server ${ibm_is_instance.cp_worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}:80 check
+        option tcplog
+        bind *:80
+        default_backend ingress_http
 
-      backend router_https
+      backend ingress_http
         mode tcp
-        server ${ibm_is_instance.cp_worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}:443 check
-        server ${ibm_is_instance.cp_worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}:443 check
+        server ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}:80 check
+        server ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}:80 check
+
+      frontend ingress_https
+        mode tcp
+        option tcplog
+        bind *:443
+        default_backend ingress_https
+
+      backend ingress_https
+        mode tcp
+        server ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}:443 check
+        server ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}:443 check
     EOT
-  }
-
-  provisioner "remote-exec" {
-    script = "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh"
   }
 }
 
-resource "ibm_is_instance" "np_name_server" {
-  name           = "np-name-server"
+resource "ibm_is_instance" "nameserver" {
+  name           = "nameserver"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
@@ -280,7 +276,7 @@ resource "ibm_is_instance" "np_name_server" {
     bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
     bastion_host        = module.vpc.bastion_fip
-    host                = ibm_is_instance.np_name_server.primary_network_interface[ 0 ].primary_ipv4_address
+    host                = ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address
     user                = "root"
     private_key         = file( local.vpc_key )
   }
@@ -292,9 +288,7 @@ resource "ibm_is_instance" "np_name_server" {
   }
 
   provisioner "file" {
-    source      = var.pull_secret
     destination = "/etc/dnsmasq.conf"
-
     content = <<-EOT
       port=53
       no-hosts
@@ -306,12 +300,12 @@ resource "ibm_is_instance" "np_name_server" {
       local=/${var.cluster_name}.${var.domain_name}/
       domain=${var.cluster_name}.${var.domain_name}
 
-      host-record=api.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=api-int.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=*.apps.${var.cluster_name}.${ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=etcd-0.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.cp_master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=etcd-1.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.cp_master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=etcd-2.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.cp_master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address}
+      host-record=api.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
+      host-record=api-int.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
+      host-record=*.apps.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
+      host-record=etcd-0.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address}
+      host-record=etcd-1.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address}
+      host-record=etcd-2.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address}
       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-0.${var.cluster_name}.${var.domain_name},2380,0,10
       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-1.${var.cluster_name}.${var.domain_name},2380,0,10
       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-2.${var.cluster_name}.${var.domain_name},2380,0,10
@@ -321,14 +315,14 @@ resource "ibm_is_instance" "np_name_server" {
   provisioner "file" {
     destination = "/etc/dnsmasq.hosts"
     content = <<-EOT
-      ${ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.install_server.name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.np_haproxy_server.name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.np_name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.np_name_server.name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.cp_master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.cp_master[ 0 ].name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.cp_master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.cp_master[ 1 ].name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.cp_master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.cp_master[ 2 ].name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.cp_worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.cp_worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.cp_worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.cp_worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.nameserver.name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}
     EOT
   }
 
@@ -340,8 +334,8 @@ resource "ibm_is_instance" "np_name_server" {
     command = <<-EOT
       cat ${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh \
         | ssh -o StrictHostKeyChecking=accept-new \
-              -o ProxyCommand="ssh -W %h:%p -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address} \
-              bash -s - ${ibm_is_instance.np_name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
+              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} \
+              bash -s - ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
     EOT
   }
 
@@ -349,8 +343,8 @@ resource "ibm_is_instance" "np_name_server" {
     command = <<-EOT
       cat ${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh \
         | ssh -o StrictHostKeyChecking=accept-new \
-              -o ProxyCommand="ssh -W %h:%p -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.np_haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address} \
-              bash -s - ${ibm_is_instance.np_name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
+              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} \
+              bash -s - ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
     EOT
   }
 }
