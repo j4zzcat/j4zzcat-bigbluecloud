@@ -129,12 +129,12 @@ resource "ibm_is_instance" "install_server" {
 
   provisioner "file" {
     source      = var.pull_secret
-    destination = "/opt/openshift/etc"
+    destination = "/opt/openshift/etc/"
   }
 
   provisioner "file" {
     source      = "${path.module}/main.auto.tfvars"
-    destination = "/opt/openshift/etc"
+    destination = "/opt/openshift/etc/"
   }
 }
 
@@ -329,6 +329,20 @@ resource "ibm_is_instance" "name_server" {
       bastion_private_key = file( var.bastion_key )
       bastion_host        = module.vpc.bastion_fip
       host                = ibm_is_instance.install_server.primary_network_interface[ 0 ].primary_ipv4_address
+      user                = "root"
+      private_key         = file( local.vpc_key )
+    }
+
+    script = "${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh ${ibm_is_instance.name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}"
+  }
+
+  provisioner "remote-exec" {
+    connection {
+      type                = "ssh"
+      bastion_user        = "root"
+      bastion_private_key = file( var.bastion_key )
+      bastion_host        = module.vpc.bastion_fip
+      host                = ibm_is_instance.haproxy_server.primary_network_interface[ 0 ].primary_ipv4_address
       user                = "root"
       private_key         = file( local.vpc_key )
     }
