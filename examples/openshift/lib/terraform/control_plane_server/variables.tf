@@ -1,9 +1,0 @@
-variable name              {}
-variable profile           {}
-variable vpc               {}
-variable keys              {}
-variable security_groups   {}
-variable resource_group_id {}
-variable cluster_name      {}
-variable domain_name       {}
-variable nameserver_ip     {}

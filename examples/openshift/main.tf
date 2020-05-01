@@ -123,18 +123,22 @@ resource "ibm_is_instance" "bootstrap" {
     scripts = [
       "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/install_sinatra.sh",
-      "${path.module}/lib/scripts/openshift/install_client.sh",
+      "${path.module}/lib/scripts/install_openshift_client.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh" ]
   }
 
   provisioner "file" {
     source      = var.pull_secret
-    destination = "/opt/openshift/etc/"
+    destination = "/opt/openshift/etc/pull_secret.txt"
   }
 
-  provisioner "file" {
-    source      = "${path.module}/main.auto.tfvars"
-    destination = "/opt/openshift/etc/"
+  provisioner "local-exec" {
+    command = <<-EOT
+      cat ${path.module}/lib/scripts/config_openshift_installation.sh \
+        | ssh -o StrictHostKeyChecking=accept-new \
+              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} \
+              bash -s - ${var.cluster_name} ${var.domain_name}
+    EOT
   }
 }
 

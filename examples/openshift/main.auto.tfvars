@@ -1,6 +1,6 @@
 # required
 cluster_name        = "rover"
-domain_name         = "local"
+domain_name         = "cloud"
 region_name         = "us-south"
 zone_name           = "us-south-1"
 cluster_key         = "./keys/cluster-key.rsa"
