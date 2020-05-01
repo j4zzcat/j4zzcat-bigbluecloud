@@ -333,7 +333,7 @@ resource "ibm_is_instance" "name_server" {
       private_key         = file( local.vpc_key )
     }
 
-    script = "${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh ${ibm_is_instance.name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}"
+    inline = "bash -c "$(config_resolve.sh)" -- ${ibm_is_instance.name_server.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}"
   }
 
   provisioner "remote-exec" {
