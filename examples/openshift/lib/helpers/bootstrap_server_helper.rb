@@ -66,7 +66,7 @@ class BootstrapServer
           http://#{HELPER_IP}:#{HELPER_PORT}/register/${instance_id}
       EOT
 
-      # return "#{probe}\n#{install_ipxe}"
+      return "#{probe}\n#{install_ipxe}"
 
 
 
