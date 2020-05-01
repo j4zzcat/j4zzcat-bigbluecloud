@@ -93,7 +93,7 @@ class BootstrapServer
       net_netmask = params[ 'net_netmask' ]
       net_gateway = params[ 'net_gateway' ]
 
-      puts "Registering '#{instance_id}:#{net_ip}:#{net_netmask}:#{net_gateway}'..."
+      logger.info "Registering '#{instance_id}:#{net_ip}:#{net_netmask}:#{net_gateway}'..."
     end
 
 
