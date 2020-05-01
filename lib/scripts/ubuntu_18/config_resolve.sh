@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+nameserver_ip=${1}
+domain_name=${2}
+
 echo "config_resolve.sh is starting..."
 
 # enable manual nameserver with dhcp

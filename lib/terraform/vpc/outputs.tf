@@ -6,8 +6,8 @@ output "id" {
   value = ibm_is_vpc.vpc.id
 }
 
-output "fortress_subnet" {
-  value = ibm_is_subnet.fortress_subnet
+output "vpc_subnet" {
+  value = ibm_is_subnet.vpc_subnet
 }
 
 output "bastion_subnet" {
@@ -24,7 +24,7 @@ output "bastion_fip" {
 
 output "security_groups" {
   value = {
-    fortress_default = ibm_is_security_group.fortress_default.id,
-    bastion_default  = var.bastion ? ibm_is_security_group.bastion_default[ 0 ].id : null
+    vpc_default     = ibm_is_security_group.vpc_default.id,
+    bastion_default = var.bastion ? ibm_is_security_group.bastion_default[ 0 ].id : null
   }
 }

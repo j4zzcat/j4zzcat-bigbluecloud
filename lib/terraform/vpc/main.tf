@@ -25,11 +25,11 @@ resource "ibm_is_public_gateway" "public_gateway" {
   zone     = var.zone_name
 }
 
-resource "ibm_is_subnet" "fortress_subnet" {
-  name           = "fortress-subnet"
-  vpc            = ibm_is_vpc.vpc.id
-  zone           = var.zone_name
-  public_gateway = ibm_is_public_gateway.public_gateway.id
+resource "ibm_is_subnet" "vpc_subnet" {
+  name                     = "vpc-subnet"
+  vpc                      = ibm_is_vpc.vpc.id
+  zone                     = var.zone_name
+  public_gateway           = ibm_is_public_gateway.public_gateway.id
   total_ipv4_address_count = "256"
 }
 
@@ -40,28 +40,28 @@ resource "ibm_is_subnet" "fortress_subnet" {
 # Outbound: No restrictions
 #
 
-resource "ibm_is_security_group" "fortress_default" {
+resource "ibm_is_security_group" "vpc_default" {
   resource_group = ibm_is_vpc.vpc.resource_group
-  name = "fortress-default"
+  name = "${ibm_is_vpc.vpc.name}-default"
   vpc  = ibm_is_vpc.vpc.id
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgri_self" {
-  group      = ibm_is_security_group.fortress_default.id
+resource "ibm_is_security_group_rule" "vpc_default_sgri_self" {
+  group      = ibm_is_security_group.vpc_default.id
   direction  = "inbound"
-  remote     = ibm_is_security_group.fortress_default.id
+  remote     = ibm_is_security_group.vpc_default.id
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgri_iaas" {
+resource "ibm_is_security_group_rule" "vpc_default_sgri_iaas" {
   count = var.classic_access ? 1 : 0
 
-  group      = ibm_is_security_group.fortress_default.id
+  group      = ibm_is_security_group.vpc_default.id
   direction  = "inbound"
   remote     = "10.0.0.0/8"
 }
 
-resource "ibm_is_security_group_rule" "fortress_default_sgro_any" {
-  group      = ibm_is_security_group.fortress_default.id
+resource "ibm_is_security_group_rule" "vpc_default_sgro_any" {
+  group      = ibm_is_security_group.vpc_default.id
   direction  = "outbound"
   remote     = "0.0.0.0/0"
 }
@@ -73,10 +73,10 @@ resource "ibm_is_security_group_rule" "fortress_default_sgro_any" {
 resource "ibm_is_subnet" "bastion_subnet" {
   count = var.bastion ? 1 : 0
 
-  name           = "bastion-subnet"
-  vpc            = ibm_is_vpc.vpc.id
-  zone           = var.zone_name
-  public_gateway = ibm_is_public_gateway.public_gateway.id
+  name                     = "bastion-subnet"
+  vpc                      = ibm_is_vpc.vpc.id
+  zone                     = var.zone_name
+  public_gateway           = ibm_is_public_gateway.public_gateway.id
   total_ipv4_address_count = "256"
 }
 
@@ -91,8 +91,16 @@ resource "ibm_is_security_group" "bastion_default" {
   count = var.bastion ? 1 : 0
 
   resource_group = ibm_is_vpc.vpc.resource_group
-  name = "bastion-default"
+  name = "${ibm_is_vpc.vpc.name}-bastion-default"
   vpc  = ibm_is_vpc.vpc.id
+}
+
+resource "ibm_is_security_group_rule" "vpc_default_sgri_bastion" {
+  count = var.bastion ? 1 : 0
+
+  group      = ibm_is_security_group.vpc_default.id
+  direction  = "inbound"
+  remote     = ibm_is_security_group.bastion_default[ 0 ].id
 }
 
 resource "ibm_is_security_group_rule" "bastion_default_sgri_ping" {
@@ -170,7 +178,7 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
   provisioner "remote-exec" {
     scripts = [
       "${path.module}/../../scripts/ubuntu_18/upgrade_os.sh",
-      "${path.module}/../../scripts/ubuntu_18/do_shutdown.sh" ]
+      "${path.module}/../../scripts/ubuntu_18/do_reboot.sh" ]
   }
 
   provisioner "local-exec" {

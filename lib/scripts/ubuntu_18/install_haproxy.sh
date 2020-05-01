@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
-DEBIAN_FRONTEND=noninteractive apt install -y \
+
+echo "install_haproxy.sh is starting..."
+
+DEBIAN_FRONTEND=noninteractive apt install -qq -y \
   haproxy
