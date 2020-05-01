@@ -88,7 +88,7 @@ class BootstrapServer
       openshift_node_type = params[ 'openshift_node_type' ]
 
       record = "#{instance_id} #{net_ip} #{net_netmask} #{net_gateway} #{openshift_node_type}"
-      %x[ sed --in-place -e "/^#{instance_id} .*/d" #{HELPER_REGISTAR} ]
+      %x[ sed --in-place -e '/^#{instance_id} .*/d' #{HELPER_REGISTAR} ]
       %x[ echo "#{record}" >> #{HELPER_REGISTAR} ]
     end
 
