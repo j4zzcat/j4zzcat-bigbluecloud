@@ -1,7 +1,13 @@
+#!/usr/bin/env bash
 
-target_host=${1}
-bastion_host="bastion"
-bastion_fip=$(cat bin/hosts | grep ${bastion_host} | awk '{print $1}')
-bastion_key=$(cat bin/hosts | grep ${bastion_host} | awk '{print $3}')
+target_ip=${1}
+script_dir="$(dirname "$(readlink -f "$0")")"
 
-ssh -o ProxyCommand="ssh -W %h:%p -i ${bastion_key} root@bastion_fip" -i keys/bastion-key.rsa root@<server_in_fortress>
+bastion_key_file=$(cat ${script_dir}/../main.auto.tfvars  | awk -F '"' '/bastion_key/{print $2}')
+bastion_fip=$(terraform state show -state ${script_dir}/../terraform.tfstate module.vpc.ibm_is_floating_ip.bastion_server_fip[0] | awk '/address/{print $3}' | awk -F '"' '{print $2}')
+
+cluster_key_file=$(cat ${script_dir}/../main.auto.tfvars  | awk -F '"' '/cluster_key/{print $2}')
+
+exec ssh \
+  -o ProxyCommand=\"ssh -W %h:%p -i ${bastion_key_file} root@${bastion_fip}\" \
+  -i ${cluster_key_file} root@${target_ip}

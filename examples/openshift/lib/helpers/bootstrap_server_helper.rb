@@ -12,6 +12,8 @@ HELPER_DOMAIN  = %x[ systemd-resolve --status | tail | awk -F ':' '/DNS Domain/{
 # OPENSHIFT_CLUSTER_NAME = %x[ ls -l /opt/openshift/install | awk '/#{HELPER_DOMAIN}/{print $9}' | awk -F '.' '{print $1}' ]
 OPENSHIFT_CLUSTER_NAME = 'rover'
 
+BAD_REQUEST = 400
+
 class BootstrapServer
   def run
     Rack::Server.start( {
@@ -34,28 +36,69 @@ class BootstrapServer
       set :public_folder, '/var/sinatra/www'
     end
 
-    get '/prepare/:device_type/:openshift_server_type' do
-      device_type           = params[ 'device_type' ]
-      openshift_server_type = params[ 'openshift_server_type' ]
-      client_ip             = request.ip
-
-      case device_type
-      when 'm'
-      when 'vp'
-      when 'vt'
-        return <<~EOT
-          apt update
-          apt install -y ipxe
-          export CLIENT_GATEWAY=$(ip route show default | awk '{print $3}')
-          sed --in-place -e 's/GRUB_DEFAULT=0/GRUB_DEFAULT=ipxe/' /etc/default/grub
-          sed --in-place -e 's/--class network {/--class network --id ipxe {/' /etc/grub.d/20_ipxe
-          sed --in-place -e 's|linux16.*|linux16 $IPXEPATH ifopen net0 \\\\\\&\\\\\\& set net0/ip #{client_ip} \\\\\\&\\\\\\& set net0/gateway '${CLIENT_GATEWAY}' \\\\\\&\\\\\\& chain http://#{HELPER_IP.to_s}:#{HELPER_PORT}/boot/#{openshift_server_type}|' /etc/grub.d/20_ipxe
-          update-grub
-          # reboot
-        EOT
-      when 'is'
-      end
+    get '/netmask_of' do
+      net_address = params[ 'net_address' ]
+      IPAddress::IPv4.new( net_address ).network
     end
+
+    get '/prepare' do
+      client_ip = request.ip
+
+      install_ipxe = <<~EOT
+        apt update
+        apt install -y ipxe
+        sed --in-place -e 's/GRUB_DEFAULT=0/GRUB_DEFAULT=ipxe/' /etc/default/grub
+        sed --in-place -e 's/--class network {/--class network --id ipxe {/' /etc/grub.d/20_ipxe
+      EOT
+
+      probe = <<~EOT
+        instance_id=$(cloud-init query instance_id)
+        net_address=$(ip addr | grep -e 'inet ' | grep #{client_ip} | awk '{print $2}')
+        net_netmask=$(curl -X GET \
+                        --data "net_address=${net_address}" \
+                        http://#{HELPER_IP}:#{HELPER_PORT}/netmask_of)
+        net_ip=$(echo ${net_address} | awk -F ':' '{print $1}')
+        net_gateway=$(ip route show default | awk '{print $3}')
+        curl -X POST \
+          --data "net_ip=${net_ip}" \
+          --data "net_netmask=${net_netmask}" \
+          --data "net_gateway=${net_gateway}" \
+          http://#{HELPER_IP}:#{HELPER_PORT}/register/${instance_id}
+      EOT
+
+
+
+
+
+      # if device_type == 'vs'
+      #
+      #     sed --in-place -e 's|linux16.*|linux16 $IPXEPATH ifopen net0 \\\\\\&\\\\\\& set net0/ip #{client_ip} \\\\\\&\\\\\\& set net0/gateway '${CLIENT_GATEWAY}' \\\\\\&\\\\\\& chain http://#{HELPER_IP.to_s}:#{HELPER_PORT}/boot/#{openshift_server_type}|' /etc/grub.d/20_ipxe
+      #     update-grub
+      #     # reboot
+      #   EOT
+      # elsif device_type == 'bm'
+      #   return BAD_REQUEST
+      # elsif device_type == 'is'
+      #
+      #   return BAD_REQUEST
+      # else
+      #   return BAD_REQUEST
+      # end
+    end
+
+    post '/register/:instance_id' do
+      instance_id = params[ 'instance_id' ]
+      net_ip      = params[ 'net_ip' ]
+      net_netmask = params[ 'net_netmask' ]
+      net_gateway = params[ 'net_gateway' ]
+
+      puts "Registering '#{instance_id}:#{net_ip}:#{netmask}:#{net_gateway}'..."
+    end
+
+
+
+
+
 
     get '/boot/:type' do
       client_type = params[ 'type' ]

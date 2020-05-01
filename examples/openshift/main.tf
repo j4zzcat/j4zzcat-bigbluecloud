@@ -33,10 +33,6 @@ module "vpc" {
   bastion             = true
   bastion_key         = var.bastion_key
   resource_group_id   = data.ibm_resource_group.resource_group.id
-
-  provisioner "local-exec" {
-    command = "echo ${module.vpc.bastion_fip} bastion >> ${local.hosts_file}"
-  }
 }
 
 ####
