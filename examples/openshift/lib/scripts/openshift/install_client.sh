@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
+echo "install_client.sh is starting..."
 echo "Installing OpenShift Client..."
 
-HOME_DIR=/opt/openshift
-RHCOS_DIR=${HOME_DIR}/rhcos
+OPENSHIFT_HOME=/opt/openshift
+RHCOS_DIR=${OPENSHIFT_HOME}/rhcos
 
-mkdir -p ${HOME_DIR}
+mkdir -p ${OPENSHIFT_HOME}
+mkdir -p ${OPENSHIFT_HOME}/etc
 mkdir -p ${RHCOS_DIR}
 
 # download openshift client and files
@@ -18,12 +20,12 @@ done
 gzip -d openshift*
 
 # untar openshift files
-cd ${HOME_DIR}
+cd ${OPENSHIFT_HOME}
 tar -xvf /tmp/openshift-install*.tar
 tar -xvf /tmp/openshift-client*.tar
 rm -rf /tmp/openshift*.tar
 
-echo "Downloading RHCOS..."
+echo "Downloading RHCOS images..."
 
 # download rhcos
 cd ${RHCOS_DIR}

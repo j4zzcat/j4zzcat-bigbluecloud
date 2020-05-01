@@ -6,7 +6,7 @@ INSTALL_DIR=${HOME_DIR}/install
 SECRET_KEY_FILE=${INSTALL_DIR}/${CLUSTER_NAME}-key.rsa
 PUBLIC_KEY_FILE=${INSTALL_DIR}/${CLUSTER_NAME}-key.rsa.pub
 
-HTTP_HOME=/var/www/html/openshift
+HTTP_HOME=/var/sinatra/www/openshift
 HTTP_INSTALL_DIR=${HTTP_HOME}/install
 
 mkdir -p ${HTTP_HOME}
