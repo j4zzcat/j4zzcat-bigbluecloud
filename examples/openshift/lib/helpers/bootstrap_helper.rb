@@ -74,7 +74,8 @@ class BootstrapServer
         # reboot
       EOT
 
-      return "#{probe}\n#{install_ipxe}\n#{prepare_grub}"
+      # return "#{probe}\n#{install_ipxe}\n#{prepare_grub}"
+      return "#{probe}\n#{install_ipxe}"
     end
 
     post '/register/:instance_id' do
