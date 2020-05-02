@@ -86,7 +86,7 @@ class BootstrapServer
       net_gateway         = params[ 'net_gateway' ]
       openshift_node_type = params[ 'openshift_node_type' ]
 
-      record = "#{instance_id} #{net_fqhn} #{net_ip} #{net_netmask} #{net_gateway} #{net_fqhn} #{openshift_node_type}"
+      record = "#{instance_id} #{net_fqhn} #{net_ip} #{net_netmask} #{net_gateway} #{openshift_node_type}"
       %x[ sed --in-place -e '/^#{instance_id} .*/d' #{HELPER_REGISTAR} ]
       %x[ echo "#{record}" >> #{HELPER_REGISTAR} ]
     end
@@ -112,7 +112,7 @@ class BootstrapServer
       EOT
 
       initrd = <<~EOT
-        #{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-installer-initramfs.x86_64.img
+        initrd #{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-installer-initramfs.x86_64.img
       EOT
 
       return <<~EOT
