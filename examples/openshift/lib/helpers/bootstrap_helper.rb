@@ -102,9 +102,7 @@ class BootstrapServer
         set net0/gateway #{net_gateway}
       EOT
 
-#      ip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn} nameserver=#{HELPER_DNS}
-
-
+      # ip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn} nameserver=#{HELPER_DNS}
       kernel = <<~EOT
         kernel #{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-installer-kernel-x86_64 \
           coreos.inst=yes \
@@ -112,7 +110,7 @@ class BootstrapServer
           coreos.inst.image_url=#{OPENSHIFT_WWW}/rhcos/metal.x86_64.raw.gz \
           coreos.inst.ignition_url=#{OPENSHIFT_WWW}/install/#{openshift_node_type}_config.ign \
           rd.neednet=1 \
-          ip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn} nameserver=#{HELPER_DNS}
+          ip=dhcp nameserver=#{HELPER_DNS}
       EOT
 
       initrd = <<~EOT
