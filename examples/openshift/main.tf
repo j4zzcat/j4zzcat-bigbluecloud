@@ -94,8 +94,8 @@ data "ibm_is_image" "ubuntu_1804" {
   name = "ibm-ubuntu-18-04-64"
 }
 
-resource "ibm_is_instance" "bootstrap" {
-  name           = "bootstrap"
+resource "ibm_is_instance" "installer" {
+  name           = "installer"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
@@ -114,7 +114,7 @@ resource "ibm_is_instance" "bootstrap" {
     bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
     bastion_host        = module.vpc.bastion_fip
-    host                = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address
+    host                = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address
     user                = "root"
     private_key         = file( local.vpc_key )
   }
@@ -141,7 +141,7 @@ resource "ibm_is_instance" "bootstrap" {
     command = <<-EOT
       cat ${path.module}/lib/scripts/config_openshift_installation.sh \
         | ssh -o StrictHostKeyChecking=accept-new \
-              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} \
+              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} \
               bash -s - ${var.cluster_name} ${var.domain_name}
     EOT
   }
@@ -221,7 +221,7 @@ resource "ibm_is_instance" "load_balancer" {
       backend openshift_api_server
         mode tcp
         balance source
-        server ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:6443 check
+        server ${ibm_is_instance.installer.name}.${var.cluster_name}.${var.domain_name}:6443 check
         server ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
         server ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
         server ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
@@ -235,7 +235,7 @@ resource "ibm_is_instance" "load_balancer" {
       backend machine_config_server
         mode tcp
         balance source
-        server ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:22623 check
+        server ${ibm_is_instance.installer.name}.${var.cluster_name}.${var.domain_name}:22623 check
         server ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
         server ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
         server ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
@@ -324,7 +324,7 @@ resource "ibm_is_instance" "nameserver" {
   provisioner "file" {
     destination = "/etc/dnsmasq.hosts"
     content = <<-EOT
-      ${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}          bt.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.installer.name}.${var.cluster_name}.${var.domain_name}          in.${var.cluster_name}.${var.domain_name}
       ${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}  lb.${var.cluster_name}.${var.domain_name}
       ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.nameserver.name}.${var.cluster_name}.${var.domain_name}        ns.${var.cluster_name}.${var.domain_name}
       ${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}      m1.${var.cluster_name}.${var.domain_name}
@@ -343,7 +343,7 @@ resource "ibm_is_instance" "nameserver" {
     command = <<-EOT
       cat ${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh \
         | ssh -o StrictHostKeyChecking=accept-new \
-              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} \
+              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} \
               bash -s - ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
     EOT
   }

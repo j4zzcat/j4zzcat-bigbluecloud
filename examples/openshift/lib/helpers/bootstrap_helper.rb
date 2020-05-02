@@ -87,7 +87,7 @@ class BootstrapServer
       openshift_node_type = params[ 'openshift_node_type' ]
 
       record = "#{instance_id} #{net_fqhn} #{net_ip} #{net_netmask} #{net_gateway} #{openshift_node_type}"
-      %x[ sed --in-place -e '/^#{instance_id} .*/d' #{HELPER_REGISTAR} ]
+      %x[ sed --in-place -e '/^#{instance_id} .*/d' #{HELPER_REGISTAR} ] if File.exist? HELPER_REGISTAR
       %x[ echo "#{record}" >> #{HELPER_REGISTAR} ]
     end
 
@@ -111,7 +111,7 @@ class BootstrapServer
           coreos.inst.image_url=#{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-metal.x86_64.raw.gz \
           coreos.inst.ignition_url=#{OPENSHIFT_WWW}/install/#{openshift_node_type}.ign \
           rd.neednet=1 console=tty0 console=ttyS0 \
-          ip=dhcp nameserver=#{HELPER_DNS}
+          iip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn}:ens3:none nameserver=#{HELPER_DNS}
       EOT
 
       initrd = <<~EOT
