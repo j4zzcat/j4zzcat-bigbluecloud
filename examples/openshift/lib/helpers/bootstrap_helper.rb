@@ -39,6 +39,9 @@ class BootstrapServer
       IPAddress::IPv4.new( net_address ).netmask
     end
 
+    # get network interface name
+    # ip addr | grep -B2 'inet 10.215.122.26' | head -n 1 | awk -F ':' '{print $2}' | sed 's/ //'
+
     get '/prepare/:openshift_node_type' do
       client_ip           = request.ip
       openshift_node_type = params[ 'openshift_node_type' ]
