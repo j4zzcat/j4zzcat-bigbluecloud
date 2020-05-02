@@ -132,6 +132,11 @@ resource "ibm_is_instance" "bootstrap" {
     destination = "/opt/openshift/etc/pull_secret.txt"
   }
 
+  provisioner "file" {
+    source      = "${path.module}/main.auto.tfvars"
+    destination = "/opt/openshift/etc/main.auto.tfvars"
+  }
+
   provisioner "local-exec" {
     command = <<-EOT
       cat ${path.module}/lib/scripts/config_openshift_installation.sh \
@@ -319,14 +324,14 @@ resource "ibm_is_instance" "nameserver" {
   provisioner "file" {
     destination = "/etc/dnsmasq.hosts"
     content = <<-EOT
-      ${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.nameserver.name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}          bt.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}  lb.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.nameserver.name}.${var.cluster_name}.${var.domain_name}        ns.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}      m1.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}      m2.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}      m3.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}      w1.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}      w2.${var.cluster_name}.${var.domain_name}
     EOT
   }
 

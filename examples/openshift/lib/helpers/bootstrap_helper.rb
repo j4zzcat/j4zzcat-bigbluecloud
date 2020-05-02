@@ -6,10 +6,11 @@ HELPER_PORT       = '7080'
 HELPER_DNS        = %x[ systemd-resolve --status | tail | awk -F ':' '/DNS Servers/{print $2}'].strip
 HELPER_DOMAIN     = %x[ systemd-resolve --status | tail | awk -F ':' '/DNS Domain/{print $2}'].strip
 HELPER_STATE_DIR  = '.'
-HELPER_REGISTAR   = "#{HELPER_STATE_DIR}/#{File.basename( $0, File.extname( $0 ) )}.registar"
+HELPER_REGISTAR   = "#{HELPER_STATE_DIR}/bootstrap_helper.registar"
 HELPER_PUBLIC_DIR = '/var/sinatra/www'
 
-OPENSHIFT_WWW     = "http://#{HELPER_IP}:#{HELPER_PORT}/openshift"
+OPENSHIFT_CLUSTER_NAME = %x[ cat /opt/openshift/etc/main.auto.tfvars | awk -F '"' '/cluster_name.*=/{print $2}' ].chomp
+OPENSHIFT_WWW          = "http://#{HELPER_IP}:#{HELPER_PORT}/openshift"
 
 class BootstrapServer
   def run
@@ -30,7 +31,7 @@ class BootstrapServer
   class WebApp < Sinatra::Base
     configure do
       enable :logging
-      set :public_folder, HELPER_PUBLIC_DIR
+      set    :public_folder, HELPER_PUBLIC_DIR
     end
 
     get '/netmask_of' do
@@ -44,6 +45,7 @@ class BootstrapServer
 
       probe = <<~EOT
         instance_id=$(cloud-init query instance_id)
+        net_hostname=$(hostname)
         net_address=$(ip addr | grep -e 'inet ' | grep #{client_ip} | awk '{print $2}')
         net_netmask=$(curl -X GET \
                         --data "net_address=${net_address}" \
@@ -51,6 +53,7 @@ class BootstrapServer
         net_ip=$(echo ${net_address} | awk -F '/' '{print $1}')
         net_gateway=$(ip route show default | awk '{print $3}')
         curl -X POST \
+          --data "net_hostname=${net_hostname}" \
           --data "net_ip=${net_ip}" \
           --data "net_netmask=${net_netmask}" \
           --data "net_gateway=${net_gateway}" \
@@ -76,22 +79,21 @@ class BootstrapServer
 
     post '/register/:instance_id' do
       instance_id         = params[ 'instance_id' ]
+      net_hostname        = params[ 'net_hostname' ]
+      net_fqhn            = "#{net_hostname}.#{OPENSHIFT_CLUSTER_NAME}.#{HELPER_DOMAIN}"
       net_ip              = params[ 'net_ip' ]
       net_netmask         = params[ 'net_netmask' ]
       net_gateway         = params[ 'net_gateway' ]
       openshift_node_type = params[ 'openshift_node_type' ]
 
-      # make sure client ip resolves to a name
-      net_fqhn = %x[ nslookup #{net_ip} | head -n 1 | awk -F '=' '{print $2}' ].strip[ 0..-2 ]
-
-      record = "#{instance_id} #{net_ip} #{net_netmask} #{net_gateway} #{net_fqhn} #{openshift_node_type}"
+      record = "#{instance_id} #{net_fqhn} #{net_ip} #{net_netmask} #{net_gateway} #{net_fqhn} #{openshift_node_type}"
       %x[ sed --in-place -e '/^#{instance_id} .*/d' #{HELPER_REGISTAR} ]
       %x[ echo "#{record}" >> #{HELPER_REGISTAR} ]
     end
 
     get '/boot/:instance_id' do
       instance_id = params[ 'instance_id' ]
-      pk, net_ip, net_netmask, net_gateway, net_fqhn, openshift_node_type = %x[ cat #{HELPER_REGISTAR} | grep -e '^#{instance_id}' ].chomp.split
+      pk, net_fqhn, net_ip, net_netmask, net_gateway, openshift_node_type = %x[ cat #{HELPER_REGISTAR} | grep -e '^#{instance_id}' ].chomp.split
 
       configure_ip = <<~EOT
         ifopen net0
