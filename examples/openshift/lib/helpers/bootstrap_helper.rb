@@ -105,6 +105,7 @@ class BootstrapServer
       # ip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn} nameserver=#{HELPER_DNS}
       kernel = <<~EOT
         kernel #{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-installer-kernel-x86_64 \
+          initrd=#{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-installer-initramfs.x86_64.img \
           coreos.inst=yes \
           coreos.inst.install_dev=sda \
           coreos.inst.image_url=#{OPENSHIFT_WWW}/rhcos/metal.x86_64.raw.gz \
