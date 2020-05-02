@@ -111,7 +111,8 @@ class BootstrapServer
           coreos.inst.install_dev=sda \
           coreos.inst.image_url=#{OPENSHIFT_WWW}/rhcos/metal.x86_64.raw.gz \
           coreos.inst.ignition_url=#{OPENSHIFT_WWW}/install/#{openshift_node_type}_config.ign \
-          ip=dhcp nameserver=#{HELPER_DNS}
+          rd.neednet=1 \
+          ip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn} nameserver=#{HELPER_DNS}
       EOT
 
       initrd = <<~EOT
