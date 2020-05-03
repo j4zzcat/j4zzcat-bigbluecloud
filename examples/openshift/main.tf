@@ -220,7 +220,6 @@ resource "ibm_is_instance" "load_balancer" {
         option httplog
         option dontlognull
         option http-server-close
-        option forwardfor except 127.0.0.0/8
         option redispatch
         retries 3
         timeout http-request 10s
@@ -241,10 +240,10 @@ resource "ibm_is_instance" "load_balancer" {
       backend openshift_api_server
         mode tcp
         balance source
-        server ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:6443 check
-        server ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
-        server ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
-        server ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
+        server bootstrap ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:6443
+        server master-1 ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:6443
+        server master-2 ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:6443
+        server master-3 ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:6443
 
       frontend machine_config_server
         mode tcp
@@ -255,10 +254,10 @@ resource "ibm_is_instance" "load_balancer" {
       backend machine_config_server
         mode tcp
         balance source
-        server ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:22623 check
-        server ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
-        server ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
-        server ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
+        server bootstrap ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:22623
+        server master-1 ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:22623
+        server master-2 ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:22623
+        server master-3 ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:22623
 
       frontend ingress_http
         mode tcp
@@ -268,8 +267,8 @@ resource "ibm_is_instance" "load_balancer" {
 
       backend ingress_http
         mode tcp
-        server ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}:80 check
-        server ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}:80 check
+        server worker-1 ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}:80
+        server worker-2 ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}:80
 
       frontend ingress_https
         mode tcp
@@ -279,8 +278,8 @@ resource "ibm_is_instance" "load_balancer" {
 
       backend ingress_https
         mode tcp
-        server ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}:443 check
-        server ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}:443 check
+        server worker-1 ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}:443
+        server worker-2 ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}:443
     EOT
   }
 }
