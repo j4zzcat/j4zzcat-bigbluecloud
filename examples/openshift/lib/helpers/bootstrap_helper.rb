@@ -42,6 +42,19 @@ class BootstrapServer
     # get network interface name
     # ip addr | grep -B2 'inet 10.215.122.26' | head -n 1 | awk -F ':' '{print $2}' | sed 's/ //'
 
+    get '/probe' do
+      probe = <<~EOT
+        echo instance_id=$(cloud-init query instance_id)
+        echo net_hostname=$(hostname)
+        echo net_address=$(ip addr | grep -e 'inet ' | grep #{client_ip} | awk '{print $2}')
+        echo net_netmask=$(curl -X GET --data "net_address=${net_address}" http://#{HELPER_IP}:#{HELPER_PORT}/netmask_of)
+        echo net_ip=$(echo ${net_address} | awk -F '/' '{print $1}')
+        echo net_gateway=$(ip route show default | awk '{print $3}')
+      EOT
+
+      return probe
+    end
+
     get '/prepare/:openshift_node_type' do
       client_ip           = request.ip
       openshift_node_type = params[ 'openshift_node_type' ]
