@@ -42,10 +42,8 @@ class BootstrapServer
     # get network interface name
     # ip addr | grep -B2 'inet 10.215.122.26' | head -n 1 | awk -F ':' '{print $2}' | sed 's/ //'
 
-    get '/prepare/:openshift_node_type' do
-      client_ip           = request.ip
-      openshift_node_type = params[ 'openshift_node_type' ]
-
+    get '/probe' do
+      client_ip = request.ip
       probe = <<~EOT
         instance_id=$(cloud-init query instance_id)
         blk_slash=$(lsblk | awk '/part \\\/$/{print $1}' | tr -cd '[:print:]' | tr -cd '[a-zA-Z]')
@@ -57,7 +55,8 @@ class BootstrapServer
         net_ip=$(echo ${net_address} | awk -F '/' '{print $1}')
         net_gateway=$(ip route show default | awk '{print $3}')
 
-        echo -e "Registering host instance_id=${instance_id} \
+        echo -e " \
+          \ninstance_id=${instance_id}     \
           \nblk_slash=${blk_slash}         \
           \nnet_interface=${net_interface} \
           \nnet_hostname=${net_hostname}   \
@@ -65,7 +64,15 @@ class BootstrapServer
           \nnet_netmask=${net_netmask}     \
           \nnet_ip=${net_ip}               \
           \nnet_gateway=${net_gateway} "
+      EOT
+    end
 
+    get '/prepare/:openshift_node_type' do
+      client_ip           = request.ip
+      openshift_node_type = params[ 'openshift_node_type' ]
+
+      register = <<~EOT
+        eval $(curl -X GET http://#{HELPER_IP}:#{HELPER_PORT}/probe)
         curl -X POST \
           --data "blk_slash=${blk_slash}" \
           --data "net_interface=${net_interface}" \
@@ -90,7 +97,7 @@ class BootstrapServer
         # reboot
       EOT
 
-      return "#{probe}\n#{install_ipxe}\n#{prepare_grub}"
+      return "#{register}\n#{install_ipxe}\n#{prepare_grub}"
     end
 
     post '/register/:instance_id' do
@@ -120,7 +127,6 @@ class BootstrapServer
         set net0/gateway #{net_gateway}
       EOT
 
-      # ip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn} nameserver=#{HELPER_DNS}
       kernel = <<~EOT
         kernel #{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-installer-kernel-x86_64 \
           initrd=#{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-installer-initramfs.x86_64.img \
