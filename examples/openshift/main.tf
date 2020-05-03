@@ -312,7 +312,8 @@ resource "ibm_is_instance" "nameserver" {
   provisioner "remote-exec" {
     scripts = [
       "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
-      "${path.module}/../../lib/scripts/ubuntu_18/install_dnsmasq.sh" ]
+      "${path.module}/../../lib/scripts/ubuntu_18/install_dnsmasq.sh",
+      "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh" ]
   }
 
   provisioner "file" {
@@ -356,7 +357,7 @@ resource "ibm_is_instance" "nameserver" {
   }
 
   provisioner "remote-exec" {
-    script = "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh"
+    inline = [ "systemctl restart dnsmasq" ]
   }
 
   provisioner "local-exec" {

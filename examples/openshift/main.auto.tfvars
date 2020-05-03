@@ -1,8 +1,8 @@
 # required
-cluster_name        = "rover"
+cluster_name        = "blackfish"
 domain_name         = "cloud"
-region_name         = "eu-de"
-zone_name           = "eu-de-1"
+region_name         = "eu-gb"
+zone_name           = "eu-gb-3"
 cluster_key         = "./keys/cluster-key.rsa"
 bastion_key         = "./keys/bastion-key.rsa"
 pull_secret         = "./keys/pull-secret.txt"
