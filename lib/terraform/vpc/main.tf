@@ -91,7 +91,7 @@ resource "ibm_is_security_group" "bastion_default" {
   count = var.bastion ? 1 : 0
 
   resource_group = ibm_is_vpc.vpc.resource_group
-  name = "${ibm_is_vpc.vpc.name}-bastion-default"
+  name = "bastion-default"
   vpc  = ibm_is_vpc.vpc.id
 }
 
@@ -146,7 +146,7 @@ resource "ibm_is_ssh_key" "bastion_key" {
 resource "ibm_is_instance" "bastion_server" {
   count = var.bastion ? 1 : 0
 
-  name           = "${ibm_is_vpc.vpc.name}-bastion"
+  name           = "bastion"
   image          = data.ibm_is_image.ubuntu_1804.id
   profile        = "bx2-2x8"
   vpc            = ibm_is_vpc.vpc.id

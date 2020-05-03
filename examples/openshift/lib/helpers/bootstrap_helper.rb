@@ -53,7 +53,7 @@ class BootstrapServer
         net_address=$(ip addr | grep -e 'inet ' | grep #{client_ip} | awk '{print $2}')
         net_netmask=$(curl -X GET --data "net_address=${net_address}" http://#{HELPER_IP}:#{HELPER_PORT}/calculate_netmask)
         net_ip=$(echo ${net_address} | awk -F '/' '{print $1}')
-        net_gateway=$(ip route show default | awk '{print $3}')
+        net_gateway=$(ip route show default | awk '{print $3}' | sort | uniq)
 
         echo -e " \
           \ninstance_id=${instance_id}     \
