@@ -72,7 +72,7 @@ class BootstrapServer
       openshift_node_type = params[ 'openshift_node_type' ]
 
       register = <<~EOT
-        eval $(curl -X GET http://#{HELPER_IP}:#{HELPER_PORT}/probe)
+        eval $(curl -sS -X GET http://#{HELPER_IP}:#{HELPER_PORT}/probe | bash)
         curl -X POST \
           --data "blk_slash=${blk_slash}" \
           --data "net_interface=${net_interface}" \
