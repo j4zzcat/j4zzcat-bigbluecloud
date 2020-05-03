@@ -34,7 +34,7 @@ class BootstrapServer
       set    :public_folder, HELPER_PUBLIC_DIR
     end
 
-    get '/netmask_of' do
+    get '/calculate_netmask' do
       net_address = params[ 'net_address' ]
       IPAddress::IPv4.new( net_address ).netmask
     end
@@ -43,11 +43,13 @@ class BootstrapServer
     # ip addr | grep -B2 'inet 10.215.122.26' | head -n 1 | awk -F ':' '{print $2}' | sed 's/ //'
 
     get '/probe' do
+      client_ip = request.ip
+
       probe = <<~EOT
         echo instance_id=$(cloud-init query instance_id)
         echo net_hostname=$(hostname)
         echo net_address=$(ip addr | grep -e 'inet ' | grep #{client_ip} | awk '{print $2}')
-        echo net_netmask=$(curl -X GET --data "net_address=${net_address}" http://#{HELPER_IP}:#{HELPER_PORT}/netmask_of)
+        echo net_netmask=$(curl -X GET --data "net_address=${net_address}" http://#{HELPER_IP}:#{HELPER_PORT}/calculate_netmask)
         echo net_ip=$(echo ${net_address} | awk -F '/' '{print $1}')
         echo net_gateway=$(ip route show default | awk '{print $3}')
       EOT
@@ -65,7 +67,7 @@ class BootstrapServer
         net_address=$(ip addr | grep -e 'inet ' | grep #{client_ip} | awk '{print $2}')
         net_netmask=$(curl -X GET \
                         --data "net_address=${net_address}" \
-                        http://#{HELPER_IP}:#{HELPER_PORT}/netmask_of)
+                        http://#{HELPER_IP}:#{HELPER_PORT}/calculate_netmask)
         net_ip=$(echo ${net_address} | awk -F '/' '{print $1}')
         net_gateway=$(ip route show default | awk '{print $3}')
         curl -X POST \
