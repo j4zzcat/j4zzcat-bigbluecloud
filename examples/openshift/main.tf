@@ -50,6 +50,22 @@ resource "ibm_is_ssh_key" "vpc_key" {
 # Provision the control plane
 #
 
+resource "ibm_is_instance" "bootstrap" {
+  name           = "bootstrap"
+  image          = data.ibm_is_image.ubuntu_1804.id
+  profile        = "bx2-2x8"
+  vpc            = module.vpc.id
+  zone           = module.vpc.vpc_subnet.zone
+  keys           = [ ibm_is_ssh_key.vpc_key.id ]
+  resource_group = data.ibm_resource_group.resource_group.id
+
+  primary_network_interface {
+    name            = "eth0"
+    subnet          = module.vpc.vpc_subnet.id
+    security_groups = [ module.vpc.security_groups[ "vpc_default" ] ]
+  }
+}
+
 resource "ibm_is_instance" "master" {
   count = 3
 
@@ -67,6 +83,10 @@ resource "ibm_is_instance" "master" {
     security_groups = [ module.vpc.security_groups[ "vpc_default" ] ]
   }
 }
+
+###
+# Provision some workers
+#
 
 resource "ibm_is_instance" "worker" {
   count = 2
@@ -221,7 +241,7 @@ resource "ibm_is_instance" "load_balancer" {
       backend openshift_api_server
         mode tcp
         balance source
-        server ${ibm_is_instance.installer.name}.${var.cluster_name}.${var.domain_name}:6443 check
+        server ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:6443 check
         server ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
         server ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
         server ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:6443 check
@@ -235,7 +255,7 @@ resource "ibm_is_instance" "load_balancer" {
       backend machine_config_server
         mode tcp
         balance source
-        server ${ibm_is_instance.installer.name}.${var.cluster_name}.${var.domain_name}:22623 check
+        server ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:22623 check
         server ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
         server ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
         server ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:22623 check
@@ -327,6 +347,7 @@ resource "ibm_is_instance" "nameserver" {
       ${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.installer.name}.${var.cluster_name}.${var.domain_name}          in.${var.cluster_name}.${var.domain_name}
       ${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}  lb.${var.cluster_name}.${var.domain_name}
       ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.nameserver.name}.${var.cluster_name}.${var.domain_name}        ns.${var.cluster_name}.${var.domain_name}
+      ${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}          bs.${var.cluster_name}.${var.domain_name}
       ${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}      m1.${var.cluster_name}.${var.domain_name}
       ${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}      m2.${var.cluster_name}.${var.domain_name}
       ${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}      m3.${var.cluster_name}.${var.domain_name}
