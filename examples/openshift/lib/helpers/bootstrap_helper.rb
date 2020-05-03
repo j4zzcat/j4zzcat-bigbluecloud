@@ -48,7 +48,7 @@ class BootstrapServer
 
       probe = <<~EOT
         instance_id=$(cloud-init query instance_id)
-        blk_slash=$(lsblk | awk '/part \/$/{print $1}' | tr -cd '[:print:]' | tr -cd '[a-zA-Z]')
+        blk_slash=$(lsblk | awk '/part \\\/$/{print $1}' | tr -cd '[:print:]' | tr -cd '[a-zA-Z]')
         net_interface=$(ip link show | grep -e '^[0-9][0-9]*:' | grep -iv loopback | awk '{print $2}' | sed -e 's/://')
 
         net_hostname=$(hostname)
