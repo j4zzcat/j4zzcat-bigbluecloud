@@ -46,12 +46,13 @@ class BootstrapServer
       client_ip = request.ip
 
       probe = <<~EOT
-        echo instance_id=$(cloud-init query instance_id)
-        echo net_hostname=$(hostname)
-        echo net_address=$(ip addr | grep -e 'inet ' | grep #{client_ip} | awk '{print $2}')
-        echo net_netmask=$(curl -X GET --data "net_address=${net_address}" http://#{HELPER_IP}:#{HELPER_PORT}/calculate_netmask)
-        echo net_ip=$(echo ${net_address} | awk -F '/' '{print $1}')
-        echo net_gateway=$(ip route show default | awk '{print $3}')
+        instance_id=$(cloud-init query instance_id)
+        net_hostname=$(hostname)
+        net_address=$(ip addr | grep -e 'inet ' | grep #{client_ip} | awk '{print $2}')
+        net_netmask=$(curl -X GET --data "net_address=${net_address}" http://#{HELPER_IP}:#{HELPER_PORT}/calculate_netmask)
+        net_ip=$(echo ${net_address} | awk -F '/' '{print $1}')
+        net_gateway=$(ip route show default | awk '{print $3}')
+        echo -e "instance_id=${instance_id}\nnet_hostname=${net_hostname}\nnet_address=${net_address}\nnet_netmask=${net_netmask}\nnet_ip=${net_ip}\nnet_gateway=${net_gateway}"
       EOT
 
       return probe
