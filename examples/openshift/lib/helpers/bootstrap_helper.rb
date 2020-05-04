@@ -47,15 +47,15 @@ class BootstrapServer
     get '/probe' do
       client_ip = request.ip
       probe = <<~EOT
-        instance_id=$(cloud-init query instance_id)
+        instance_id=$(cloud-init query instance_id 2>/dev/null || shuf -i 1-100000 -n 1)
         blk_slash=$(lsblk | awk '/part \\\/$/{print $1}' | tr -cd '[:print:]' | tr -cd '[a-zA-Z]')
-        net_interface=$(ip link show | grep -e '^[0-9][0-9]*:' | grep -iv loopback | awk '{print $2}' | sed -e 's/://')
+        net_interface=$(ip link show | grep -e '^[0-9][0-9]*:' | grep -iv loopback | head -n 1 | awk '{print $2}' | sed -e 's/://')
 
         net_hostname=$(hostname)
         net_address=$(ip addr | grep -e 'inet ' | grep #{client_ip} | awk '{print $2}')
         net_netmask=$(curl -X GET --data "net_address=${net_address}" http://#{HELPER_IP}:#{HELPER_PORT}/calculate_netmask)
         net_ip=$(echo ${net_address} | awk -F '/' '{print $1}')
-        net_gateway=$(ip route show default | awk '{print $3}' | sort | uniq)
+        net_gateway=$(ip route show default | awk '/default/{print $3}' | sort | uniq)
 
         echo -e " \
           \ninstance_id=${instance_id}     \
@@ -136,7 +136,7 @@ class BootstrapServer
           coreos.inst.install_dev=#{blk_slash} \
           coreos.inst.image_url=#{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-metal.x86_64.raw.gz \
           coreos.inst.ignition_url=#{OPENSHIFT_WWW}/install/#{openshift_node_type}.ign \
-          rd.neednet=1 console=tty0 console=ttyS0 \
+          rd.neednet=1 console=tty0 console=ttyS0 xen \
           ip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn}:#{net_interface}:none nameserver=#{HELPER_DNS}
       EOT
 

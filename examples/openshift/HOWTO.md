@@ -18,6 +18,54 @@ domain=peto
 ### Bastion
 ssh -o ProxyCommand="ssh -W %h:%p -i keys/bastion-key.rsa root@<bastion_fip>" -i keys/bastion-key.rsa root@<server_in_fortress>
 
+### IAAS Public gateway
+Enable firewall
+```
+ufw enable
+```
+
+Enable forwarding
+```
+echo 'net/ipv4/ip_forward=1' >> /etc/ufw/sysctl.conf
+```
+
+Firewall rules
+```
+touch /etc/rc.local
+chmod 755 /etc/rc.local
+cat <<EOT >>/etc/rc.local
+  # Assuming that private interface is 'eth0' and public is 'eth1'
+
+  # Default policy to drop all incoming packets.
+  iptables -P INPUT DROP
+  iptables -P FORWARD DROP
+
+  # Accept incoming packets from localhost and the LAN interface.
+  iptables -A INPUT -i lo -j ACCEPT
+  iptables -A INPUT -i eth0 -j ACCEPT
+
+  # Accept incoming packets from the WAN if the router initiated the connection.
+  iptables -A INPUT -i eth1 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+  # Forward LAN packets to the WAN.
+  iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT
+
+  # Forward WAN packets to the LAN if the LAN initiated the connection.
+  iptables -A FORWARD -i eth1 -o eth0 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+  # NAT traffic going out the WAN interface.
+  iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
+
+  exit 0
+EOT
+```
+
+On the client:
+```
+ip route del default
+ip route add default via <ip of public gateway> dev eth0
+```
+
 ### Terraform
 * Show available instances:  `terraform state list`
 * Show state of instance:
