@@ -166,13 +166,15 @@ resource "ibm_is_instance" "installer" {
     EOT
   }
 
+  provisioner "file" {
+    source = "${path.module}/lib/helpers/bootstrap_helper.rb"
+    destination = "/opt/openshift/bin/bootstrap_helper.rb"
+  }
+
   # provisioner "remote-exec" {
   #   inline = [ "/opt/openshift/bin/openshift-install --dir=/opt/openshift/install wait-for bootstrap-complete --log-level=info > ~/openshift.log &" ]
   # }
   #
-  # provisioner "remote-exec" {
-  #   script = "${path.module}/lib/helpers/bootstrap_helper.rb"
-  # }
 }
 
 resource "ibm_is_instance" "load_balancer" {
