@@ -31,6 +31,9 @@ module "vpc" {
   name                = local.vpc_name
   zone_name           = var.zone_name
   classic_access      = false
+  transit_gateway     = false
+  dns_service         = true
+  dns_domain_name     = "${var.cluster_name}.${var.domain_name}"
   bastion             = true
   bastion_key         = var.bastion_key
   resource_group_id   = data.ibm_resource_group.resource_group.id
@@ -142,6 +145,7 @@ resource "ibm_is_instance" "installer" {
   provisioner "remote-exec" {
     scripts = [
       "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
+      "${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/install_sinatra.sh",
       "${path.module}/lib/scripts/install_openshift_client.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh" ]
@@ -205,7 +209,8 @@ resource "ibm_is_instance" "load_balancer" {
   provisioner "remote-exec" {
     scripts = [
       "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
-      "${path.module}/../../lib/scripts/ubuntu_18/install_haproxy.sh" ]
+      "${path.module}/../../lib/scripts/ubuntu_18/install_haproxy.sh",
+      "${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh" ]
   }
 
   provisioner "file" {
@@ -294,97 +299,199 @@ resource "ibm_is_instance" "load_balancer" {
   }
 }
 
-resource "ibm_is_instance" "nameserver" {
-  name           = "nameserver"
-  image          = data.ibm_is_image.ubuntu_1804.id
-  profile        = "bx2-2x8"
-  vpc            = module.vpc.id
-  zone           = module.vpc.vpc_subnet.zone
-  keys           = [ ibm_is_ssh_key.vpc_key.id ]
-  resource_group = data.ibm_resource_group.resource_group.id
-
-  primary_network_interface {
-    name            = "eth0"
-    subnet          = module.vpc.vpc_subnet.id
-    security_groups = [ module.vpc.security_groups[ "vpc_default" ] ]
-  }
-
-  connection {
-    type                = "ssh"
-    bastion_user        = "root"
-    bastion_private_key = file( var.bastion_key )
-    bastion_host        = module.vpc.bastion_fip
-    host                = ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address
-    user                = "root"
-    private_key         = file( local.vpc_key )
-  }
-
-  provisioner "remote-exec" {
-    scripts = [
-      "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
-      "${path.module}/../../lib/scripts/ubuntu_18/install_dnsmasq.sh",
-      "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh" ]
-  }
-
-  provisioner "file" {
-    destination = "/etc/dnsmasq.conf"
-    content = <<-EOT
-      port=53
-      no-hosts
-      addn-hosts=/etc/dnsmasq.hosts
-      log-queries
-      domain-needed
-      bogus-priv
-      expand-hosts
-      local=/${var.cluster_name}.${var.domain_name}/
-      domain=${var.cluster_name}.${var.domain_name}
-
-      host-record=api.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=api-int.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=*.apps.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=etcd-0.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=etcd-1.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address}
-      host-record=etcd-2.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address}
-      srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-0.${var.cluster_name}.${var.domain_name},2380,0,10
-      srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-1.${var.cluster_name}.${var.domain_name},2380,0,10
-      srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-2.${var.cluster_name}.${var.domain_name},2380,0,10
-    EOT
-  }
-
-  provisioner "file" {
-    destination = "/etc/dnsmasq.hosts"
-    content = <<-EOT
-      ${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.installer.name}.${var.cluster_name}.${var.domain_name}          in.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}  lb.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.nameserver.name}.${var.cluster_name}.${var.domain_name}        ns.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}          bs.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}      m1.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}      m2.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}      m3.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}      w1.${var.cluster_name}.${var.domain_name}
-      ${ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}      w2.${var.cluster_name}.${var.domain_name}
-    EOT
-  }
-
-  provisioner "remote-exec" {
-    inline = [ "systemctl restart dnsmasq" ]
-  }
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      cat ${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh \
-        | ssh -o StrictHostKeyChecking=accept-new \
-              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} \
-              bash -s - ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
-    EOT
-  }
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      cat ${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh \
-        | ssh -o StrictHostKeyChecking=accept-new \
-              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} \
-              bash -s - ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
-    EOT
+locals {
+  a_records = {
+    "${ibm_is_instance.installer.name}"               = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.load_balancer.name}"           = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.bootstrap.name}"               = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.master[ 0 ].name}"             = ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.master[ 1 ].name}"             = ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.master[ 2 ].name}"             = ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.worker[ 0 ].name}"             = ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.worker[ 1 ].name}"             = ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "api.${var.cluster_name}.${var.domain_name}"     = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "api-int.${var.cluster_name}.${var.domain_name}" = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "*.apps.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "etcd-0.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "etcd-1.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "etcd-2.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address
   }
 }
+
+resource "ibm_dns_resource_record" "a_records" {
+  count = length( local.a_records )
+
+  instance_id = module.vpc.dns_service_instance_id
+  zone_id     = module.vpc.dns_service_zone_id
+  type        = "A"
+  name        = keys( local.a_records )[ count.index ]
+  rdata       = values( local.a_records )[ count.index ]
+  ttl         = 3600
+}
+
+resource "ibm_dns_resource_record" "srv_records" {
+  count = 3
+
+  instance_id = module.vpc.dns_service_instance_id
+  zone_id     = module.vpc.dns_service_zone_id
+  type        = "SRV"
+  name        = "etcd-${count.index}"
+  rdata       = "${var.cluster_name}.${var.domain_name}"
+  priority    = 0
+  weight      = 10
+  port        = 2380
+  service     = "_etcd-server-ssl"
+  protocol    = "tcp"
+  ttl         = 43200
+}
+
+
+
+# resource "ibm_dns_resource_record" "test-pdns-resource-record-aaaa" {
+#   instance_id = ibm_resource_instance.test-pdns-instance.guid
+#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
+#   type        = "AAAA"
+#   name        = "testAAAA"
+#   rdata       = "2001:0db8:0012:0001:3c5e:7354:0000:5db5"
+# }
+#
+# resource "ibm_dns_resource_record" "test-pdns-resource-record-cname" {
+#   instance_id = ibm_resource_instance.test-pdns-instance.guid
+#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
+#   type        = "CNAME"
+#   name        = "testCNAME"
+#   rdata       = "test.com"
+# }
+#
+# resource "ibm_dns_resource_record" "test-pdns-resource-record-ptr" {
+#   instance_id = ibm_resource_instance.test-pdns-instance.guid
+#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
+#   type        = "PTR"
+#   name        = "1.2.3.4"
+#   rdata       = "testA.test.com"
+# }
+#
+# resource "ibm_dns_resource_record" "test-pdns-resource-record-mx" {
+#   instance_id = ibm_resource_instance.test-pdns-instance.guid
+#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
+#   type        = "MX"
+#   name        = "testMX"
+#   rdata       = "mailserver.test.com"
+#   preference  = 10
+# }
+#
+# resource "ibm_dns_resource_record" "test-pdns-resource-record-srv" {
+#   instance_id = ibm_resource_instance.test-pdns-instance.guid
+#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
+#   type        = "SRV"
+#   name        = "testSRV"
+#   rdata       = "tester.com"
+#   priority    = 100
+#   weight      = 100
+#   port        = 8000
+#   service     = "_sip"
+#   protocol    = "udp"
+# }
+#
+# resource "ibm_dns_resource_record" "test-pdns-resource-record-txt" {
+#   instance_id = ibm_resource_instance.test-pdns-instance.guid
+#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
+#   type        = "TXT"
+#   name        = "testTXT"
+#   rdata       = "textinformation"
+#   ttl         = 900
+
+# resource "ibm_is_instance" "nameserver" {
+#   name           = "nameserver"
+#   image          = data.ibm_is_image.ubuntu_1804.id
+#   profile        = "bx2-2x8"
+#   vpc            = module.vpc.id
+#   zone           = module.vpc.vpc_subnet.zone
+#   keys           = [ ibm_is_ssh_key.vpc_key.id ]
+#   resource_group = data.ibm_resource_group.resource_group.id
+#
+#   primary_network_interface {
+#     name            = "eth0"
+#     subnet          = module.vpc.vpc_subnet.id
+#     security_groups = [ module.vpc.security_groups[ "vpc_default" ] ]
+#   }
+#
+#   connection {
+#     type                = "ssh"
+#     bastion_user        = "root"
+#     bastion_private_key = file( var.bastion_key )
+#     bastion_host        = module.vpc.bastion_fip
+#     host                = ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address
+#     user                = "root"
+#     private_key         = file( local.vpc_key )
+#   }
+#
+#   provisioner "remote-exec" {
+#     scripts = [
+#       "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
+#       "${path.module}/../../lib/scripts/ubuntu_18/install_dnsmasq.sh",
+#       "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh" ]
+#   }
+#
+#   provisioner "file" {
+#     destination = "/etc/dnsmasq.conf"
+#     content = <<-EOT
+#       port=53
+#       no-hosts
+#       addn-hosts=/etc/dnsmasq.hosts
+#       log-queries
+#       domain-needed
+#       bogus-priv
+#       expand-hosts
+#       local=/${var.cluster_name}.${var.domain_name}/
+#       domain=${var.cluster_name}.${var.domain_name}
+#
+#       host-record=api.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
+#       host-record=api-int.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
+#       host-record=*.apps.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
+#       host-record=etcd-0.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address}
+#       host-record=etcd-1.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address}
+#       host-record=etcd-2.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address}
+#       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-0.${var.cluster_name}.${var.domain_name},2380,0,10
+#       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-1.${var.cluster_name}.${var.domain_name},2380,0,10
+#       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-2.${var.cluster_name}.${var.domain_name},2380,0,10
+#     EOT
+#   }
+#
+#   provisioner "file" {
+#     destination = "/etc/dnsmasq.hosts"
+#     content = <<-EOT
+#       ${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.installer.name}.${var.cluster_name}.${var.domain_name}          in.${var.cluster_name}.${var.domain_name}
+#       ${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}  lb.${var.cluster_name}.${var.domain_name}
+#       ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.nameserver.name}.${var.cluster_name}.${var.domain_name}        ns.${var.cluster_name}.${var.domain_name}
+#       ${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}          bs.${var.cluster_name}.${var.domain_name}
+#       ${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}      m1.${var.cluster_name}.${var.domain_name}
+#       ${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}      m2.${var.cluster_name}.${var.domain_name}
+#       ${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}      m3.${var.cluster_name}.${var.domain_name}
+#       ${ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}      w1.${var.cluster_name}.${var.domain_name}
+#       ${ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}      w2.${var.cluster_name}.${var.domain_name}
+#     EOT
+#   }
+#
+#   provisioner "remote-exec" {
+#     inline = [ "systemctl restart dnsmasq" ]
+#   }
+#
+#   provisioner "local-exec" {
+#     command = <<-EOT
+#       cat ${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh \
+#         | ssh -o StrictHostKeyChecking=accept-new \
+#               -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} \
+#               bash -s - ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
+#     EOT
+#   }
+#
+#   provisioner "local-exec" {
+#     command = <<-EOT
+#       cat ${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh \
+#         | ssh -o StrictHostKeyChecking=accept-new \
+#               -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} \
+#               bash -s - ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${var.domain_name}
+#     EOT
+#   }
+# }

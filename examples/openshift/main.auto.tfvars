@@ -1,6 +1,6 @@
 # required
 cluster_name        = "blackfish"
-domain_name         = "cloud"
+domain_name         = "sea.cloud"
 region_name         = "us-south"
 zone_name           = "us-south-2"
 cluster_key         = "./keys/cluster-key.rsa"

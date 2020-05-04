@@ -176,6 +176,7 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
   provisioner "remote-exec" {
     scripts = [
       "${path.module}/../../scripts/ubuntu_18/upgrade_os.sh",
+      "${path.module}/../../scripts/ubuntu_18/config_resolve.sh",
       "${path.module}/../../scripts/ubuntu_18/do_reboot.sh" ]
   }
 
@@ -186,6 +187,36 @@ resource "ibm_is_floating_ip" "bastion_server_fip" {
   provisioner "remote-exec" {
     inline = [ "echo 'Dummy!'" ]
   }
+}
+
+####
+# DNS Service
+#
+
+resource "ibm_resource_instance" "dns_service" {
+  count = var.dns_service ? 1 : 0
+
+  name              = "${var.name}-dns-service"
+  service           = "dns-svcs"
+  plan              = "standard-dns"
+  location          = "global"
+  resource_group_id = var.resource_group_id
+}
+
+resource "ibm_dns_zone" "vpc" {
+  count = var.dns_service ? 1 : 0
+
+  name        = var.dns_domain_name
+  instance_id = ibm_resource_instance.dns_service[ 0 ].guid
+}
+
+resource "ibm_dns_permitted_network" "vpc" {
+  count = var.dns_service ? 1 : 0
+
+  instance_id = ibm_resource_instance.dns_service[ 0 ].guid
+  zone_id     = ibm_dns_zone.vpc[ 0 ].zone_id
+  vpc_crn     = ibm_is_vpc.vpc.crn
+  type        = "vpc"
 }
 
 # resource "ibm_is_network_acl" "l1v_conn_with_l1i" {

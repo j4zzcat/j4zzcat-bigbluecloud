@@ -11,6 +11,9 @@ HELPER_STATE_DIR  = '~'
 HELPER_REGISTAR   = "#{HELPER_STATE_DIR}/bootstrap_helper.registar"
 HELPER_PUBLIC_DIR = '/var/sinatra/www'
 
+DNS_SERVICE_NS1   = "161.26.0.7"
+DNS_SERVICE_NS2   = "161.26.0.8"
+
 OPENSHIFT_CLUSTER_NAME = %x[ cat /opt/openshift/etc/main.auto.tfvars | awk -F '"' '/cluster_name.*=/{print $2}' ].chomp
 OPENSHIFT_WWW          = "http://#{HELPER_IP}:#{HELPER_PORT}/openshift"
 
@@ -137,7 +140,7 @@ class BootstrapServer
           coreos.inst.image_url=#{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-metal.x86_64.raw.gz \
           coreos.inst.ignition_url=#{OPENSHIFT_WWW}/install/#{openshift_node_type}.ign \
           rd.neednet=1 console=tty0 console=ttyS0 xen \
-          ip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn}:#{net_interface}:none nameserver=#{HELPER_DNS}
+          ip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn}:#{net_interface}:none nameserver=#{DNS_SERVICE_NS1}
       EOT
 
       initrd = <<~EOT
