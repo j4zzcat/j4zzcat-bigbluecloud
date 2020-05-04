@@ -30,7 +30,7 @@ module "vpc" {
 
   name                = local.vpc_name
   zone_name           = var.zone_name
-  classic_access      = true
+  classic_access      = false
   bastion             = true
   bastion_key         = var.bastion_key
   resource_group_id   = data.ibm_resource_group.resource_group.id
@@ -165,6 +165,14 @@ resource "ibm_is_instance" "installer" {
               bash -s - ${var.cluster_name} ${var.domain_name}
     EOT
   }
+
+  # provisioner "remote-exec" {
+  #   inline = [ "/opt/openshift/bin/openshift-install --dir=/opt/openshift/install wait-for bootstrap-complete --log-level=info > ~/openshift.log &" ]
+  # }
+  #
+  # provisioner "remote-exec" {
+  #   script = "${path.module}/lib/helpers/bootstrap_helper.rb"
+  # }
 }
 
 resource "ibm_is_instance" "load_balancer" {

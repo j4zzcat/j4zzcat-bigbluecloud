@@ -49,15 +49,15 @@ ssh-keygen -t rsa -b 4096 -N "" -f ./keys/cluster-key.rsa
 
 Edit the file `./main.auto.tfvars` and set the name of the openshift cluster, domain, location, profile of the infra/masters/workers machine, the resource group etc.
 * Note that the specified resource group should be an existing resource group
-* Note that the only supported regions are: **eu-gb**, **us-south**, **us-east**
+* Note that the only supported regions are: **eu-gb**, **eu-de**, **us-south**, **us-east**
 
 ```
 # file main.auto.tfvars
 cluster_name        = "blinki"
-domain_name         = "local"
+domain_name         = "cloud"
 region_name         = "eu-gb"
 zone_name           = "eu-gb-1"
-resource_group_name = "blackforest"
+resource_group_name = "<existing resource group name>"
 bastion_key         = "./keys/bastion-key.rsa"
 cluster_key         = "./keys/cluster-key.rsa"
 pull_secret         = "./key/pull-secret.txt"

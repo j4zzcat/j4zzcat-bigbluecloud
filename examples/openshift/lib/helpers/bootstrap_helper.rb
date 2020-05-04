@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'sinatra/base'
 require 'ipaddress'
 
@@ -5,7 +7,7 @@ HELPER_IP         = IPAddress::IPv4.new( %x[ hostname -I ].strip )
 HELPER_PORT       = '7080'
 HELPER_DNS        = %x[ systemd-resolve --status | tail | awk -F ':' '/DNS Servers/{print $2}'].strip
 HELPER_DOMAIN     = %x[ systemd-resolve --status | tail | awk -F ':' '/DNS Domain/{print $2}'].strip
-HELPER_STATE_DIR  = '.'
+HELPER_STATE_DIR  = '~'
 HELPER_REGISTAR   = "#{HELPER_STATE_DIR}/bootstrap_helper.registar"
 HELPER_PUBLIC_DIR = '/var/sinatra/www'
 
@@ -154,4 +156,4 @@ class BootstrapServer
   end
 end
 
-BootstrapServer.new.run
+fork { BootstrapServer.new.run }
