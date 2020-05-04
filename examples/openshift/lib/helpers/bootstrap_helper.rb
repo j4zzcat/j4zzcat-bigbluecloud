@@ -156,4 +156,4 @@ class BootstrapServer
   end
 end
 
-fork { BootstrapServer.new.run }
+BootstrapServer.new.run
