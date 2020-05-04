@@ -53,8 +53,6 @@ resource "ibm_is_security_group_rule" "vpc_default_sgri_self" {
 }
 
 resource "ibm_is_security_group_rule" "vpc_default_sgri_iaas" {
-  count = var.classic_access ? 1 : 0
-
   group      = ibm_is_security_group.vpc_default.id
   direction  = "inbound"
   remote     = "10.0.0.0/8"

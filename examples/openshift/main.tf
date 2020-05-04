@@ -242,7 +242,7 @@ resource "ibm_is_instance" "load_balancer" {
       frontend openshift_api_server
         mode tcp
         option tcplog
-        bind api.${var.cluster_name}.${var.domain_name}:6443
+        bind *:6443
         default_backend openshift_api_server
 
       backend openshift_api_server
