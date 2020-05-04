@@ -17,3 +17,5 @@ sed --in-place \
   /etc/netplan/50-cloud-init.yaml
 
 netplan apply
+
+systemctl restart systemd-resolved
