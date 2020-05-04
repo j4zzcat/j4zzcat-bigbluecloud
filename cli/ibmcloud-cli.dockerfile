@@ -9,7 +9,7 @@ LABEL image.name="ibmcloud/cli" \
 
 ENV ARCH                       amd64
 ENV TERRAFORM_VERSION          0.12.24
-ENV IBMCLOUD_TERRAFORM_VERSION 1.4.0
+ENV IBMCLOUD_TERRAFORM_VERSION 1.5.1
 
 RUN apt update \
       && apt install -y curl git vim mc iputils-ping netcat python3 python3-pip ruby2.5-dev \
