@@ -47,6 +47,9 @@ cat <<EOT >>/etc/rc.local
   # Accept incoming packets from the WAN if the router initiated the connection.
   iptables -A INPUT -i eth1 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
+  # Forward 10.0.0.0/8 network back to LAN
+  iptables -A FORWARD -i eth0 -d 10.0.0.0/8 -o eth0 -j ACCEPT
+
   # Forward LAN packets to the WAN.
   iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT
 
