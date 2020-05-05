@@ -4,33 +4,41 @@ require 'tempfile'
 require 'open3'
 require 'docopt'
 
-class CommandLine
-  @usage = <<~DOC
-    NAME:
-      mule - Create a simple openshift v4.3 cluster on IBM Cloud
+ENV[ 'IBMCLOUD_COLOR' ] = 'false'
+HOME_DIR = File.expand_path( "#{File.dirname __FILE__}/.." )
 
-    USAGE:
-      mule new cluster --name=<name> --location=<loc> --resource-group=<rg>
-      mule new node    --name=<name> --type=<type>
-      mule rm  node    --name=<name> [--force]
+### --- Private ---
 
-    OPTIONS:
-      --name=<name>           The name of the newly created resource
-      --location=<loc>        The location of the resource, given as region:zone
-      --resource-group=<rg>   The name of the resource group to put the resources in
-      --type=<type>           The type of the node, one of (master|worker)
-    DOC
 
-  def process()
-    begin
-      options = Docopt::docopt( usage )
-    rescue Docopt::Exit => e
-      puts usage
-      exit 1
-    end
-  end
+
+### --- Main ---
+usage = <<~DOC
+  NAME:
+    mule - Create a simple openshift v4.3 cluster on IBM Cloud
+
+  USAGE:
+    mule provision (vpc|installer|lb|openshift)
+    mule add worker --name=<name>
+
+  OPTIONS:
+    --name=<name>  The name of the newly created resource
+DOC
+
+begin
+  options = Docopt::docopt( usage )
+rescue Docopt::Exit => e
+  puts usage
+  exit 1
 end
 
+if options[ 'provision' ]
+  if options[ 'openshift' ]
+
+
+
+
+  end
+end
 
 
 

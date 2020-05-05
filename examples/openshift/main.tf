@@ -147,8 +147,7 @@ resource "ibm_is_instance" "installer" {
       "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh",
       "${path.module}/../../lib/scripts/ubuntu_18/install_sinatra.sh",
-      "${path.module}/lib/scripts/install_openshift_client.sh",
-      "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh" ]
+      "${path.module}/lib/scripts/install_openshift_client.sh" ]
   }
 
   provisioner "file" {
@@ -182,6 +181,11 @@ resource "ibm_is_instance" "installer" {
       ruby /opt/openshift/bin/bootstrap_helper.rb
     EOT
   }
+
+  provisioner "remote-exec" {
+    script = "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh"
+  }
+
 
   # provisioner "remote-exec" {
   #   inline = [ "/opt/openshift/bin/openshift-install --dir=/opt/openshift/install wait-for bootstrap-complete --log-level=info > ~/openshift.log &" ]
@@ -367,46 +371,46 @@ resource "ibm_dns_resource_record" "srv_records" {
   ttl         = 43200
 }
 
-resource "null_resource" "bootstrap_reboot_to_rhcos" {
-  provisioner "remote-exec" {
-    connection {
-      type                = "ssh"
-      bastion_user        = "root"
-      bastion_private_key = file( var.bastion_key )
-      bastion_host        = module.vpc.bastion_fip
-      host                = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address
-      user                = "root"
-      private_key         = file( local.vpc_key )
-    }
-
-    inline = [
-      "curl http://${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address}:7080/prepare/bootstrap | bash",
-      "reboot"
-    ]
-  }
-}
-
-
-resource "null_resource" "master_reboot_to_rhcos" {
-  count = 3
-
-  provisioner "remote-exec" {
-    connection {
-      type                = "ssh"
-      bastion_user        = "root"
-      bastion_private_key = file( var.bastion_key )
-      bastion_host        = module.vpc.bastion_fip
-      host                = ibm_is_instance.master[ count.index ].primary_network_interface[ 0 ].primary_ipv4_address
-      user                = "root"
-      private_key         = file( local.vpc_key )
-    }
-
-    inline = [
-      "curl http://${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address}:7080/prepare/master | bash",
-      "reboot"
-    ]
-  }
-}
+# resource "null_resource" "bootstrap_reboot_to_rhcos" {
+#   provisioner "remote-exec" {
+#     connection {
+#       type                = "ssh"
+#       bastion_user        = "root"
+#       bastion_private_key = file( var.bastion_key )
+#       bastion_host        = module.vpc.bastion_fip
+#       host                = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address
+#       user                = "root"
+#       private_key         = file( local.vpc_key )
+#     }
+#
+#     inline = [
+#       "curl http://${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address}:7080/prepare/bootstrap | bash",
+#       "reboot"
+#     ]
+#   }
+# }
+#
+#
+# resource "null_resource" "master_reboot_to_rhcos" {
+#   count = 3
+#
+#   provisioner "remote-exec" {
+#     connection {
+#       type                = "ssh"
+#       bastion_user        = "root"
+#       bastion_private_key = file( var.bastion_key )
+#       bastion_host        = module.vpc.bastion_fip
+#       host                = ibm_is_instance.master[ count.index ].primary_network_interface[ 0 ].primary_ipv4_address
+#       user                = "root"
+#       private_key         = file( local.vpc_key )
+#     }
+#
+#     inline = [
+#       "curl http://${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address}:7080/prepare/master | bash",
+#       "reboot"
+#     ]
+#   }
+# }
 
 
 # resource "ibm_is_instance" "nameserver" {
