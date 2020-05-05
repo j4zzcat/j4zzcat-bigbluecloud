@@ -33,7 +33,7 @@ module "vpc" {
   classic_access      = false
   transit_gateway     = false
   dns_service         = true
-  dns_domain_name     = "${var.cluster_name}.${var.domain_name}"
+  dns_domain_name     = var.domain_name
   bastion             = true
   bastion_key         = var.bastion_key
   resource_group_id   = data.ibm_resource_group.resource_group.id
@@ -300,50 +300,50 @@ resource "ibm_is_instance" "load_balancer" {
 }
 
 locals {
-  a_records = {
-    "${ibm_is_instance.installer.name}"               = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.load_balancer.name}"           = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.bootstrap.name}"               = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.master[ 0 ].name}"             = ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.master[ 1 ].name}"             = ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.master[ 2 ].name}"             = ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.worker[ 0 ].name}"             = ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.worker[ 1 ].name}"             = ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "api.${var.cluster_name}.${var.domain_name}"     = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
-    "api-int.${var.cluster_name}.${var.domain_name}" = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
-    "*.apps.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
-    "etcd-0.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "etcd-1.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "etcd-2.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address
+  hostname_records = {
+    "${ibm_is_instance.installer.name}.${var.cluster_name}"     = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.load_balancer.name}.${var.cluster_name}" = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.bootstrap.name}.${var.cluster_name}"     = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}"   = ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}"   = ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}"   = ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}"   = ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    "${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}"   = ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    # "api.${var.cluster_name}.${var.domain_name}"     = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    # "api-int.${var.cluster_name}.${var.domain_name}" = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    # "*.apps.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    # "etcd-0.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    # "etcd-1.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
+    # "etcd-2.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address
   }
 }
 
-resource "ibm_dns_resource_record" "a_records" {
-  count = length( local.a_records )
+resource "ibm_dns_resource_record" "hostname_records" {
+  count = length( local.hostname_records )
 
   instance_id = module.vpc.dns_service_instance_id
   zone_id     = module.vpc.dns_service_zone_id
   type        = "A"
-  name        = keys( local.a_records )[ count.index ]
-  rdata       = values( local.a_records )[ count.index ]
+  name        = keys( local.hostname_records )[ count.index ]
+  rdata       = values( local.hostname_records )[ count.index ]
   ttl         = 3600
 }
 
-resource "ibm_dns_resource_record" "srv_records" {
-  count = 3
-
-  instance_id = module.vpc.dns_service_instance_id
-  zone_id     = module.vpc.dns_service_zone_id
-  type        = "SRV"
-  name        = "etcd-${count.index}"
-  rdata       = "${var.cluster_name}.${var.domain_name}"
-  priority    = 0
-  weight      = 10
-  port        = 2380
-  service     = "_etcd-server-ssl"
-  protocol    = "tcp"
-  ttl         = 43200
-}
+# resource "ibm_dns_resource_record" "srv_records" {
+#   count = 3
+#
+#   instance_id = module.vpc.dns_service_instance_id
+#   zone_id     = module.vpc.dns_service_zone_id
+#   type        = "SRV"
+#   name        = "etcd-${count.index}"
+#   rdata       = "${var.cluster_name}.${var.domain_name}"
+#   priority    = 0
+#   weight      = 10
+#   port        = 2380
+#   service     = "_etcd-server-ssl"
+#   protocol    = "tcp"
+#   ttl         = 43200
+# }
 
 
 
