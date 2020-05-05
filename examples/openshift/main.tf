@@ -175,6 +175,14 @@ resource "ibm_is_instance" "installer" {
     destination = "/opt/openshift/bin/bootstrap_helper.rb"
   }
 
+  provisioner "file" {
+    destination = "/etc/rc.local"
+    content = <<-EOT
+      # start boot helper
+      ruby /opt/openshift/bin/bootstrap_helper.rb
+    EOT
+  }
+
   # provisioner "remote-exec" {
   #   inline = [ "/opt/openshift/bin/openshift-install --dir=/opt/openshift/install wait-for bootstrap-complete --log-level=info > ~/openshift.log &" ]
   # }
@@ -308,13 +316,16 @@ locals {
     "${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}"   = ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
     "${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}"   = ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address,
     "${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}"   = ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}"   = ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    # "api.${var.cluster_name}.${var.domain_name}"     = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
-    # "api-int.${var.cluster_name}.${var.domain_name}" = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
-    # "*.apps.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
-    # "etcd-0.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    # "etcd-1.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    # "etcd-2.${var.cluster_name}.${var.domain_name}"  = ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address
+    "${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}"   = ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address
+  }
+
+  alias_records = {
+    "api.${var.cluster_name}"     = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}",
+    "api-int.${var.cluster_name}" = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}",
+    "*.apps.${var.cluster_name}"  = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}",
+    "etcd-0.${var.cluster_name}"  = "${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}",
+    "etcd-1.${var.cluster_name}"  = "${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}",
+    "etcd-2.${var.cluster_name}"  = "${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}"
   }
 }
 
@@ -329,77 +340,74 @@ resource "ibm_dns_resource_record" "hostname_records" {
   ttl         = 3600
 }
 
-# resource "ibm_dns_resource_record" "srv_records" {
-#   count = 3
-#
-#   instance_id = module.vpc.dns_service_instance_id
-#   zone_id     = module.vpc.dns_service_zone_id
-#   type        = "SRV"
-#   name        = "etcd-${count.index}"
-#   rdata       = "${var.cluster_name}.${var.domain_name}"
-#   priority    = 0
-#   weight      = 10
-#   port        = 2380
-#   service     = "_etcd-server-ssl"
-#   protocol    = "tcp"
-#   ttl         = 43200
-# }
+resource "ibm_dns_resource_record" "alias_records" {
+  count = length( local.alias_records )
+
+  instance_id = module.vpc.dns_service_instance_id
+  zone_id     = module.vpc.dns_service_zone_id
+  type        = "CNAME"
+  name        = keys( local.alias_records )[ count.index ]
+  rdata       = values( local.alias_records )[ count.index ]
+  ttl         = 3600
+}
+
+resource "ibm_dns_resource_record" "srv_records" {
+  count = 3
+
+  instance_id = module.vpc.dns_service_instance_id
+  zone_id     = module.vpc.dns_service_zone_id
+  type        = "SRV"
+  name        = "${var.cluster_name}.${var.domain_name}"
+  rdata       = "etcd-${count.index}.${var.cluster_name}.${var.domain_name}"
+  priority    = 0
+  weight      = 10
+  port        = 2380
+  service     = "_etcd-server-ssl"
+  protocol    = "tcp"
+  ttl         = 43200
+}
+
+resource "null_resource" "bootstrap_reboot_to_rhcos" {
+  provisioner "remote-exec" {
+    connection {
+      type                = "ssh"
+      bastion_user        = "root"
+      bastion_private_key = file( var.bastion_key )
+      bastion_host        = module.vpc.bastion_fip
+      host                = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address
+      user                = "root"
+      private_key         = file( local.vpc_key )
+    }
+
+    inline = [
+      "curl http://${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address}:7080/prepare/bootstrap | bash",
+      "reboot"
+    ]
+  }
+}
 
 
+resource "null_resource" "master_reboot_to_rhcos" {
+  count = 3
 
-# resource "ibm_dns_resource_record" "test-pdns-resource-record-aaaa" {
-#   instance_id = ibm_resource_instance.test-pdns-instance.guid
-#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
-#   type        = "AAAA"
-#   name        = "testAAAA"
-#   rdata       = "2001:0db8:0012:0001:3c5e:7354:0000:5db5"
-# }
-#
-# resource "ibm_dns_resource_record" "test-pdns-resource-record-cname" {
-#   instance_id = ibm_resource_instance.test-pdns-instance.guid
-#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
-#   type        = "CNAME"
-#   name        = "testCNAME"
-#   rdata       = "test.com"
-# }
-#
-# resource "ibm_dns_resource_record" "test-pdns-resource-record-ptr" {
-#   instance_id = ibm_resource_instance.test-pdns-instance.guid
-#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
-#   type        = "PTR"
-#   name        = "1.2.3.4"
-#   rdata       = "testA.test.com"
-# }
-#
-# resource "ibm_dns_resource_record" "test-pdns-resource-record-mx" {
-#   instance_id = ibm_resource_instance.test-pdns-instance.guid
-#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
-#   type        = "MX"
-#   name        = "testMX"
-#   rdata       = "mailserver.test.com"
-#   preference  = 10
-# }
-#
-# resource "ibm_dns_resource_record" "test-pdns-resource-record-srv" {
-#   instance_id = ibm_resource_instance.test-pdns-instance.guid
-#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
-#   type        = "SRV"
-#   name        = "testSRV"
-#   rdata       = "tester.com"
-#   priority    = 100
-#   weight      = 100
-#   port        = 8000
-#   service     = "_sip"
-#   protocol    = "udp"
-# }
-#
-# resource "ibm_dns_resource_record" "test-pdns-resource-record-txt" {
-#   instance_id = ibm_resource_instance.test-pdns-instance.guid
-#   zone_id     = ibm_dns_zone.test-pdns-zone.zone_id
-#   type        = "TXT"
-#   name        = "testTXT"
-#   rdata       = "textinformation"
-#   ttl         = 900
+  provisioner "remote-exec" {
+    connection {
+      type                = "ssh"
+      bastion_user        = "root"
+      bastion_private_key = file( var.bastion_key )
+      bastion_host        = module.vpc.bastion_fip
+      host                = ibm_is_instance.master[ count.index ].primary_network_interface[ 0 ].primary_ipv4_address
+      user                = "root"
+      private_key         = file( local.vpc_key )
+    }
+
+    inline = [
+      "curl http://${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address}:7080/prepare/master | bash",
+      "reboot"
+    ]
+  }
+}
+
 
 # resource "ibm_is_instance" "nameserver" {
 #   name           = "nameserver"
