@@ -119,6 +119,7 @@ class Mule
       USAGE:
         mule (provision|destroy)  (--all|--infra|--openshift)
         mule (start|restart|stop) (--all|--infra|--masters|--workers)
+        mule ssh <host>
 
       OPTIONS:
         --name=<name>  The name of the newly created resource
@@ -134,16 +135,23 @@ class Mule
       end
 
       state = Mule::TerraformState.new "#{HOME_DIR}/terraform.tfstate", "#{HOME_DIR}/*.tfvars"
-      cli   = Mule::IBMCloudCLI.new state
 
       if options[ 'start' ]
         if options[ '--all' ]
+          cli   = Mule::IBMCloudCLI.new state
+          
           %w[ bastion installer lb bootstrap master_1 master_2 master_3 worker_1 worker_2 ].each do | server |
             id = eval "state.#{server}_id"
             cli.is_instance_start server, id
           end
         end # --all
-      end # start
+      elsif options[ 'ssh' ]
+        host = options[ '<host>' ]
+        host_pip = eval "state.#{host}_pip"
+
+        exec %x[ ssh -o ProxyCommand="ssh -W %h:%p -i #{state.bastion_key} root@#{state.bastion_fip}" \
+                     -i #{state.cluster_key} root@#{host_pip} ]
+      end
     end # run()
   end # class Main
 
