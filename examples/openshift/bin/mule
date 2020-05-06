@@ -138,8 +138,8 @@ class Mule
 
       if options[ 'start' ]
         if options[ '--all' ]
-          cli   = Mule::IBMCloudCLI.new state
-          
+          cli = Mule::IBMCloudCLI.new state
+
           %w[ bastion installer lb bootstrap master_1 master_2 master_3 worker_1 worker_2 ].each do | server |
             id = eval "state.#{server}_id"
             cli.is_instance_start server, id
@@ -149,8 +149,7 @@ class Mule
         host = options[ '<host>' ]
         host_pip = eval "state.#{host}_pip"
 
-        exec %x[ ssh -o ProxyCommand="ssh -W %h:%p -i #{state.bastion_key} root@#{state.bastion_fip}" \
-                     -i #{state.cluster_key} root@#{host_pip} ]
+        exec "ssh -o ProxyCommand=\"ssh -W %h:%p -i #{state.bastion_key} root@#{state.bastion_fip}\" -i #{state.cluster_key} root@#{host_pip}"
       end
     end # run()
   end # class Main
