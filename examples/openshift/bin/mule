@@ -3,44 +3,79 @@
 require 'tempfile'
 require 'open3'
 require 'docopt'
+require 'ostruct'
+require 'json'
 
 ENV[ 'IBMCLOUD_COLOR' ] = 'false'
 HOME_DIR = File.expand_path( "#{File.dirname __FILE__}/.." )
 
-### --- Private ---
+class Mule
+  class State
+    TERRAFORM_VARS = [ :cluster_name, :domain_name, :bastion_key, :cluster_key ]
+    TERRAFORM_ADDRESSES = {
+      :bastion_fip   => [ 'module.vpc.ibm_is_floating_ip.bastion_server_fip[0]', 'address' ],
+      :bootstrap_pip => [ 'ibm_is_instance.bootstrap', 'primary_ipv4_address' ],
+      :master_1_pip  => [ 'ibm_is_instance.master[0]', 'primary_ipv4_address' ],
+      :master_2_pip  => [ 'ibm_is_instance.master[1]', 'primary_ipv4_address' ],
+      :master_3_pip  => [ 'ibm_is_instance.master[2]', 'primary_ipv4_address' ],
 
+    }
 
+    def initialize( state_file, tfvars_file )
+      @state_file   = state_file
+      @tfvars_files = tfvars_file
+    end
 
-### --- Main ---
-usage = <<~DOC
-  NAME:
-    mule - Create a simple openshift v4.3 cluster on IBM Cloud
-
-  USAGE:
-    mule provision (vpc|installer|lb|openshift)
-    mule add worker --name=<name>
-
-  OPTIONS:
-    --name=<name>  The name of the newly created resource
-DOC
-
-begin
-  options = Docopt::docopt( usage )
-rescue Docopt::Exit => e
-  puts usage
-  exit 1
-end
-
-if options[ 'provision' ]
-  if options[ 'openshift' ]
-
-
-
-
+    def method_missing( m, *args, &block )
+      if TERRAFORM_VARS.include? m
+        %x[ cat #{@tfvars_files} | awk -F '"' '/#{m.to_s}.*=/{print $2}' ]
+      elsif TERRAFORM_ADDRESSES.include? m
+        address = TERRAFORM_ADDRESSES[ m ][ 0 ]
+        filter  = TERRAFORM_ADDRESSES[ m ][ 1 ]
+        %x[ terraform state show -state=#{@state_file} #{address} | awk -F '"' '/#{filter}.*=/{print $2}' ].chomp
+      else
+        puts "Element '#{m}' not found"
+        raise
+      end
+    end
   end
-end
+
+  class Main
+    @@usage = <<~DOC
+      NAME:
+        mule - Create a simple openshift v4.3 cluster on IBM Cloud
+
+      USAGE:
+        mule infra (provision|destroy)
+        mule infra (start|restart|stop)
+        mule cluster (provision|destroy)
+        mule cluster (start|restart|stop) [--masters|--workers]
+
+      OPTIONS:
+        --name=<name>  The name of the newly created resource
+      DOC
+
+    def run()
+      begin
+        options = Docopt::docopt( @@usage )
+      rescue Docopt::Exit => e
+        puts @@usage
+        exit 1
+      end
+
+      if options[ 'cluster' ]
+        if options[ 'provision' ]
+          s = Mule::State.new "#{HOME_DIR}/terraform.tfstate", "#{HOME_DIR}/*.tfvars"
+          puts s.bastion_fip
+          puts s.bastion_key
+        end
+      end
+    end # run()
+  end # class Main
+end # class Mule
 
 
+Mule::Main.new.run
 
 # ENV[ 'IBMCLOUD_COLOR' ] = 'false'
 #
