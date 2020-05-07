@@ -99,7 +99,7 @@ class BootstrapServer
       prepare_grub = <<~EOT
         sed --in-place -e 's|linux16.*|linux16 $IPXEPATH ifopen net0 \\\\\\&\\\\\\& set net0/ip #{client_ip} \\\\\\&\\\\\\& set net0/netmask '${net_netmask}' \\\\\\&\\\\\\& set net0/gateway '${net_gateway}' \\\\\\&\\\\\\& chain http://#{HELPER_IP.to_s}:#{HELPER_PORT}/boot/'${instance_id}'|' /etc/grub.d/20_ipxe
         update-grub
-        # reboot
+        reboot
       EOT
 
       return "#{register}\n#{install_ipxe}\n#{prepare_grub}"

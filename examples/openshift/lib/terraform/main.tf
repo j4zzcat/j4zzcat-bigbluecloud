@@ -26,7 +26,7 @@ data "ibm_resource_group" "resource_group" {
 }
 
 module "vpc" {
-  source = "../../lib/terraform/vpc"
+  source = "/h/repo/lib/terraform/vpc"
 
   name                = local.vpc_name
   zone_name           = var.zone_name
@@ -144,10 +144,10 @@ resource "ibm_is_instance" "installer" {
 
   provisioner "remote-exec" {
     scripts = [
-      "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
-      "${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh",
-      "${path.module}/../../lib/scripts/ubuntu_18/install_sinatra.sh",
-      "${path.module}/lib/scripts/install_openshift_client.sh" ]
+      "/h/repo/lib/scripts/ubuntu_18/upgrade_os.sh",
+      "/h/repo/lib/scripts/ubuntu_18/config_resolve.sh",
+      "/h/repo/lib/scripts/ubuntu_18/install_sinatra.sh",
+      "${path.module}/../scripts/install_openshift_client.sh" ]
   }
 
   provisioner "file" {
@@ -162,28 +162,20 @@ resource "ibm_is_instance" "installer" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      cat ${path.module}/lib/scripts/config_openshift_installation.sh \
-        | ssh -o StrictHostKeyChecking=accept-new \
-              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} \
+      cat ${path.module}/../scripts/config_openshift_installation.sh \
+        | ssh -o StrictHostKeyChecking=no \
+              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=no -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} \
               bash -s - ${var.cluster_name} ${var.domain_name}
     EOT
   }
 
   provisioner "file" {
-    source = "${path.module}/lib/helpers/bootstrap_helper.rb"
+    source = "${path.module}/../helpers/bootstrap_helper.rb"
     destination = "/opt/openshift/bin/bootstrap_helper.rb"
   }
 
-  provisioner "file" {
-    destination = "/etc/rc.local"
-    content = <<-EOT
-      # start boot helper
-      ruby /opt/openshift/bin/bootstrap_helper.rb
-    EOT
-  }
-
   provisioner "remote-exec" {
-    script = "${path.module}/../../lib/scripts/ubuntu_18/do_reboot.sh"
+    script = "/h/repo/lib/scripts/ubuntu_18/do_reboot.sh"
   }
 
 
@@ -220,9 +212,9 @@ resource "ibm_is_instance" "load_balancer" {
 
   provisioner "remote-exec" {
     scripts = [
-      "${path.module}/../../lib/scripts/ubuntu_18/upgrade_os.sh",
-      "${path.module}/../../lib/scripts/ubuntu_18/install_haproxy.sh",
-      "${path.module}/../../lib/scripts/ubuntu_18/config_resolve.sh" ]
+      "/h/repo/lib/scripts/ubuntu_18/upgrade_os.sh",
+      "/h/repo/lib/scripts/ubuntu_18/install_haproxy.sh",
+      "/h/repo/lib/scripts/ubuntu_18/config_resolve.sh" ]
   }
 
   provisioner "file" {

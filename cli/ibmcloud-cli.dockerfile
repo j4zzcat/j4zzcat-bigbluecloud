@@ -3,14 +3,6 @@ LABEL image.name="ibmcloud/cli" \
       image.version="0.1" \
       image.author="sharon.dagan@il.ibm.com"
 
-# Notes about latest releases
-# terraform latest release: https://releases.hashicorp.com/terraform/
-# ibmcloud terraform provider latest release: https://github.com/IBM-Cloud/terraform-provider-ibm/releases/latest
-
-ENV ARCH                       amd64
-ENV TERRAFORM_VERSION          0.12.24
-ENV IBMCLOUD_TERRAFORM_VERSION 1.5.1
-
 RUN apt update \
       && apt install -y curl git vim mc iputils-ping netcat python3 python3-pip ruby2.5-dev \
       && apt install -y apt-utils apt-transport-https ca-certificates software-properties-common \
@@ -25,15 +17,17 @@ RUN apt update \
 WORKDIR /tmp
 
 # install terraform
-RUN curl -LO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${ARCH}.zip \
+ENV TERRAFORM_VERSION 0.12.24
+RUN curl -LO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
       && unzip terraform*.zip \
       && mv terraform /usr/local/bin \
       && echo 'complete -C /usr/local/bin/terraform terraform' >> /root/.bashrc \
       && rm -rf /tmp/*
 
-# install ibm cloud terraform provider
-RUN curl -LO https://github.com/IBM-Cloud/terraform-provider-ibm/releases/download/v${IBMCLOUD_TERRAFORM_VERSION}/linux_${ARCH}.zip \
-      && unzip linux_*.zip \
+# install the latest ibm cloud terraform provider
+RUN latest_release=$(curl -sS https://api.github.com/repos/IBM-Cloud/terraform-provider-ibm/releases/latest | grep browser_download_url | awk -F '"' '/linux_amd64.zip/{print $4}') \
+      && curl -o /tmp/ibmcloud_terraform_provider_latest.zip -L ${latest_release} \
+      && unzip ibmcloud_terraform_provider_latest.zip \
       && mkdir -p ${HOME}/.terraform.d/plugins \
       && mv terraform-provider-ibm* ${HOME}/.terraform.d/plugins \
       && rm -rf /tmp/*

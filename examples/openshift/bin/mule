@@ -1,3 +1,38 @@
+#! /usr/bin/env bash
+
+export DOCKER_IMAGE=ibmcloud/cli:0.1
+export   C_REPO_DIR=/h/repo
+export    C_CWD_DIR=/h/cwd
+export   C_HOME_DIR=${C_REPO_DIR}/examples/openshift
+
+if [ ! -f '/.dockerenv' ]; then
+  # still on the host
+  case $(uname) in
+    Darwin) HOME_DIR=$(cd $(dirname "${0}")/.. ; pwd -P) ;;
+    Linux)  HOME_DIR=$(realpath $(dirname "${0}")/..) ;;
+    *)      echo "Sorry, platform $(uname) is not supported yet" ;;
+  esac
+
+  REPO_DIR=${HOME_DIR}/../..
+  CWD_DIR=$(pwd)
+
+  exec docker run --rm -it \
+    -v ${CWD_DIR}:${C_CWD_DIR}:rw \
+    -v ${REPO_DIR}:${C_REPO_DIR}:rw \
+    ${DOCKER_IMAGE} \
+    ${C_HOME_DIR}/bin/mule ${@}
+
+  exit ${?}
+
+else
+  # inside docker container
+  CUT_LINE=$(cat ${C_HOME_DIR}/bin/mule | grep -n '#! /usr/bin/env ruby' | tail -1 | awk -F ':' '{print $1}')
+  tail +${CUT_LINE} ${0} | tail -n +2 > /tmp/mule.rb
+  cd ${C_HOME_DIR}
+  ruby /tmp/mule.rb ${@}
+  exit ${?}
+fi
+
 #! /usr/bin/env ruby
 
 require 'tempfile'
@@ -6,36 +41,78 @@ require 'docopt'
 require 'ostruct'
 require 'json'
 
-HOME_DIR = File.expand_path( "#{File.dirname __FILE__}/.." )
+HOME_DIR = ENV[ 'C_HOME_DIR' ]
 
 class Mule
+
+  class Terraform
+    def initialize( cwd )
+      @cwd = cwd
+    end
+
+    def init
+      run 'rm -rf .terraform terraform.tfstate*'
+      run 'terraform init'
+    end
+
+    def apply( targets = nil )
+      run 'terraform apply -auto-approve'
+    end
+
+    def destroy( targets = nil )
+      run 'terraform destroy -auto-approve'
+    end
+
+    def run( cmd )
+      puts "Running '#{cmd}'..."
+
+      status = nil
+      Open3.popen2e( cmd, :chdir => @cwd ) do | stdin, stdout_err, wait_thread |
+        while line = stdout_err.gets
+          puts line
+        end
+        status = wait_thread.value
+      end
+
+      status.exitstatus
+    end
+  end # class Terraform
+
   class TerraformState
+    def self.pip( name )
+      { :address => "ibm_is_instance.#{name}", :filter => 'primary_ipv4_address' }
+    end
+
+    def self.var
+      { :tfvars => true }
+    end
+
     PROGRAM = {
-      :cluster_name  => { :tfvars  => true },
-      :domain_name   => { :tfvars  => true },
-      :bastion_key   => { :tfvars  => true },
-      :cluster_key   => { :tfvars  => true },
-      :region_name   => { :tfvars  => true },
-      :zone_name     => { :tfvars  => true },
-      :vpc_name      => { :address => 'module.vpc.ibm_is_vpc.vpc', :filter => 'name', :line => 1 },
-      :bastion_fip   => { :address => 'module.vpc.ibm_is_floating_ip.bastion_server_fip[0]', :filter => 'address' },
-      :installer_pip => { :address => 'ibm_is_instance.installer', :filter => 'primary_ipv4_address' },
-      :lb_pip        => { :address => 'ibm_is_instance.load_balancer', :filter => 'primary_ipv4_address' },
-      :bootstrap_pip => { :address => 'ibm_is_instance.bootstrap', :filter => 'primary_ipv4_address' },
-      :master_1_pip  => { :address => 'ibm_is_instance.master[0]', :filter => 'primary_ipv4_address' },
-      :master_2_pip  => { :address => 'ibm_is_instance.master[1]', :filter => 'primary_ipv4_address' },
-      :master_3_pip  => { :address => 'ibm_is_instance.master[2]', :filter => 'primary_ipv4_address' },
-      :worker_1_pip  => { :address => 'ibm_is_instance.worker[0]', :filter => 'primary_ipv4_address' },
-      :worker_2_pip  => { :address => 'ibm_is_instance.worker[1]', :filter => 'primary_ipv4_address' },
-      :bastion_id    => { :sh => "ibmcloud is ins | awk '{if($2==\"bastion\" && $8==\"\#{self.vpc_name}\" && $9==\"\#{self.zone_name}\") print $1}'" },
-      :installer_id  => { :address => 'ibm_is_instance.installer', :filter => 'id' },
-      :lb_id         => { :address => 'ibm_is_instance.load_balancer', :filter => 'id' },
-      :bootstrap_id  => { :address => 'ibm_is_instance.bootstrap', :filter => 'id' },
-      :master_1_id   => { :address => 'ibm_is_instance.master[0]', :filter => 'id' },
-      :master_2_id   => { :address => 'ibm_is_instance.master[1]', :filter => 'id' },
-      :master_3_id   => { :address => 'ibm_is_instance.master[2]', :filter => 'id' },
-      :worker_1_id   => { :address => 'ibm_is_instance.worker[0]', :filter => 'id' },
-      :worker_2_id   => { :address => 'ibm_is_instance.worker[1]', :filter => 'id' }
+      :cluster_name      => var(),
+      :domain_name       => var(),
+      :bastion_key       => var(),
+      :cluster_key       => var(),
+      :region_name       => var(),
+      :zone_name         => var(),
+      :vpc_name          => { :address => 'module.vpc.ibm_is_vpc.vpc', :filter => 'name', :line => 1 },
+      :bastion_fip       => { :address => 'module.vpc.ibm_is_floating_ip.bastion_server_fip[0]', :filter => 'address' },
+      :installer_pip     => pip( 'installer' ),
+      :load_balancer_pip => pip( 'load_balancer' ),
+      :bootstrap_pip     => pip( 'bootstrap' ),
+      :master_1_pip      => pip( 'master[0]' ),
+      :master_2_pip      => pip( 'master[1]' ),
+      :master_3_pip      => pip( 'master[2]' ),
+      :worker_1_pip      => pip( 'worker[0]' ),
+      :worker_2_pip      => pip( 'worker[1]' ),
+      :bastion_id        => { :sh => "ibmcloud is ins | awk '{if($2==\"bastion\" && $8==\"\#{self.vpc_name}\" && $9==\"\#{self.zone_name}\") print $1}'" },
+      :installer_id      => pip( 'installer' ),
+      :lb_id             => pip( 'load_balancer' ),
+      :bootstrap_id      => pip( 'bootstrap' ),
+      :master_1_id       => pip( 'master[0]' ),
+      :master_2_id       => pip( 'master[1]' ),
+      :master_3_id       => pip( 'master[2]' ),
+      :worker_1_id       => pip( 'worker[0]' ),
+      :worker_2_id       => pip( 'worker[1]' ),
     }
 
     def initialize( state_file, tfvars_file )
@@ -113,13 +190,16 @@ class Mule
 
   class Main
     @@usage = <<~DOC
+
       NAME:
         mule - Create a simple openshift v4.3 cluster on IBM Cloud
 
       USAGE:
-        mule (provision|destroy)  (--all|--infra|--openshift)
-        mule (start|restart|stop) (--all|--infra|--masters|--workers)
+        mule provision (infra|openshift)
+        mule (start|restart|stop) (all|infra|masters|workers)
+        mule destroy [--clean]
         mule ssh <host>
+        mule docker
 
       OPTIONS:
         --name=<name>  The name of the newly created resource
@@ -134,24 +214,62 @@ class Mule
         exit 1
       end
 
-      state = Mule::TerraformState.new "#{HOME_DIR}/terraform.tfstate", "#{HOME_DIR}/*.tfvars"
+      @state = Mule::TerraformState.new "#{HOME_DIR}/terraform.tfstate", "#{HOME_DIR}/*.tfvars"
 
-      if options[ 'start' ]
+      if options[ 'docker' ]
+        exec '/bin/bash'
+
+      elsif options[ 'start' ]
         if options[ '--all' ]
-          cli = Mule::IBMCloudCLI.new state
+          cli = Mule::IBMCloudCLI.new @state
 
-          %w[ bastion installer lb bootstrap master_1 master_2 master_3 worker_1 worker_2 ].each do | server |
+          %w[ bastion installer load_balancer bootstrap master_1 master_2 master_3 worker_1 worker_2 ].each do | server |
             id = eval "state.#{server}_id"
             cli.is_instance_start server, id
           end
         end # --all
+      elsif options[ 'provision' ]
+        if options[ 'infra' ]
+            t = Mule::Terraform.new HOME_DIR
+            t.apply
+        elsif options[ 'openshift' ]
+          remote_exec @state.installer_pip, "ruby /opt/openshift/bin/bootstrap_helper.rb >> ~/bootstrap_helper.log &"
+          remote_exec @state.bootstrap_pip, "curl http://#{@state.installer_pip}:7080/prepare/bootstrap | bash"
+          remote_exec @state.master_1_pip,  "curl http://#{@state.installer_pip}:7080/prepare/master | bash"
+          remote_exec @state.master_2_pip,  "curl http://#{@state.installer_pip}:7080/prepare/master | bash"
+          remote_exec @state.master_3_pip,  "curl http://#{@state.installer_pip}:7080/prepare/master | bash"
+        end
+
+      elsif options[ 'destroy' ]
+        t = Mule::Terraform.new HOME_DIR
+        t.destroy
+
+        if options[ '--clean' ]
+          t = Mule::Terraform.new HOME_DIR
+          t.init
+        end
+
       elsif options[ 'ssh' ]
         host = options[ '<host>' ]
-        host_pip = eval "state.#{host}_pip"
+        host_pip = eval "@state.#{host}_pip"
 
-        exec "ssh -o ProxyCommand=\"ssh -W %h:%p -i #{state.bastion_key} root@#{state.bastion_fip}\" -i #{state.cluster_key} root@#{host_pip}"
+        exec "ssh -o ProxyCommand=\"ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i #{@state.bastion_key} root@#{@state.bastion_fip}\" -o StrictHostKeyChecking=accept-new -i #{@state.cluster_key} root@#{host_pip}"
       end
     end # run()
+
+    def remote_exec( host_pip, cmd )
+      cmd = "ssh -o ProxyCommand=\"ssh -W %h:%p -o StrictHostKeyChecking=no -i #{@state.bastion_key} root@#{@state.bastion_fip}\" -o StrictHostKeyChecking=no -i #{@state.cluster_key} root@#{host_pip} '#{cmd}'"
+
+      status = nil
+      Open3.popen2e( cmd ) do | stdin, stdout_err, wait_thread |
+        while line = stdout_err.gets
+          puts line
+        end
+        status = wait_thread.value
+      end
+
+      status.exitstatus
+    end
   end # class Main
 
 end # class Mule
