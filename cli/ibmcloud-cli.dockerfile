@@ -1,6 +1,11 @@
 FROM ubuntu:19.10
+
+ENV TERRAFORM_VERSION                   0.12.24
+ENV IBMCLOUD_CLI_VERSION                LATEST
+ENV IBMCLOUD_TERRAFORM_PROVIDER_VERSION 1.5.0
+
 LABEL image.name="ibmcloud/cli" \
-      image.version="0.1" \
+      image.version="${IBMCLOUD_TERRAFORM_PROVIDER_VERSION}" \
       image.author="sharon.dagan@il.ibm.com"
 
 RUN apt update \
@@ -17,7 +22,6 @@ RUN apt update \
 WORKDIR /tmp
 
 # install terraform
-ENV TERRAFORM_VERSION 0.12.24
 RUN curl -LO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
       && unzip terraform*.zip \
       && mv terraform /usr/local/bin \
@@ -25,9 +29,9 @@ RUN curl -LO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terra
       && rm -rf /tmp/*
 
 # install the latest ibm cloud terraform provider
-RUN latest_release=$(curl -sS https://api.github.com/repos/IBM-Cloud/terraform-provider-ibm/releases/latest | grep browser_download_url | awk -F '"' '/linux_amd64.zip/{print $4}') \
-      && curl -o /tmp/ibmcloud_terraform_provider_latest.zip -L ${latest_release} \
-      && unzip ibmcloud_terraform_provider_latest.zip \
+RUN if [ "${IBMCLOUD_TERRAFORM_PROVIDER_VERSION}" = "LATEST" ]; then IBMCLOUD_TERRAFORM_PROVIDER_VERSION=$(curl -sS https://api.github.com/repos/IBM-Cloud/terraform-provider-ibm/releases/latest | awk -F '"' '/tag_name/{print(substr($4,2))}') ; fi \
+      && curl -o /tmp/ibmcloud_terraform_provider.zip -L https://github.com/IBM-Cloud/terraform-provider-ibm/releases/download/v${IBMCLOUD_TERRAFORM_PROVIDER_VERSION}/linux_amd64.zip \
+      && unzip ibmcloud_terraform_provider.zip \
       && mkdir -p ${HOME}/.terraform.d/plugins \
       && mv terraform-provider-ibm* ${HOME}/.terraform.d/plugins \
       && rm -rf /tmp/*
@@ -35,7 +39,7 @@ RUN latest_release=$(curl -sS https://api.github.com/repos/IBM-Cloud/terraform-p
 # install the latest ibm cloud cli release and supporting plugins
 RUN curl -sL https://ibm.biz/idt-installer | bash
 RUN ibmcloud cf install \
-      && echo "vpc-infrastructure cis doi tke vpn cloud-dns-services cloud-databases analytics-engine machine-learning power-iaas" | xargs -n 1 ibmcloud plugin install \
+      && ibmcloud plugin repo-plugins | awk '/Not Installed/{print $3}' | awk -F '/' '{print $1}' | xargs -n 1 ibmcloud plugin install || true \
       && echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> /root/.bashrc
 
 ENV IBMCLOUD_COLOR true

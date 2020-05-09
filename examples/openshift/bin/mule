@@ -224,13 +224,9 @@ class Mule
         exec '/bin/bash'
 
       elsif options[ 'env' ]
-        print <<~EOT
-          export IBMCLOUD_API_KEY=$(security find-generic-password -l 'ibmcloud-api-key' -w)
-          export IAAS_CLASSIC_USERNAME=$(security find-generic-password -l 'ibmcloud-iaas-classic-api-key' | awk -F '=' '/acct/{print substr($2,2,length($2)-2)}')
-          export IAAS_CLASSIC_API_KEY=$(security find-generic-password -l 'ibmcloud-iaas-classic-api-key' -w)
-          # Run this in a shell to set the environment variables
-          # eval $(mule env)
-        EOT
+        print "export IBMCLOUD_API_KEY=$(security find-generic-password -l 'ibmcloud-api-key' -w)"
+        print "export IAAS_CLASSIC_USERNAME=$(security find-generic-password -l 'ibmcloud-iaas-classic-api-key' | awk -F '=' '/acct/{print substr($2,2,length($2)-2)}')"
+        print "export IAAS_CLASSIC_API_KEY=$(security find-generic-password -l 'ibmcloud-iaas-classic-api-key' -w)"
 
       elsif options[ 'ssh' ]
         host = options[ '<host>' ]

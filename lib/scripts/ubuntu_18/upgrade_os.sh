@@ -19,4 +19,4 @@ DEBIAN_FRONTEND=noninteractive apt-get \
 
 echo "Installing basic software..."
 DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
-    mc vim
+    mc vim 

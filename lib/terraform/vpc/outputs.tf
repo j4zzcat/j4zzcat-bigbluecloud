@@ -6,6 +6,10 @@ output "id" {
   value = ibm_is_vpc.vpc.id
 }
 
+output "crn" {
+  value = ibm_is_vpc.vpc.crn
+}
+
 output "vpc_subnet" {
   value = ibm_is_subnet.vpc_subnet
 }
