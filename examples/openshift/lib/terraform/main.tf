@@ -316,12 +316,12 @@ locals {
   }
 
   alias_records = {
-    "api.${var.cluster_name}"     = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}",
-    "api-int.${var.cluster_name}" = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}",
-    "*.apps.${var.cluster_name}"  = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}",
-    "etcd-0.${var.cluster_name}"  = "${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}",
-    "etcd-1.${var.cluster_name}"  = "${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}",
-    "etcd-2.${var.cluster_name}"  = "${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}"
+    "api.${var.cluster_name}"     = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}",
+    "api-int.${var.cluster_name}" = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}",
+    "*.apps.${var.cluster_name}"  = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}",
+    "etcd-0.${var.cluster_name}"  = "${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}",
+    "etcd-1.${var.cluster_name}"  = "${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}",
+    "etcd-2.${var.cluster_name}"  = "${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}"
   }
 }
 

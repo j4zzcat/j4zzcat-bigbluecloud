@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-export DOCKER_IMAGE=ibmcloud/cli:0.1
+export DOCKER_IMAGE=j4zzcat/ibmcloud-cli:0.1
 export   C_REPO_DIR=/h/repo
 export    C_CWD_DIR=/h/cwd
 export   C_HOME_DIR=${C_REPO_DIR}/examples/openshift
@@ -19,6 +19,11 @@ if [ ! -f '/.dockerenv' ]; then
   exec docker run --rm -it \
     -v ${CWD_DIR}:${C_CWD_DIR}:rw \
     -v ${REPO_DIR}:${C_REPO_DIR}:rw \
+    -e IBMCLOUD_API_KEY=${IBMCLOUD_API_KEY} \
+    -e IAAS_CLASSIC_USERNAME=${IAAS_CLASSIC_USERNAME} \
+    -e IAAS_CLASSIC_API_KEY=${IAAS_CLASSIC_API_KEY} \
+    -e IC_TIMEOUT=60 \
+    -e IAAS_CLASSIC_TIMEOUT=60 \
     ${DOCKER_IMAGE} \
     ${C_HOME_DIR}/bin/mule ${@}
 
@@ -51,7 +56,6 @@ class Mule
     end
 
     def init
-      run 'rm -rf .terraform terraform.tfstate*'
       run 'terraform init'
     end
 
@@ -133,7 +137,8 @@ class Mule
           address = PROGRAM[ m ][ :address ]
           filter  = PROGRAM[ m ][ :filter ]
           line    = PROGRAM[ m ][ :line ] != nil ? PROGRAM[ m ][ :line ] : 1
-          @cache[ m ] = %x[ terraform state show -state=#{@state_file} #{address} | awk -F '"' '/#{filter}.*=/{print $2}' | head -#{line} | tail -1 ].chomp
+          @cache[ m ] = %x[ cd #{File.dirname @state_file}
+            terraform state show -state=#{@state_file} #{address} | awk -F '"' '/#{filter}.*=/{print $2}' | head -#{line} | tail -1 ].chomp
 
         elsif PROGRAM[ m ].include? :sh
           sh = PROGRAM[ m ][ :sh ]
@@ -198,8 +203,7 @@ class Mule
         mule provision (infra|openshift)
         mule (start|restart|stop) (all|infra|masters|workers)
         mule destroy [--clean]
-        mule ssh <host>
-        mule docker
+        mule (debug|env|ssh <host>)
 
       OPTIONS:
         --name=<name>  The name of the newly created resource
@@ -214,10 +218,23 @@ class Mule
         exit 1
       end
 
-      @state = Mule::TerraformState.new "#{HOME_DIR}/terraform.tfstate", "#{HOME_DIR}/*.tfvars"
+      @state = Mule::TerraformState.new "#{HOME_DIR}/lib/terraform/terraform.tfstate", "#{HOME_DIR}/lib/terraform/*.tfvars"
 
-      if options[ 'docker' ]
+      if options[ 'debug' ]
         exec '/bin/bash'
+
+      elsif options[ 'env' ]
+        print <<~EOT
+          export IBMCLOUD_API_KEY=$(security find-generic-password -l 'ibmcloud-api-key' -w)
+          export IAAS_CLASSIC_USERNAME=$(security find-generic-password -l 'ibmcloud-iaas-classic-api-key' | awk -F '=' '/acct/{print substr($2,2,length($2)-2)}')
+          export IAAS_CLASSIC_API_KEY=$(security find-generic-password -l 'ibmcloud-iaas-classic-api-key' -w)
+        EOT
+
+      elsif options[ 'ssh' ]
+        host = options[ '<host>' ]
+        host_pip = eval "@state.#{host}_pip"
+
+        exec "cd #{HOME_DIR}/lib/terraform; ssh -o ProxyCommand=\"ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i #{@state.bastion_key} root@#{@state.bastion_fip}\" -o StrictHostKeyChecking=accept-new -i #{@state.cluster_key} root@#{host_pip}"
 
       elsif options[ 'start' ]
         if options[ '--all' ]
@@ -230,30 +247,30 @@ class Mule
         end # --all
       elsif options[ 'provision' ]
         if options[ 'infra' ]
-            t = Mule::Terraform.new HOME_DIR
+            terraform_dir = "#{HOME_DIR}/lib/terraform"
+            %x[ cd #{terraform_dir} && terraform init ] if !File.exist? "#{terraform_dir}/.terraform"
+            t = Mule::Terraform.new "#{HOME_DIR}/lib/terraform"
             t.apply
         elsif options[ 'openshift' ]
+          puts 'Starting bootstrap helper...'
           remote_exec @state.installer_pip, "ruby /opt/openshift/bin/bootstrap_helper.rb >> ~/bootstrap_helper.log &"
+
+          puts 'Rebooting into RHCOS...'
           remote_exec @state.bootstrap_pip, "curl http://#{@state.installer_pip}:7080/prepare/bootstrap | bash"
           remote_exec @state.master_1_pip,  "curl http://#{@state.installer_pip}:7080/prepare/master | bash"
           remote_exec @state.master_2_pip,  "curl http://#{@state.installer_pip}:7080/prepare/master | bash"
           remote_exec @state.master_3_pip,  "curl http://#{@state.installer_pip}:7080/prepare/master | bash"
+          remote_exec @state.installer_pip, '/opt/openshift/bin/openshift-install --dir=/opt/openshift/install wait-for bootstrap-complete --log-level=info'
         end
 
       elsif options[ 'destroy' ]
-        t = Mule::Terraform.new HOME_DIR
-        t.destroy
+        t = Mule::Terraform.new "#{HOME_DIR}/lib/terraform"
+        rc = t.destroy
 
-        if options[ '--clean' ]
-          t = Mule::Terraform.new HOME_DIR
-          t.init
+        if options[ '--clean' ] and rc == 0
+          %x[ rm -rf #{HOME_DIR}/lib/terraform/.terraform #{HOME_DIR}/lib/terraform/terraform.tfstate* ]
+
         end
-
-      elsif options[ 'ssh' ]
-        host = options[ '<host>' ]
-        host_pip = eval "@state.#{host}_pip"
-
-        exec "ssh -o ProxyCommand=\"ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i #{@state.bastion_key} root@#{@state.bastion_fip}\" -o StrictHostKeyChecking=accept-new -i #{@state.cluster_key} root@#{host_pip}"
       end
     end # run()
 
@@ -261,7 +278,7 @@ class Mule
       cmd = "ssh -o ProxyCommand=\"ssh -W %h:%p -o StrictHostKeyChecking=no -i #{@state.bastion_key} root@#{@state.bastion_fip}\" -o StrictHostKeyChecking=no -i #{@state.cluster_key} root@#{host_pip} '#{cmd}'"
 
       status = nil
-      Open3.popen2e( cmd ) do | stdin, stdout_err, wait_thread |
+      Open3.popen2e( cmd, :chdir => "#{HOME_DIR}/lib/terraform" ) do | stdin, stdout_err, wait_thread |
         while line = stdout_err.gets
           puts line
         end
