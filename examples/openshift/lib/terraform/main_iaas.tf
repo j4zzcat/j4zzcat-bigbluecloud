@@ -12,7 +12,6 @@ variable pull_secret          {}
 provider "ibm" {
   region     = var.region_name
   generation = 2
-
 }
 
 locals {
@@ -47,7 +46,10 @@ module "vpc" {
 
 resource "null_resource" "transient_gateway_add_vpc" {
   provisioner "local-exec" {
-    command = "ibmcloud login -r ${var.region_name}; ibmcloud tg cc ${var.transient_gateway_id} --name ${var.cluster_name} --network-id ${module.vpc.crn} --network-type vpc"
+    command = <<-EOT
+      ibmcloud login -r ${var.region_name}
+      ibmcloud tg cc ${var.transient_gateway_id} --name ${var.cluster_name} --network-id ${module.vpc.crn} --network-type vpc
+    EOT
   }
 }
 
@@ -71,6 +73,14 @@ resource "ibm_compute_ssh_key" "cluster_key" {
 # Maters, workers and bootstrap
 #
 
+data "ibm_security_group" "allow_all" {
+    name = "allow_all"
+}
+
+data "ibm_security_group" "allow_outbound" {
+    name = "allow_outbound"
+}
+
 resource "ibm_compute_vm_instance" "default_gateway" {
   hostname             = "default-gateway"
   domain               = "${var.cluster_name}.${var.domain_name}"
@@ -78,8 +88,15 @@ resource "ibm_compute_vm_instance" "default_gateway" {
   datacenter           = var.data_center_name
   hourly_billing       = true
   private_network_only = false
-  cores                = 1
-  memory               = 1024
+  transient            = true
+  # cores                = 1
+  # memory               = 1024
+
+  private_security_group_ids = [
+    data.ibm_security_group.allow_all.id,
+    data.ibm_security_group.allow_outbound.id ]
+  public_security_group_ids  = [
+    data.ibm_security_group.allow_outbound.id ]
 
   ssh_key_ids = [
     ibm_compute_ssh_key.cluster_key.id
@@ -90,7 +107,7 @@ resource "ibm_compute_vm_instance" "default_gateway" {
     bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
     bastion_host        = module.vpc.bastion_fip
-    host                = ibm_compute_vm_instance.default_gateway.ipv4_address_private
+    host                = self.ipv4_address_private
     user                = "root"
     private_key         = file( var.cluster_key )
   }
@@ -121,9 +138,15 @@ resource "ibm_compute_vm_instance" "bootstrap" {
   os_reference_code    = "UBUNTU_18_64"
   datacenter           = var.data_center_name
   hourly_billing       = true
-  private_network_only = false
-  cores                = 1
-  memory               = 1024
+  private_network_only = true
+  transient            = true
+  # cores                = 1
+  # memory               = 1024
+
+  private_security_group_ids = [
+    data.ibm_security_group.allow_all.id,
+    data.ibm_security_group.allow_outbound.id ]
+
   ssh_key_ids = [
     ibm_compute_ssh_key.cluster_key.id
   ]
@@ -133,7 +156,7 @@ resource "ibm_compute_vm_instance" "bootstrap" {
     bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
     bastion_host        = module.vpc.bastion_fip
-    host                = ibm_compute_vm_instance.bootstrap.ipv4_address_private
+    host                = self.ipv4_address_private
     user                = "root"
     private_key         = file( var.cluster_key )
   }
@@ -154,9 +177,15 @@ resource "ibm_compute_vm_instance" "master" {
   os_reference_code    = "UBUNTU_18_64"
   datacenter           = var.data_center_name
   hourly_billing       = true
-  private_network_only = false
-  cores                = 1
-  memory               = 1024
+  private_network_only = true
+  transient            = true
+  # cores                = 1
+  # memory               = 1024
+
+  private_security_group_ids = [
+    data.ibm_security_group.allow_all.id,
+    data.ibm_security_group.allow_outbound.id ]
+
   ssh_key_ids = [
     ibm_compute_ssh_key.cluster_key.id
   ]
@@ -166,7 +195,7 @@ resource "ibm_compute_vm_instance" "master" {
     bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
     bastion_host        = module.vpc.bastion_fip
-    host                = ibm_compute_vm_instance.master[ count.index ].ipv4_address_private
+    host                = self.ipv4_address_private
     user                = "root"
     private_key         = file( var.cluster_key )
   }
@@ -187,9 +216,11 @@ resource "ibm_compute_vm_instance" "worker" {
   os_reference_code    = "UBUNTU_18_64"
   datacenter           = var.data_center_name
   hourly_billing       = true
-  private_network_only = false
-  cores                = 1
-  memory               = 1024
+  private_network_only = true
+  transient            = true
+  # cores                = 1
+  # memory               = 1024
+
   ssh_key_ids = [
     ibm_compute_ssh_key.cluster_key.id
   ]
@@ -199,7 +230,7 @@ resource "ibm_compute_vm_instance" "worker" {
     bastion_user        = "root"
     bastion_private_key = file( var.bastion_key )
     bastion_host        = module.vpc.bastion_fip
-    host                = ibm_compute_vm_instance.worker[ count.index ].ipv4_address_private
+    host                = self.ipv4_address_private
     user                = "root"
     private_key         = file( var.cluster_key )
   }
@@ -210,25 +241,31 @@ resource "ibm_compute_vm_instance" "worker" {
       "ip route add default via ${ibm_compute_vm_instance.default_gateway.ipv4_address_private} dev eth0"
     ]
   }
-
 }
 
 locals {
-  topology = {
-    bastion_fip         = "${module.vpc.bastion_fip}",
-    default_gateway_fip = "${ibm_compute_vm_instance.default_gateway.ipv4_address}",
-    default_gateway_pip = "${ibm_compute_vm_instance.default_gateway.ipv4_address_private}",
-    bootstrap_pip       = "${ibm_compute_vm_instance.bootstrap.ipv4_address_private}",
-    master_1_pip        = "${ibm_compute_vm_instance.master[ 0 ].ipv4_address_private}",
-    master_2_pip        = "${ibm_compute_vm_instance.master[ 1 ].ipv4_address_private}",
-    master_3_pip        = "${ibm_compute_vm_instance.master[ 2 ].ipv4_address_private}",
-    worker_1_pip        = "${ibm_compute_vm_instance.worker[ 0 ].ipv4_address_private}",
-    worker_2_pip        = "${ibm_compute_vm_instance.worker[ 1 ].ipv4_address_private}"
-  }
+  bastion_fip         = "${module.vpc.bastion_fip}"
+  default_gateway_fip = "${ibm_compute_vm_instance.default_gateway.ipv4_address}"
+  default_gateway_pip = "${ibm_compute_vm_instance.default_gateway.ipv4_address_private}"
+  bootstrap_pip       = "${ibm_compute_vm_instance.bootstrap.ipv4_address_private}"
+  master_1_pip        = "${ibm_compute_vm_instance.master[ 0 ].ipv4_address_private}"
+  master_2_pip        = "${ibm_compute_vm_instance.master[ 1 ].ipv4_address_private}"
+  master_3_pip        = "${ibm_compute_vm_instance.master[ 2 ].ipv4_address_private}"
+  worker_1_pip        = "${ibm_compute_vm_instance.worker[ 0 ].ipv4_address_private}"
+  worker_2_pip        = "${ibm_compute_vm_instance.worker[ 1 ].ipv4_address_private}"
 }
 
-resource "null_resource" "update_topology_1"
-  provisioner "local-exec" {
-    command = "echo ${local.topology} >> ${local.topology_file}"
-  }
+resource "local_file" "topology_update_1" {
+  filename = local.topology_file
+  content  = <<-EOT
+    bastion_fip         = ${local.bastion_fip}
+    default_gateway_fip = ${local.default_gateway_fip}
+    default_gateway_pip = ${local.default_gateway_pip}
+    bootstrap_pip       = ${local.bootstrap_pip}
+    master_1_pip        = ${local.master_1_pip}
+    master_2_pip        = ${local.master_2_pip}
+    master_3_pip        = ${local.master_3_pip}
+    worker_1_pip        = ${local.worker_1_pip}
+    worker_2_pip        = ${local.worker_2_pip}
+  EOT
 }
