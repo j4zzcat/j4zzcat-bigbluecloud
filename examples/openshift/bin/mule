@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-export DOCKER_IMAGE=j4zzcat/ibmcloud-cli:0.1
+export DOCKER_IMAGE=j4zzcat/ibmcloud-cli:0.4
 export   C_REPO_DIR=/h/repo
 export    C_CWD_DIR=/h/cwd
 export   C_HOME_DIR=${C_REPO_DIR}/examples/openshift
@@ -203,7 +203,7 @@ class Mule
         mule provision (infra|openshift)
         mule (start|restart|stop) (all|infra|masters|workers)
         mule destroy [--clean]
-        mule (debug|env|ssh <host>)
+        mule (cli|env|ssh <host>)
 
       OPTIONS:
         --name=<name>  The name of the newly created resource
@@ -220,7 +220,7 @@ class Mule
 
       @state = Mule::TerraformState.new "#{HOME_DIR}/lib/terraform/terraform.tfstate", "#{HOME_DIR}/lib/terraform/*.tfvars"
 
-      if options[ 'debug' ]
+      if options[ 'cli' ]
         exec '/bin/bash'
 
       elsif options[ 'env' ]
@@ -228,6 +228,8 @@ class Mule
           export IBMCLOUD_API_KEY=$(security find-generic-password -l 'ibmcloud-api-key' -w)
           export IAAS_CLASSIC_USERNAME=$(security find-generic-password -l 'ibmcloud-iaas-classic-api-key' | awk -F '=' '/acct/{print substr($2,2,length($2)-2)}')
           export IAAS_CLASSIC_API_KEY=$(security find-generic-password -l 'ibmcloud-iaas-classic-api-key' -w)
+          # Run this in a shell to set the environment variables
+          # eval $(mule env)
         EOT
 
       elsif options[ 'ssh' ]
@@ -237,19 +239,17 @@ class Mule
         exec "cd #{HOME_DIR}/lib/terraform; ssh -o ProxyCommand=\"ssh -W %h:%p -o StrictHostKeyChecking=accept-new -i #{@state.bastion_key} root@#{@state.bastion_fip}\" -o StrictHostKeyChecking=accept-new -i #{@state.cluster_key} root@#{host_pip}"
 
       elsif options[ 'start' ]
-        if options[ '--all' ]
-          cli = Mule::IBMCloudCLI.new @state
+        cli = Mule::IBMCloudCLI.new @state
 
-          %w[ bastion installer load_balancer bootstrap master_1 master_2 master_3 worker_1 worker_2 ].each do | server |
-            id = eval "state.#{server}_id"
-            cli.is_instance_start server, id
-          end
-        end # --all
+        %w[ bastion installer load_balancer bootstrap master_1 master_2 master_3 worker_1 worker_2 ].each do | server |
+          id = eval "state.#{server}_id"
+          cli.is_instance_start server, id
+        end
       elsif options[ 'provision' ]
         if options[ 'infra' ]
             terraform_dir = "#{HOME_DIR}/lib/terraform"
-            %x[ cd #{terraform_dir} && terraform init ] if !File.exist? "#{terraform_dir}/.terraform"
             t = Mule::Terraform.new "#{HOME_DIR}/lib/terraform"
+            t.init
             t.apply
         elsif options[ 'openshift' ]
           puts 'Starting bootstrap helper...'

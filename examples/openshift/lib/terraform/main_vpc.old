@@ -2,19 +2,11 @@ variable cluster_name        {}
 variable domain_name         {}
 variable region_name         {}
 variable zone_name           {}
+variable data_center_name    {}
 variable resource_group_name {}
 variable bastion_key         {}
 variable cluster_key         {}
 variable pull_secret         {}
-
-locals {
-  vpc_name      = var.cluster_name
-  repo_home     = "https://github.com/j4zzcat/j4zzcat-ibmcloud"
-  repo_home_raw = "https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master"
-  vpc_key       = var.cluster_key
-  iaas_key      = var.cluster_key
-  hosts_file    = "./hosts"
-}
 
 provider "ibm" {
   region     = var.region_name
@@ -28,9 +20,9 @@ data "ibm_resource_group" "resource_group" {
 module "vpc" {
   source = "/h/repo/lib/terraform/vpc"
 
-  name                = local.vpc_name
+  name                = var.cluster_name
   zone_name           = var.zone_name
-  classic_access      = false
+  classic_access      = true
   transit_gateway     = false
   dns_service         = true
   dns_domain_name     = var.domain_name
@@ -40,12 +32,12 @@ module "vpc" {
 }
 
 ####
-# VPC SSH Key
+# Cluster Key
 #
 
-resource "ibm_is_ssh_key" "vpc_key" {
-  name           = "${local.vpc_name}-cluster-key"
-  public_key     = file( "${local.vpc_key}.pub" )
+resource "ibm_is_ssh_key" "cluster_key" {
+  name           = "${var.cluster_name}-cluster-key"
+  public_key     = file( "${var.cluster_key}.pub" )
   resource_group = data.ibm_resource_group.resource_group.id
 }
 
@@ -59,7 +51,7 @@ resource "ibm_is_instance" "bootstrap" {
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
   zone           = module.vpc.vpc_subnet.zone
-  keys           = [ ibm_is_ssh_key.vpc_key.id ]
+  keys           = [ ibm_is_ssh_key.cluster_key.id ]
   resource_group = data.ibm_resource_group.resource_group.id
 
   primary_network_interface {
@@ -69,45 +61,148 @@ resource "ibm_is_instance" "bootstrap" {
   }
 }
 
-resource "ibm_is_instance" "master" {
+# --- VPC ---
+
+# resource "ibm_is_instance" "master" {
+#   count = 3
+#
+#   name           = "master-${count.index + 1}"
+#   image          = data.ibm_is_image.ubuntu_1804.id
+#   profile        = "bx2-2x8"
+#   vpc            = module.vpc.id
+#   zone           = module.vpc.vpc_subnet.zone
+#   keys           = [ ibm_is_ssh_key.cluster_key.id ]
+#   resource_group = data.ibm_resource_group.resource_group.id
+#
+#   primary_network_interface {
+#     name            = "eth0"
+#     subnet          = module.vpc.vpc_subnet.id
+#     security_groups = [ module.vpc.security_groups[ "vpc_default" ] ]
+#   }
+# }
+
+# resource "ibm_is_instance" "worker" {
+#   count = 2
+#
+#   name           = "worker-${count.index + 1}"
+#   image          = data.ibm_is_image.ubuntu_1804.id
+#   profile        = "bx2-2x8"
+#   vpc            = module.vpc.id
+#   zone           = module.vpc.vpc_subnet.zone
+#   keys           = [ ibm_is_ssh_key.cluster_key.id ]
+#   resource_group = data.ibm_resource_group.resource_group.id
+#
+#   primary_network_interface {
+#     name            = "eth0"
+#     subnet          = module.vpc.vpc_subnet.id
+#     security_groups = [ module.vpc.security_groups[ "vpc_default" ] ]
+#   }
+# }
+
+# --- IAAS ---
+
+resource "ibm_compute_ssh_key" "cluster_key" {
+  label      = "${var.cluster_name}-cluster-key"
+  public_key = file( "${var.cluster_key}.pub" )
+}
+
+resource "ibm_compute_vm_instance" "public_gateway" {
+  hostname             = "public-gateway"
+  domain               = "${var.cluster_name}.${var.domain_name}"
+  os_reference_code    = "UBUNTU_18_64"
+  datacenter           = var.data_center_name
+  hourly_billing       = true
+  private_network_only = false
+  cores                = 1
+  memory               = 1024
+
+  ssh_key_ids = [
+    ibm_compute_ssh_key.cluster_key.id
+  ]
+
+  provisioner "remote-exec" {
+    inline = [
+      "ufw enable",
+      "echo 'net/ipv4/ip_forward=1' >> /etc/ufw/sysctl.conf",
+      "touch /etc/rc.local",
+      "chmod 755 /etc/rc.local",
+      "echo iptables -P INPUT DROP >>/etc/rc.local",
+      "echo iptables -P FORWARD DROP >>/etc/rc.local",
+      "echo iptables -A INPUT -i lo -j ACCEPT >>/etc/rc.local",
+      "echo iptables -A INPUT -i eth0 -j ACCEPT >>/etc/rc.local",
+      "echo iptables -A INPUT -i eth1 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT >>/etc/rc.local",
+      "echo iptables -A FORWARD -i eth0 -d 10.0.0.0/8 -o eth0 -j ACCEPT >>/etc/rc.local",
+      "echo iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT >>/etc/rc.local",
+      "echo iptables -A FORWARD -i eth1 -o eth0 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT >>/etc/rc.local",
+      "echo iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE >>/etc/rc.local",
+      "echo exit 0 >>/etc/rc.local"
+    ]
+  }
+}
+
+resource "ibm_compute_vm_instance" "master" {
   count = 3
 
-  name           = "master-${count.index + 1}"
-  image          = data.ibm_is_image.ubuntu_1804.id
-  profile        = "bx2-2x8"
-  vpc            = module.vpc.id
-  zone           = module.vpc.vpc_subnet.zone
-  keys           = [ ibm_is_ssh_key.vpc_key.id ]
-  resource_group = data.ibm_resource_group.resource_group.id
+  hostname             = "master-${count.index + 1}"
+  domain               = "${var.cluster_name}.${var.domain_name}"
+  os_reference_code    = "UBUNTU_18_64"
+  datacenter           = var.data_center_name
+  hourly_billing       = true
+  private_network_only = false
+  cores                = 1
+  memory               = 1024
+  ssh_key_ids = [
+    ibm_compute_ssh_key.cluster_key.id
+  ]
 
-  primary_network_interface {
-    name            = "eth0"
-    subnet          = module.vpc.vpc_subnet.id
-    security_groups = [ module.vpc.security_groups[ "vpc_default" ] ]
+  provisioner "remote-exec" {
+    inline = [
+      "ip route del default",
+      "ip route add default via ${ibm_compute_vm_instance.public_gateway.ipv4_address_private} dev eth0"
+    ]
   }
 }
 
-###
-# Provision some workers
-#
+resource "ibm_compute_vm_instance" "worker" {
+  count = 3
 
-resource "ibm_is_instance" "worker" {
-  count = 2
+  hostname             = "worker-${count.index + 1}"
+  domain               = "${var.cluster_name}.${var.domain_name}"
+  os_reference_code    = "UBUNTU_18_64"
+  datacenter           = var.data_center_name
+  hourly_billing       = true
+  private_network_only = false
+  cores                = 1
+  memory               = 1024
+  ssh_key_ids = [
+    ibm_compute_ssh_key.cluster_key.id
+  ]
 
-  name           = "worker-${count.index + 1}"
-  image          = data.ibm_is_image.ubuntu_1804.id
-  profile        = "bx2-2x8"
-  vpc            = module.vpc.id
-  zone           = module.vpc.vpc_subnet.zone
-  keys           = [ ibm_is_ssh_key.vpc_key.id ]
-  resource_group = data.ibm_resource_group.resource_group.id
-
-  primary_network_interface {
-    name            = "eth0"
-    subnet          = module.vpc.vpc_subnet.id
-    security_groups = [ module.vpc.security_groups[ "vpc_default" ] ]
+  provisioner "remote-exec" {
+    inline = [
+      "ip route del default",
+      "ip route add default via ${ibm_compute_vm_instance.public_gateway.ipv4_address_private} dev eth0"
+    ]
   }
 }
+
+
+locals {
+  # bootstrap_pip = "${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address}"
+  # master_1_pip  = "${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address}"
+  # master_2_pip  = "${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address}"
+  # master_3_pip  = "${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address}"
+  # worker_1_pip  = "${ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address}"
+  # worker_2_pip  = "${ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address}"
+
+  bootstrap_pip = "${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address}"
+  master_1_pip  = "${ibm_compute_vm_instance.master[ 0 ].ipv4_address_private}"
+  master_2_pip  = "${ibm_compute_vm_instance.master[ 1 ].ipv4_address_private}"
+  master_3_pip  = "${ibm_compute_vm_instance.master[ 2 ].ipv4_address_private}"
+  worker_1_pip  = "${ibm_compute_vm_instance.worker[ 0 ].ipv4_address_private}"
+  worker_2_pip  = "${ibm_compute_vm_instance.worker[ 1 ].ipv4_address_private}"
+}
+
 
 ####
 # Provision the install-server
@@ -123,7 +218,7 @@ resource "ibm_is_instance" "installer" {
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
   zone           = module.vpc.vpc_subnet.zone
-  keys           = [ ibm_is_ssh_key.vpc_key.id ]
+  keys           = [ ibm_is_ssh_key.cluster_key.id ]
   resource_group = data.ibm_resource_group.resource_group.id
 
   primary_network_interface {
@@ -139,7 +234,7 @@ resource "ibm_is_instance" "installer" {
     bastion_host        = module.vpc.bastion_fip
     host                = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address
     user                = "root"
-    private_key         = file( local.vpc_key )
+    private_key         = file( var.cluster_key )
   }
 
   provisioner "remote-exec" {
@@ -177,12 +272,6 @@ resource "ibm_is_instance" "installer" {
   provisioner "remote-exec" {
     script = "/h/repo/lib/scripts/ubuntu_18/do_reboot.sh"
   }
-
-
-  # provisioner "remote-exec" {
-  #   inline = [ "/opt/openshift/bin/openshift-install --dir=/opt/openshift/install wait-for bootstrap-complete --log-level=info > ~/openshift.log &" ]
-  # }
-  #
 }
 
 resource "ibm_is_instance" "load_balancer" {
@@ -191,7 +280,7 @@ resource "ibm_is_instance" "load_balancer" {
   profile        = "bx2-2x8"
   vpc            = module.vpc.id
   zone           = module.vpc.vpc_subnet.zone
-  keys           = [ ibm_is_ssh_key.vpc_key.id ]
+  keys           = [ ibm_is_ssh_key.cluster_key.id ]
   resource_group = data.ibm_resource_group.resource_group.id
 
   primary_network_interface {
@@ -207,7 +296,7 @@ resource "ibm_is_instance" "load_balancer" {
     bastion_host        = module.vpc.bastion_fip
     host                = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address
     user                = "root"
-    private_key         = file( local.vpc_key )
+    private_key         = file( var.cluster_key )
   }
 
   provisioner "remote-exec" {
@@ -259,10 +348,10 @@ resource "ibm_is_instance" "load_balancer" {
       backend openshift_api_server
         mode tcp
         balance source
-        server bootstrap ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:6443
-        server master-1 ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:6443
-        server master-2 ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:6443
-        server master-3 ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:6443
+        server bootstrap bootstrap.${var.cluster_name}.${var.domain_name}:6443
+        server master-1 master-1.${var.cluster_name}.${var.domain_name}:6443
+        server master-2 master-2.${var.cluster_name}.${var.domain_name}:6443
+        server master-3 master-3.${var.cluster_name}.${var.domain_name}:6443
 
       frontend machine_config_server
         mode tcp
@@ -273,10 +362,10 @@ resource "ibm_is_instance" "load_balancer" {
       backend machine_config_server
         mode tcp
         balance source
-        server bootstrap ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}:22623
-        server master-1 ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}:22623
-        server master-2 ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}:22623
-        server master-3 ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}:22623
+        server bootstrap bootstrap.${var.cluster_name}.${var.domain_name}:22623
+        server master-1 master-1.${var.cluster_name}.${var.domain_name}:22623
+        server master-2 master-2.${var.cluster_name}.${var.domain_name}:22623
+        server master-3 master-3.${var.cluster_name}.${var.domain_name}:22623
 
       frontend ingress_http
         mode tcp
@@ -286,8 +375,8 @@ resource "ibm_is_instance" "load_balancer" {
 
       backend ingress_http
         mode tcp
-        server worker-1 ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}:80
-        server worker-2 ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}:80
+        server worker-1 worker-1.${var.cluster_name}.${var.domain_name}:80
+        server worker-2 worker-2.${var.cluster_name}.${var.domain_name}:80
 
       frontend ingress_https
         mode tcp
@@ -297,31 +386,31 @@ resource "ibm_is_instance" "load_balancer" {
 
       backend ingress_https
         mode tcp
-        server worker-1 ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}:443
-        server worker-2 ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}:443
+        server worker-1 worker-1.${var.cluster_name}.${var.domain_name}:443
+        server worker-2 worker-2.${var.cluster_name}.${var.domain_name}:443
     EOT
   }
 }
 
 locals {
   hostname_records = {
-    "${ibm_is_instance.installer.name}.${var.cluster_name}"     = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.load_balancer.name}.${var.cluster_name}" = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.bootstrap.name}.${var.cluster_name}"     = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}"   = ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}"   = ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}"   = ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}"   = ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address,
-    "${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}"   = ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address
+    "installer.${var.cluster_name}"     = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "load-balancer.${var.cluster_name}" = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "bootstrap.${var.cluster_name}"     = local.bootstrap_pip,
+    "master-1.${var.cluster_name}"      = local.master_1_pip,
+    "master-2.${var.cluster_name}"      = local.master_2_pip,
+    "master-3.${var.cluster_name}"      = local.master_3_pip,
+    "worker-1.${var.cluster_name}"      = local.worker_1_pip,
+    "worker-2.${var.cluster_name}"      = local.worker_2_pip
   }
 
   alias_records = {
-    "api.${var.cluster_name}"     = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}",
-    "api-int.${var.cluster_name}" = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}",
-    "*.apps.${var.cluster_name}"  = "${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}",
-    "etcd-0.${var.cluster_name}"  = "${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}",
-    "etcd-1.${var.cluster_name}"  = "${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}",
-    "etcd-2.${var.cluster_name}"  = "${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}"
+    "api.${var.cluster_name}"     = "load-balancer.${var.cluster_name}.${var.domain_name}",
+    "api-int.${var.cluster_name}" = "load-balancer.${var.cluster_name}.${var.domain_name}",
+    "*.apps.${var.cluster_name}"  = "load-balancer.${var.cluster_name}.${var.domain_name}",
+    "etcd-0.${var.cluster_name}"  = "master-1.${var.cluster_name}.${var.domain_name}",
+    "etcd-1.${var.cluster_name}"  = "master-2.${var.cluster_name}.${var.domain_name}",
+    "etcd-2.${var.cluster_name}"  = "master-3.${var.cluster_name}.${var.domain_name}"
   }
 }
 
@@ -370,9 +459,9 @@ resource "ibm_dns_resource_record" "srv_records" {
 #       bastion_user        = "root"
 #       bastion_private_key = file( var.bastion_key )
 #       bastion_host        = module.vpc.bastion_fip
-#       host                = ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address
+#       host                = local.bootstrap_pip
 #       user                = "root"
-#       private_key         = file( local.vpc_key )
+#       private_key         = file( var.cluster_key )
 #     }
 #
 #     inline = [
@@ -394,7 +483,7 @@ resource "ibm_dns_resource_record" "srv_records" {
 #       bastion_host        = module.vpc.bastion_fip
 #       host                = ibm_is_instance.master[ count.index ].primary_network_interface[ 0 ].primary_ipv4_address
 #       user                = "root"
-#       private_key         = file( local.vpc_key )
+#       private_key         = file( var.cluster_key )
 #     }
 #
 #     inline = [
@@ -411,7 +500,7 @@ resource "ibm_dns_resource_record" "srv_records" {
 #   profile        = "bx2-2x8"
 #   vpc            = module.vpc.id
 #   zone           = module.vpc.vpc_subnet.zone
-#   keys           = [ ibm_is_ssh_key.vpc_key.id ]
+#   keys           = [ ibm_is_ssh_key.cluster_key.id ]
 #   resource_group = data.ibm_resource_group.resource_group.id
 #
 #   primary_network_interface {
@@ -427,7 +516,7 @@ resource "ibm_dns_resource_record" "srv_records" {
 #     bastion_host        = module.vpc.bastion_fip
 #     host                = ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address
 #     user                = "root"
-#     private_key         = file( local.vpc_key )
+#     private_key         = file( var.cluster_key )
 #   }
 #
 #   provisioner "remote-exec" {
@@ -453,9 +542,9 @@ resource "ibm_dns_resource_record" "srv_records" {
 #       host-record=api.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
 #       host-record=api-int.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
 #       host-record=*.apps.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address}
-#       host-record=etcd-0.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address}
-#       host-record=etcd-1.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address}
-#       host-record=etcd-2.${var.cluster_name}.${var.domain_name}.,${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address}
+#       host-record=etcd-0.${var.cluster_name}.${var.domain_name}.,${local.master_1_pip}
+#       host-record=etcd-1.${var.cluster_name}.${var.domain_name}.,${local.master_2_pip}
+#       host-record=etcd-2.${var.cluster_name}.${var.domain_name}.,${local.master_3_pip}
 #       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-0.${var.cluster_name}.${var.domain_name},2380,0,10
 #       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-1.${var.cluster_name}.${var.domain_name},2380,0,10
 #       srv-host=_etcd-server-ssl._tcp.${var.cluster_name}.${var.domain_name}.,etcd-2.${var.cluster_name}.${var.domain_name},2380,0,10
@@ -465,15 +554,15 @@ resource "ibm_dns_resource_record" "srv_records" {
 #   provisioner "file" {
 #     destination = "/etc/dnsmasq.hosts"
 #     content = <<-EOT
-#       ${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.installer.name}.${var.cluster_name}.${var.domain_name}          in.${var.cluster_name}.${var.domain_name}
-#       ${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.load_balancer.name}.${var.cluster_name}.${var.domain_name}  lb.${var.cluster_name}.${var.domain_name}
+#       ${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} installer.${var.cluster_name}.${var.domain_name}          in.${var.cluster_name}.${var.domain_name}
+#       ${ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address} load-balancer.${var.cluster_name}.${var.domain_name}  lb.${var.cluster_name}.${var.domain_name}
 #       ${ibm_is_instance.nameserver.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.nameserver.name}.${var.cluster_name}.${var.domain_name}        ns.${var.cluster_name}.${var.domain_name}
-#       ${ibm_is_instance.bootstrap.primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.bootstrap.name}.${var.cluster_name}.${var.domain_name}          bs.${var.cluster_name}.${var.domain_name}
-#       ${ibm_is_instance.master[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 0 ].name}.${var.cluster_name}.${var.domain_name}      m1.${var.cluster_name}.${var.domain_name}
-#       ${ibm_is_instance.master[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 1 ].name}.${var.cluster_name}.${var.domain_name}      m2.${var.cluster_name}.${var.domain_name}
-#       ${ibm_is_instance.master[ 2 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.master[ 2 ].name}.${var.cluster_name}.${var.domain_name}      m3.${var.cluster_name}.${var.domain_name}
-#       ${ibm_is_instance.worker[ 0 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 0 ].name}.${var.cluster_name}.${var.domain_name}      w1.${var.cluster_name}.${var.domain_name}
-#       ${ibm_is_instance.worker[ 1 ].primary_network_interface[ 0 ].primary_ipv4_address} ${ibm_is_instance.worker[ 1 ].name}.${var.cluster_name}.${var.domain_name}      w2.${var.cluster_name}.${var.domain_name}
+#       ${local.bootstrap_pip} bootstrap.${var.cluster_name}.${var.domain_name}          bs.${var.cluster_name}.${var.domain_name}
+#       ${local.master_1_pip} master-1.${var.cluster_name}.${var.domain_name}      m1.${var.cluster_name}.${var.domain_name}
+#       ${local.master_2_pip} master-2.${var.cluster_name}.${var.domain_name}      m2.${var.cluster_name}.${var.domain_name}
+#       ${local.master_3_pip} master-3.${var.cluster_name}.${var.domain_name}      m3.${var.cluster_name}.${var.domain_name}
+#       ${local.worker_1_pip} worker-1.${var.cluster_name}.${var.domain_name}      w1.${var.cluster_name}.${var.domain_name}
+#       ${local.worker_2_pip} worker-2.${var.cluster_name}.${var.domain_name}      w2.${var.cluster_name}.${var.domain_name}
 #     EOT
 #   }
 #

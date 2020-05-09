@@ -8,6 +8,8 @@ openshift_etc=${openshift_home}/etc
 openshift_shared=${openshift_home}/shared
 openshift_rhcos=${openshift_shared}/rhcos
 
+apt install -qq -y jq
+
 mkdir -p ${openshift_home} ${openshift_bin} ${openshift_etc} ${openshift_shared} ${openshift_rhcos}
 
 sintra_public_dir=/var/sinatra/www
