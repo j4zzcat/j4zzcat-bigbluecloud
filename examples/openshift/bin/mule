@@ -224,9 +224,9 @@ class Mule
         exec '/bin/bash'
 
       elsif options[ 'env' ]
-        print "export IBMCLOUD_API_KEY=$(security find-generic-password -l 'ibmcloud-api-key' -w)"
-        print "export IAAS_CLASSIC_USERNAME=$(security find-generic-password -l 'ibmcloud-iaas-classic-api-key' | awk -F '=' '/acct/{print substr($2,2,length($2)-2)}')"
-        print "export IAAS_CLASSIC_API_KEY=$(security find-generic-password -l 'ibmcloud-iaas-classic-api-key' -w)"
+        puts 'export IBMCLOUD_API_KEY=$(security find-generic-password -l ibmcloud-api-key -w)'
+        puts 'export IAAS_CLASSIC_USERNAME=$(security find-generic-password -l ibmcloud-iaas-classic-api-key | awk -F \'=\' \'/acct/{print substr($2,2,length($2)-2)}\')'
+        puts 'export IAAS_CLASSIC_API_KEY=$(security find-generic-password -l ibmcloud-iaas-classic-api-key -w)'
 
       elsif options[ 'ssh' ]
         host = options[ '<host>' ]

@@ -1,13 +1,13 @@
-variable cluster_name         {}
-variable domain_name          {}
-variable region_name          {}
-variable zone_name            {}
-variable data_center_name     {}
-variable resource_group_name  {}
-variable transient_gateway_id {}
-variable bastion_key          {}
-variable cluster_key          {}
-variable pull_secret          {}
+variable cluster_name        {}
+variable domain_name         {}
+variable region_name         {}
+variable zone_name           {}
+variable data_center_name    {}
+variable resource_group_name {}
+variable transit_gateway_id  {}
+variable bastion_key         {}
+variable cluster_key         {}
+variable pull_secret         {}
 
 provider "ibm" {
   region     = var.region_name
@@ -20,7 +20,9 @@ locals {
 
 resource "null_resource" "clean_topology_file" {
   provisioner "local-exec" {
-    command = "rm -f ${local.topology_file}"
+    command = <<-EOT
+      rm -f ${local.topology_file}
+    EOT
   }
 }
 
@@ -36,7 +38,6 @@ module "vpc" {
   name                = var.cluster_name
   zone_name           = var.zone_name
   classic_access      = false
-  transit_gateway     = false
   dns_service         = true
   dns_domain_name     = var.domain_name
   bastion             = true
@@ -44,11 +45,11 @@ module "vpc" {
   resource_group_id   = data.ibm_resource_group.resource_group.id
 }
 
-resource "null_resource" "transient_gateway_add_vpc" {
+resource "null_resource" "transit_gateway_add_connection_vpc" {
   provisioner "local-exec" {
     command = <<-EOT
-      ibmcloud login -r ${var.region_name}
-      ibmcloud tg cc ${var.transient_gateway_id} --name ${var.cluster_name} --network-id ${module.vpc.crn} --network-type vpc
+      ibmcloud login -r ${var.region_name} \
+        && ibmcloud tg cc ${var.transit_gateway_id} --name ${var.cluster_name} --network-id ${module.vpc.crn} --network-type vpc
     EOT
   }
 }
@@ -87,10 +88,9 @@ resource "ibm_compute_vm_instance" "default_gateway" {
   os_reference_code    = "UBUNTU_18_64"
   datacenter           = var.data_center_name
   hourly_billing       = true
+  local_disk           = false
   private_network_only = false
-  transient            = true
-  # cores                = 1
-  # memory               = 1024
+  flavor_key_name      = "B1_1X2X25"
 
   private_security_group_ids = [
     data.ibm_security_group.allow_all.id,
@@ -114,10 +114,8 @@ resource "ibm_compute_vm_instance" "default_gateway" {
 
   provisioner "remote-exec" {
     inline = [
-      "ufw enable",
+      "yes 'y' | ufw enable",
       "echo 'net/ipv4/ip_forward=1' >> /etc/ufw/sysctl.conf",
-      "touch /etc/rc.local",
-      "chmod 755 /etc/rc.local",
       "echo iptables -P INPUT DROP >>/etc/rc.local",
       "echo iptables -P FORWARD DROP >>/etc/rc.local",
       "echo iptables -A INPUT -i lo -j ACCEPT >>/etc/rc.local",
@@ -127,7 +125,9 @@ resource "ibm_compute_vm_instance" "default_gateway" {
       "echo iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT >>/etc/rc.local",
       "echo iptables -A FORWARD -i eth1 -o eth0 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT >>/etc/rc.local",
       "echo iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE >>/etc/rc.local",
-      "echo exit 0 >>/etc/rc.local"
+      "echo ufw allow ssh >>/etc/rc.local" ,
+      "echo exit 0 >>/etc/rc.local",
+      "chmod 755 /etc/rc.local"
     ]
   }
 }
@@ -139,9 +139,8 @@ resource "ibm_compute_vm_instance" "bootstrap" {
   datacenter           = var.data_center_name
   hourly_billing       = true
   private_network_only = true
-  transient            = true
-  # cores                = 1
-  # memory               = 1024
+  cores                = 1
+  memory               = 1024
 
   private_security_group_ids = [
     data.ibm_security_group.allow_all.id,
@@ -178,9 +177,8 @@ resource "ibm_compute_vm_instance" "master" {
   datacenter           = var.data_center_name
   hourly_billing       = true
   private_network_only = true
-  transient            = true
-  # cores                = 1
-  # memory               = 1024
+  cores                = 1
+  memory               = 1024
 
   private_security_group_ids = [
     data.ibm_security_group.allow_all.id,
@@ -217,9 +215,8 @@ resource "ibm_compute_vm_instance" "worker" {
   datacenter           = var.data_center_name
   hourly_billing       = true
   private_network_only = true
-  transient            = true
-  # cores                = 1
-  # memory               = 1024
+  cores                = 1
+  memory               = 1024
 
   ssh_key_ids = [
     ibm_compute_ssh_key.cluster_key.id
@@ -256,7 +253,8 @@ locals {
 }
 
 resource "local_file" "topology_update_1" {
-  filename = local.topology_file
+  filename        = local.topology_file
+  file_permission = "0644"
   content  = <<-EOT
     bastion_fip         = ${local.bastion_fip}
     default_gateway_fip = ${local.default_gateway_fip}
