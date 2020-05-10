@@ -251,34 +251,6 @@ resource "ibm_compute_vm_instance" "worker" {
   }
 }
 
-locals {
-  bastion_fip         = "${module.vpc.bastion_fip}"
-  default_gateway_fip = "${ibm_compute_vm_instance.default_gateway.ipv4_address}"
-  default_gateway_pip = "${ibm_compute_vm_instance.default_gateway.ipv4_address_private}"
-  bootstrap_pip       = "${ibm_compute_vm_instance.bootstrap.ipv4_address_private}"
-  master_1_pip        = "${ibm_compute_vm_instance.master[ 0 ].ipv4_address_private}"
-  master_2_pip        = "${ibm_compute_vm_instance.master[ 1 ].ipv4_address_private}"
-  master_3_pip        = "${ibm_compute_vm_instance.master[ 2 ].ipv4_address_private}"
-  worker_1_pip        = "${ibm_compute_vm_instance.worker[ 0 ].ipv4_address_private}"
-  worker_2_pip        = "${ibm_compute_vm_instance.worker[ 1 ].ipv4_address_private}"
-}
-
-resource "local_file" "topology_update_1" {
-  filename        = local.topology_file
-  file_permission = "0644"
-  content = <<-EOT
-    bastion_fip         = ${local.bastion_fip}
-    default_gateway_fip = ${local.default_gateway_fip}
-    default_gateway_pip = ${local.default_gateway_pip}
-    bootstrap_pip       = ${local.bootstrap_pip}
-    master_1_pip        = ${local.master_1_pip}
-    master_2_pip        = ${local.master_2_pip}
-    master_3_pip        = ${local.master_3_pip}
-    worker_1_pip        = ${local.worker_1_pip}
-    worker_2_pip        = ${local.worker_2_pip}
-  EOT
-}
-
 ####
 # Provision the install-server
 #
@@ -468,9 +440,41 @@ resource "ibm_is_instance" "load_balancer" {
 }
 
 locals {
+  bastion_fip         = module.vpc.bastion_fip
+  installer_pip       = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address
+  load_balancer_pip   = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address
+  default_gateway_fip = ibm_compute_vm_instance.default_gateway.ipv4_address
+  default_gateway_pip = ibm_compute_vm_instance.default_gateway.ipv4_address_private
+  bootstrap_pip       = ibm_compute_vm_instance.bootstrap.ipv4_address_private
+  master_1_pip        = ibm_compute_vm_instance.master[ 0 ].ipv4_address_private
+  master_2_pip        = ibm_compute_vm_instance.master[ 1 ].ipv4_address_private
+  master_3_pip        = ibm_compute_vm_instance.master[ 2 ].ipv4_address_private
+  worker_1_pip        = ibm_compute_vm_instance.worker[ 0 ].ipv4_address_private
+  worker_2_pip        = ibm_compute_vm_instance.worker[ 1 ].ipv4_address_private
+}
+
+resource "local_file" "topology_update_1" {
+  filename        = local.topology_file
+  file_permission = "0644"
+  content = <<-EOT
+    bastion_fip         = local.bastion_fip
+    installer_pip       = local.installer_pip
+    load_balancer_pip   = local.load_balancer_pip
+    default_gateway_fip = local.default_gateway_fip
+    default_gateway_pip = local.default_gateway_pip
+    bootstrap_pip       = local.bootstrap_pip
+    master_1_pip        = local.master_1_pip
+    master_2_pip        = local.master_2_pip
+    master_3_pip        = local.master_3_pip
+    worker_1_pip        = local.worker_1_pip
+    worker_2_pip        = local.worker_2_pip
+  EOT
+}
+
+locals {
   hostname_records = {
-    "installer.${var.cluster_name}"     = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address,
-    "load-balancer.${var.cluster_name}" = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "installer.${var.cluster_name}"     = local.installer_pip,
+    "load-balancer.${var.cluster_name}" = local.load_balancer_pip,
     "bootstrap.${var.cluster_name}"     = local.bootstrap_pip,
     "master-1.${var.cluster_name}"      = local.master_1_pip,
     "master-2.${var.cluster_name}"      = local.master_2_pip,
