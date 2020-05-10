@@ -134,6 +134,10 @@ resource "ibm_compute_vm_instance" "default_gateway" {
     EOT
     ]
   }
+
+  provisioner "remote-exec" {
+    script = "/h/repo/lib/scripts/ubuntu_18/do_reboot.sh"
+  }
 }
 
 # iptables -A FORWARD -i eth0 -d ${module.vpc.vpc_subnet.ipv4_cidr_block} -o eth0 -j ACCEPT
@@ -273,4 +277,252 @@ resource "local_file" "topology_update_1" {
     worker_1_pip        = ${local.worker_1_pip}
     worker_2_pip        = ${local.worker_2_pip}
   EOT
+}
+
+####
+# Provision the install-server
+#
+
+data "ibm_is_image" "ubuntu_1804" {
+  name = "ibm-ubuntu-18-04-64"
+}
+
+resource "ibm_is_instance" "installer" {
+  name           = "installer"
+  image          = data.ibm_is_image.ubuntu_1804.id
+  profile        = "bx2-2x8"
+  vpc            = module.vpc.id
+  zone           = module.vpc.vpc_subnet.zone
+  keys           = [ ibm_is_ssh_key.cluster_key.id ]
+  resource_group = data.ibm_resource_group.resource_group.id
+
+  primary_network_interface {
+    name            = "eth0"
+    subnet          = module.vpc.vpc_subnet.id
+    security_groups = [ module.vpc.security_groups[ "vpc_default" ] ]
+  }
+
+  connection {
+    type                = "ssh"
+    bastion_user        = "root"
+    bastion_private_key = file( var.bastion_key )
+    bastion_host        = module.vpc.bastion_fip
+    host                = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address
+    user                = "root"
+    private_key         = file( var.cluster_key )
+  }
+
+  provisioner "remote-exec" {
+    scripts = [
+      "/h/repo/lib/scripts/ubuntu_18/upgrade_os.sh",
+      "/h/repo/lib/scripts/ubuntu_18/config_resolve.sh",
+      "/h/repo/lib/scripts/ubuntu_18/install_sinatra.sh",
+      "${path.module}/../scripts/install_openshift_client.sh" ]
+  }
+
+  provisioner "file" {
+    source      = var.pull_secret
+    destination = "/opt/openshift/etc/pull_secret.txt"
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/main.auto.tfvars"
+    destination = "/opt/openshift/etc/main.auto.tfvars"
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      cat ${path.module}/../scripts/config_openshift_installation.sh \
+        | ssh -o StrictHostKeyChecking=no \
+              -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=no -i ${var.bastion_key} root@${module.vpc.bastion_fip}" -i ${var.cluster_key} root@${ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address} \
+              bash -s - ${var.cluster_name} ${var.domain_name}
+    EOT
+  }
+
+  provisioner "file" {
+    source = "${path.module}/../helpers/bootstrap_helper.rb"
+    destination = "/opt/openshift/bin/bootstrap_helper.rb"
+  }
+
+  provisioner "remote-exec" {
+    script = "/h/repo/lib/scripts/ubuntu_18/do_reboot.sh"
+  }
+}
+
+resource "ibm_is_instance" "load_balancer" {
+  name           = "load-balancer"
+  image          = data.ibm_is_image.ubuntu_1804.id
+  profile        = "bx2-2x8"
+  vpc            = module.vpc.id
+  zone           = module.vpc.vpc_subnet.zone
+  keys           = [ ibm_is_ssh_key.cluster_key.id ]
+  resource_group = data.ibm_resource_group.resource_group.id
+
+  primary_network_interface {
+    name            = "eth0"
+    subnet          = module.vpc.vpc_subnet.id
+    security_groups = [ module.vpc.security_groups[ "vpc_default" ] ]
+  }
+
+  connection {
+    type                = "ssh"
+    bastion_user        = "root"
+    bastion_private_key = file( var.bastion_key )
+    bastion_host        = module.vpc.bastion_fip
+    host                = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address
+    user                = "root"
+    private_key         = file( var.cluster_key )
+  }
+
+  provisioner "remote-exec" {
+    scripts = [
+      "/h/repo/lib/scripts/ubuntu_18/upgrade_os.sh",
+      "/h/repo/lib/scripts/ubuntu_18/install_haproxy.sh",
+      "/h/repo/lib/scripts/ubuntu_18/config_resolve.sh" ]
+  }
+
+  provisioner "file" {
+    destination = "/etc/haproxy/haproxy.cfg"
+
+    content = <<-EOT
+      global
+        log 127.0.0.1 local2
+        chroot /var/lib/haproxy
+        pidfile /var/run/haproxy.pid
+        maxconn 4000
+        user haproxy
+        group haproxy
+        daemon
+        stats socket /var/lib/haproxy/stats
+        ssl-default-bind-ciphers PROFILE=SYSTEM
+        ssl-default-server-ciphers PROFILE=SYSTEM
+
+      defaults
+        mode http
+        log global
+        option httplog
+        option dontlognull
+        option http-server-close
+        option redispatch
+        retries 3
+        timeout http-request 10s
+        timeout queue 1m
+        timeout connect 10s
+        timeout client 1m
+        timeout server 1m
+        timeout http-keep-alive 10s
+        timeout check 10s
+        maxconn 3000
+
+      frontend openshift_api_server
+        mode tcp
+        option tcplog
+        bind *:6443
+        default_backend openshift_api_server
+
+      backend openshift_api_server
+        mode tcp
+        balance source
+        server bootstrap bootstrap.${var.cluster_name}.${var.domain_name}:6443
+        server master-1 master-1.${var.cluster_name}.${var.domain_name}:6443
+        server master-2 master-2.${var.cluster_name}.${var.domain_name}:6443
+        server master-3 master-3.${var.cluster_name}.${var.domain_name}:6443
+
+      frontend machine_config_server
+        mode tcp
+        option tcplog
+        bind *:22623
+        default_backend machine_config_server
+
+      backend machine_config_server
+        mode tcp
+        balance source
+        server bootstrap bootstrap.${var.cluster_name}.${var.domain_name}:22623
+        server master-1 master-1.${var.cluster_name}.${var.domain_name}:22623
+        server master-2 master-2.${var.cluster_name}.${var.domain_name}:22623
+        server master-3 master-3.${var.cluster_name}.${var.domain_name}:22623
+
+      frontend ingress_http
+        mode tcp
+        option tcplog
+        bind *:80
+        default_backend ingress_http
+
+      backend ingress_http
+        mode tcp
+        server worker-1 worker-1.${var.cluster_name}.${var.domain_name}:80
+        server worker-2 worker-2.${var.cluster_name}.${var.domain_name}:80
+
+      frontend ingress_https
+        mode tcp
+        option tcplog
+        bind *:443
+        default_backend ingress_https
+
+      backend ingress_https
+        mode tcp
+        server worker-1 worker-1.${var.cluster_name}.${var.domain_name}:443
+        server worker-2 worker-2.${var.cluster_name}.${var.domain_name}:443
+    EOT
+  }
+}
+
+locals {
+  hostname_records = {
+    "installer.${var.cluster_name}"     = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "load-balancer.${var.cluster_name}" = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address,
+    "bootstrap.${var.cluster_name}"     = local.bootstrap_pip,
+    "master-1.${var.cluster_name}"      = local.master_1_pip,
+    "master-2.${var.cluster_name}"      = local.master_2_pip,
+    "master-3.${var.cluster_name}"      = local.master_3_pip,
+    "worker-1.${var.cluster_name}"      = local.worker_1_pip,
+    "worker-2.${var.cluster_name}"      = local.worker_2_pip
+  }
+
+  alias_records = {
+    "api.${var.cluster_name}"     = "load-balancer.${var.cluster_name}.${var.domain_name}",
+    "api-int.${var.cluster_name}" = "load-balancer.${var.cluster_name}.${var.domain_name}",
+    "*.apps.${var.cluster_name}"  = "load-balancer.${var.cluster_name}.${var.domain_name}",
+    "etcd-0.${var.cluster_name}"  = "master-1.${var.cluster_name}.${var.domain_name}",
+    "etcd-1.${var.cluster_name}"  = "master-2.${var.cluster_name}.${var.domain_name}",
+    "etcd-2.${var.cluster_name}"  = "master-3.${var.cluster_name}.${var.domain_name}"
+  }
+}
+
+resource "ibm_dns_resource_record" "hostname_records" {
+  count = length( local.hostname_records )
+
+  instance_id = module.vpc.dns_service_instance_id
+  zone_id     = module.vpc.dns_service_zone_id
+  type        = "A"
+  name        = keys( local.hostname_records )[ count.index ]
+  rdata       = values( local.hostname_records )[ count.index ]
+  ttl         = 3600
+}
+
+resource "ibm_dns_resource_record" "alias_records" {
+  count = length( local.alias_records )
+
+  instance_id = module.vpc.dns_service_instance_id
+  zone_id     = module.vpc.dns_service_zone_id
+  type        = "CNAME"
+  name        = keys( local.alias_records )[ count.index ]
+  rdata       = values( local.alias_records )[ count.index ]
+  ttl         = 3600
+}
+
+resource "ibm_dns_resource_record" "srv_records" {
+  count = 3
+
+  instance_id = module.vpc.dns_service_instance_id
+  zone_id     = module.vpc.dns_service_zone_id
+  type        = "SRV"
+  name        = "${var.cluster_name}.${var.domain_name}"
+  rdata       = "etcd-${count.index}.${var.cluster_name}.${var.domain_name}"
+  priority    = 0
+  weight      = 10
+  port        = 2380
+  service     = "_etcd-server-ssl"
+  protocol    = "tcp"
+  ttl         = 43200
 }
