@@ -1,0 +1,9 @@
+bastion_fip         = 52.116.192.21
+default_gateway_fip = 52.117.146.35
+default_gateway_pip = 10.221.50.217
+bootstrap_pip       = 10.221.50.235
+master_1_pip        = 10.221.50.226
+master_2_pip        = 10.221.50.198
+master_3_pip        = 10.221.50.242
+worker_1_pip        = 10.221.50.221
+worker_2_pip        = 10.221.50.236
