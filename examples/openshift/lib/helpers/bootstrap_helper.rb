@@ -139,7 +139,7 @@ class BootstrapServer
           coreos.inst.install_dev=#{blk_slash} \
           coreos.inst.image_url=#{OPENSHIFT_WWW}/rhcos/rhcos-4.3.8-x86_64-metal.x86_64.raw.gz \
           coreos.inst.ignition_url=#{OPENSHIFT_WWW}/install/#{openshift_node_type}.ign \
-          rd.neednet=1 console=tty0 console=ttyS0 \
+          rd.neednet=1 console=tty0 console=ttyS0 #{blk_slash.include? 'x' ? 'xen' : ''} \
           ip=#{net_ip}::#{net_gateway}:#{net_netmask}:#{net_fqhn}:#{net_interface}:none nameserver=#{DNS_SERVICE_NS1}
       EOT
 

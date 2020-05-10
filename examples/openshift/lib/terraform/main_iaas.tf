@@ -71,7 +71,7 @@ resource "ibm_compute_ssh_key" "cluster_key" {
 }
 
 ###
-# Maters, workers and bootstrap
+# Masters, workers and bootstrap
 #
 
 data "ibm_security_group" "allow_all" {
@@ -90,7 +90,8 @@ resource "ibm_compute_vm_instance" "default_gateway" {
   hourly_billing       = true
   local_disk           = false
   private_network_only = false
-  flavor_key_name      = "B1_1X2X25"
+  cores                = 1
+  memory               = 1024
 
   private_security_group_ids = [
     data.ibm_security_group.allow_all.id,
@@ -113,29 +114,30 @@ resource "ibm_compute_vm_instance" "default_gateway" {
   }
 
   provisioner "remote-exec" {
-    inline = [ <<-EOT
+    inline = [<<-EOT
       yes 'y' | ufw enable
       echo 'net/ipv4/ip_forward=1' >> /etc/ufw/sysctl.conf
-      cat <<EOT1 >>/etc/rc.local
+      cat <<EOF >>/etc/rc.local
         iptables -P INPUT DROP
         iptables -P FORWARD DROP
         iptables -A INPUT -i lo -j ACCEPT
         iptables -A INPUT -i eth0 -j ACCEPT
         iptables -A INPUT -i eth1 -m conntrack --ctstate ESTABLISHEDRELATED -j ACCEPT
         iptables -A FORWARD -i eth0 -d 10.0.0.0/8 -o eth0 -j ACCEPT
-        iptables -A FORWARD -i eth0 -d ${module.vpc.vpc_subnet.ipv4_cidr_block} -o eth0 -j ACCEPT
-        iptables -A FORWARD -i eth0 -d ${module.vpc.bastion_subnet.ipv4_cidr_block} -o eth0 -j ACCEPT
         iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT
         iptables -A FORWARD -i eth1 -o eth0 -m conntrack --ctstate ESTABLISHEDRELATED -j ACCEPT
         iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
         ufw allow ssh
         exit 0
-      EOT1
+      EOF
       chmod 755 /etc/rc.local
     EOT
     ]
   }
 }
+
+# iptables -A FORWARD -i eth0 -d ${module.vpc.vpc_subnet.ipv4_cidr_block} -o eth0 -j ACCEPT
+# iptables -A FORWARD -i eth0 -d ${module.vpc.bastion_subnet.ipv4_cidr_block} -o eth0 -j ACCEPT
 
 # resource "ibm_compute_vm_instance" "bootstrap" {
 #   hostname             = "bootstrap"
@@ -260,7 +262,7 @@ resource "ibm_compute_vm_instance" "default_gateway" {
 # resource "local_file" "topology_update_1" {
 #   filename        = local.topology_file
 #   file_permission = "0644"
-#   content  = <<-EOT
+#   content = <<-EOT
 #     bastion_fip         = ${local.bastion_fip}
 #     default_gateway_fip = ${local.default_gateway_fip}
 #     default_gateway_pip = ${local.default_gateway_pip}
