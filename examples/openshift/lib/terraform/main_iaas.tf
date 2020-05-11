@@ -83,8 +83,8 @@ data "ibm_security_group" "allow_outbound" {
     name = "allow_outbound"
 }
 
-resource "ibm_compute_vm_instance" "default_gateway" {
-  hostname             = "default-gateway"
+resource "ibm_compute_vm_instance" "nat_server" {
+  hostname             = "nat-server"
   domain               = "${var.cluster_name}.${var.domain_name}"
   os_reference_code    = "UBUNTU_18_64"
   datacenter           = var.data_center_name
@@ -115,35 +115,12 @@ resource "ibm_compute_vm_instance" "default_gateway" {
   }
 
   provisioner "remote-exec" {
-    inline = [<<-EOT
-      yes 'y' | ufw enable
-      ufw allow ssh
-      echo 'net/ipv4/ip_forward=1' >> /etc/ufw/sysctl.conf
-      cat <<EOF >>/etc/rc.local
-        iptables -P INPUT DROP
-        iptables -P FORWARD DROP
-        iptables -A INPUT -i lo -j ACCEPT
-        iptables -A INPUT -i eth0 -j ACCEPT
-        iptables -A INPUT -i eth1 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-        iptables -A FORWARD -i eth0 -d 10.0.0.0/8 -o eth0 -j ACCEPT
-        iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT
-        iptables -A FORWARD -i eth1 -o eth0 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-        iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
-        ufw allow ssh
-        exit 0
-      EOF
-      chmod 755 /etc/rc.local
-    EOT
-    ]
-  }
-
-  provisioner "remote-exec" {
-    script = "/h/repo/lib/scripts/ubuntu_18/do_reboot.sh"
+    scripts = [
+      "/h/repo/lib/scripts/ubuntu_18/upgrade_os.sh",
+      "/h/repo/lib/scripts/ubuntu_18/install_nat_server.sh",
+      "/h/repo/lib/scripts/ubuntu_18/do_reboot.sh" ]
   }
 }
-
-# iptables -A FORWARD -i eth0 -d ${module.vpc.vpc_subnet.ipv4_cidr_block} -o eth0 -j ACCEPT
-# iptables -A FORWARD -i eth0 -d ${module.vpc.bastion_subnet.ipv4_cidr_block} -o eth0 -j ACCEPT
 
 resource "ibm_compute_vm_instance" "bootstrap" {
   hostname             = "bootstrap"
@@ -176,7 +153,7 @@ resource "ibm_compute_vm_instance" "bootstrap" {
   provisioner "remote-exec" {
     inline = [
       "ip route del default",
-      "ip route add default via ${ibm_compute_vm_instance.default_gateway.ipv4_address_private} dev eth0"
+      "ip route add default via ${ibm_compute_vm_instance.nat_server.ipv4_address_private} dev eth0"
     ]
   }
 }
@@ -214,7 +191,7 @@ resource "ibm_compute_vm_instance" "master" {
   provisioner "remote-exec" {
     inline = [
       "ip route del default",
-      "ip route add default via ${ibm_compute_vm_instance.default_gateway.ipv4_address_private} dev eth0"
+      "ip route add default via ${ibm_compute_vm_instance.nat_server.ipv4_address_private} dev eth0"
     ]
   }
 }
@@ -248,7 +225,7 @@ resource "ibm_compute_vm_instance" "worker" {
   provisioner "remote-exec" {
     inline = [
       "ip route del default",
-      "ip route add default via ${ibm_compute_vm_instance.default_gateway.ipv4_address_private} dev eth0"
+      "ip route add default via ${ibm_compute_vm_instance.nat_server.ipv4_address_private} dev eth0"
     ]
   }
 }
@@ -445,8 +422,8 @@ locals {
   bastion_fip         = module.vpc.bastion_fip
   installer_pip       = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address
   load_balancer_pip   = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address
-  default_gateway_fip = ibm_compute_vm_instance.default_gateway.ipv4_address
-  default_gateway_pip = ibm_compute_vm_instance.default_gateway.ipv4_address_private
+  nat_server_fip = ibm_compute_vm_instance.nat_server.ipv4_address
+  nat_server_pip = ibm_compute_vm_instance.nat_server.ipv4_address_private
   bootstrap_pip       = ibm_compute_vm_instance.bootstrap.ipv4_address_private
   master_1_pip        = ibm_compute_vm_instance.master[ 0 ].ipv4_address_private
   master_2_pip        = ibm_compute_vm_instance.master[ 1 ].ipv4_address_private
@@ -459,17 +436,17 @@ resource "local_file" "topology_update_1" {
   filename        = local.topology_file
   file_permission = "0644"
   content = <<-EOT
-    bastion_fip         = ${local.bastion_fip}
-    installer_pip       = ${local.installer_pip}
-    load_balancer_pip   = ${local.load_balancer_pip}
-    default_gateway_fip = ${local.default_gateway_fip}
-    default_gateway_pip = ${local.default_gateway_pip}
-    bootstrap_pip       = ${local.bootstrap_pip}
-    master_1_pip        = ${local.master_1_pip}
-    master_2_pip        = ${local.master_2_pip}
-    master_3_pip        = ${local.master_3_pip}
-    worker_1_pip        = ${local.worker_1_pip}
-    worker_2_pip        = ${local.worker_2_pip}
+    bastion_fip       = ${local.bastion_fip}
+    installer_pip     = ${local.installer_pip}
+    load_balancer_pip = ${local.load_balancer_pip}
+    nat_server_fip    = ${local.nat_server_fip}
+    nat_server_pip    = ${local.nat_server_pip}
+    bootstrap_pip     = ${local.bootstrap_pip}
+    master_1_pip      = ${local.master_1_pip}
+    master_2_pip      = ${local.master_2_pip}
+    master_3_pip      = ${local.master_3_pip}
+    worker_1_pip      = ${local.worker_1_pip}
+    worker_2_pip      = ${local.worker_2_pip}
   EOT
 }
 
