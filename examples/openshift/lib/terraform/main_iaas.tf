@@ -15,6 +15,7 @@ provider "ibm" {
 }
 
 locals {
+  repo_dir      = "/h/repo"
   topology_file = "/h/repo/examples/openshift/topology"
 }
 
@@ -116,6 +117,7 @@ resource "ibm_compute_vm_instance" "default_gateway" {
   provisioner "remote-exec" {
     inline = [<<-EOT
       yes 'y' | ufw enable
+      ufw allow ssh
       echo 'net/ipv4/ip_forward=1' >> /etc/ufw/sysctl.conf
       cat <<EOF >>/etc/rc.local
         iptables -P INPUT DROP
@@ -252,7 +254,7 @@ resource "ibm_compute_vm_instance" "worker" {
 }
 
 ####
-# Provision the install-server
+# Installer, load_balancer and dns records
 #
 
 data "ibm_is_image" "ubuntu_1804" {
@@ -457,17 +459,17 @@ resource "local_file" "topology_update_1" {
   filename        = local.topology_file
   file_permission = "0644"
   content = <<-EOT
-    bastion_fip         = local.bastion_fip
-    installer_pip       = local.installer_pip
-    load_balancer_pip   = local.load_balancer_pip
-    default_gateway_fip = local.default_gateway_fip
-    default_gateway_pip = local.default_gateway_pip
-    bootstrap_pip       = local.bootstrap_pip
-    master_1_pip        = local.master_1_pip
-    master_2_pip        = local.master_2_pip
-    master_3_pip        = local.master_3_pip
-    worker_1_pip        = local.worker_1_pip
-    worker_2_pip        = local.worker_2_pip
+    bastion_fip         = ${local.bastion_fip}
+    installer_pip       = ${local.installer_pip}
+    load_balancer_pip   = ${local.load_balancer_pip}
+    default_gateway_fip = ${local.default_gateway_fip}
+    default_gateway_pip = ${local.default_gateway_pip}
+    bootstrap_pip       = ${local.bootstrap_pip}
+    master_1_pip        = ${local.master_1_pip}
+    master_2_pip        = ${local.master_2_pip}
+    master_3_pip        = ${local.master_3_pip}
+    worker_1_pip        = ${local.worker_1_pip}
+    worker_2_pip        = ${local.worker_2_pip}
   EOT
 }
 
