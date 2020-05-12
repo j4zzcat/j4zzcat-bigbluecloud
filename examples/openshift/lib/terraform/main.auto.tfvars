@@ -1,5 +1,5 @@
 # required
-cluster_name        = "zelig"
+cluster_name        = "gremlin"
 domain_name         = "blue.cloud"
 region_name         = "us-south"
 zone_name           = "us-south-2"
