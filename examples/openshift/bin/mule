@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-export DOCKER_IMAGE=j4zzcat/ibmcloud-cli:0.4
+export DOCKER_IMAGE=j5zzcat/ibmcloud-cli:latest
 export   C_REPO_DIR=/h/repo
 export    C_CWD_DIR=/h/cwd
 export   C_HOME_DIR=${C_REPO_DIR}/examples/openshift

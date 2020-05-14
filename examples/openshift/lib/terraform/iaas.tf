@@ -1,69 +1,6 @@
-variable cluster_name        {}
-variable domain_name         {}
-variable region_name         {}
-variable zone_name           {}
-variable data_center_name    {}
-variable resource_group_name {}
-variable transit_gateway_id  {}
-variable bastion_key         {}
-variable cluster_key         {}
-variable pull_secret         {}
-
-provider "ibm" {
-  region     = var.region_name
-  generation = 2
-}
-
-locals {
-  repo_dir      = "/h/repo"
-  topology_file = "/h/repo/examples/openshift/topology"
-}
-
-resource "null_resource" "clean_topology_file" {
-  provisioner "local-exec" {
-    command = <<-EOT
-      rm -f ${local.topology_file}
-    EOT
-  }
-}
-
-### --- VPC ---
-
-data "ibm_resource_group" "resource_group" {
-  name = var.resource_group_name
-}
-
-module "vpc" {
-  source = "/h/repo/lib/terraform/vpc"
-
-  name                = var.cluster_name
-  zone_name           = var.zone_name
-  classic_access      = false
-  dns_service         = true
-  dns_domain_name     = var.domain_name
-  bastion             = true
-  bastion_key         = var.bastion_key
-  resource_group_id   = data.ibm_resource_group.resource_group.id
-}
-
-resource "null_resource" "transit_gateway_add_connection_vpc" {
-  provisioner "local-exec" {
-    command = <<-EOT
-      ibmcloud login -r ${var.region_name} \
-        && ibmcloud tg cc ${var.transit_gateway_id} --name ${var.cluster_name} --network-id ${module.vpc.crn} --network-type vpc
-    EOT
-  }
-}
-
 ####
 # Cluster Key
 #
-
-resource "ibm_is_ssh_key" "cluster_key" {
-  name           = "${module.vpc.name}-cluster-key"
-  public_key     = file( "${var.cluster_key}.pub" )
-  resource_group = data.ibm_resource_group.resource_group.id
-}
 
 resource "ibm_compute_ssh_key" "cluster_key" {
   label      = "${var.cluster_name}-cluster-key"
@@ -116,9 +53,9 @@ resource "ibm_compute_vm_instance" "nat_server" {
 
   provisioner "remote-exec" {
     scripts = [
-      "/h/repo/lib/scripts/ubuntu_18/upgrade_os.sh",
-      "/h/repo/lib/scripts/ubuntu_18/install_nat_server.sh",
-      "/h/repo/lib/scripts/ubuntu_18/do_reboot.sh" ]
+      "${local.repo_dir}/lib/scripts/ubuntu_18/upgrade_os.sh",
+      "${local.repo_dir}/lib/scripts/ubuntu_18/install_nat_server.sh",
+      "${local.repo_dir}/lib/scripts/ubuntu_18/do_reboot.sh" ]
   }
 }
 
@@ -450,27 +387,63 @@ resource "local_file" "topology_update_1" {
   EOT
 }
 
+####
+# DNS Records
+#
+
 locals {
   hostname_records = {
-    "installer.${var.cluster_name}"     = local.installer_pip,
-    "load-balancer.${var.cluster_name}" = local.load_balancer_pip,
-    "bootstrap.${var.cluster_name}"     = local.bootstrap_pip,
-    "master-1.${var.cluster_name}"      = local.master_1_pip,
-    "master-2.${var.cluster_name}"      = local.master_2_pip,
-    "master-3.${var.cluster_name}"      = local.master_3_pip,
-    "worker-1.${var.cluster_name}"      = local.worker_1_pip,
-    "worker-2.${var.cluster_name}"      = local.worker_2_pip
+    "installer"     = local.installer_pip,
+    "load-balancer" = local.load_balancer_pip,
+    "bootstrap"     = local.bootstrap_pip,
+    "master-1"      = local.master_1_pip,
+    "master-2"      = local.master_2_pip,
+    "master-3"      = local.master_3_pip,
+    "worker-1"      = local.worker_1_pip,
+    "worker-2"      = local.worker_2_pip
   }
 
   alias_records = {
-    "api.${var.cluster_name}"     = "load-balancer.${var.cluster_name}.${var.domain_name}",
-    "api-int.${var.cluster_name}" = "load-balancer.${var.cluster_name}.${var.domain_name}",
-    "*.apps.${var.cluster_name}"  = "load-balancer.${var.cluster_name}.${var.domain_name}",
-    "etcd-0.${var.cluster_name}"  = "master-1.${var.cluster_name}.${var.domain_name}",
-    "etcd-1.${var.cluster_name}"  = "master-2.${var.cluster_name}.${var.domain_name}",
-    "etcd-2.${var.cluster_name}"  = "master-3.${var.cluster_name}.${var.domain_name}"
+    "api"     = "load-balancer.${var.cluster_name}.${var.domain_name}",
+    "api-int" = "load-balancer.${var.cluster_name}.${var.domain_name}",
+    "*.apps"  = "load-balancer.${var.cluster_name}.${var.domain_name}",
+    "etcd-0"  = "master-1.${var.cluster_name}.${var.domain_name}",
+    "etcd-1"  = "master-2.${var.cluster_name}.${var.domain_name}",
+    "etcd-2"  = "master-3.${var.cluster_name}.${var.domain_name}"
   }
 }
+
+####
+# VPC DNS Service
+#
+
+resource "ibm_resource_instance" "dns_service" {
+  count = var.dns_service ? 1 : 0
+
+  name              = "${var.name}-dns-service"
+  service           = "dns-svcs"
+  plan              = "standard-dns"
+  location          = "global"
+  resource_group_id = var.resource_group_id
+}
+
+resource "ibm_dns_zone" "vpc" {
+  count = var.dns_service ? 1 : 0
+
+  name        = var.dns_domain_name
+  instance_id = ibm_resource_instance.dns_service[ 0 ].guid
+}
+
+resource "ibm_dns_permitted_network" "vpc" {
+  count = var.dns_service ? 1 : 0
+
+  instance_id = ibm_resource_instance.dns_service[ 0 ].guid
+  zone_id     = ibm_dns_zone.vpc[ 0 ].zone_id
+  vpc_crn     = ibm_is_vpc.vpc.crn
+  type        = "vpc"
+}
+
+
 
 resource "ibm_dns_resource_record" "hostname_records" {
   count = length( local.hostname_records )
@@ -508,4 +481,43 @@ resource "ibm_dns_resource_record" "srv_records" {
   service     = "_etcd-server-ssl"
   protocol    = "tcp"
   ttl         = 43200
+}
+
+resource "ibm_dns_domain" "dns_service" {
+  name = var.domain_name
+}
+
+resource "ibm_dns_record" "hostname_records" {
+  count = length( local.alias_records )
+
+  domain_id = ibm_dns_domain.dns_service.id
+  type      = "a"
+  host      = keys( local.hostname_records )[ count.index ]
+  data      = values( local.hostname_records )[ count.index ]
+  ttl       = 3600
+}
+
+resource "ibm_dns_record" "alias_records" {
+  count = length( local.alias_records )
+
+  domain_id = ibm_dns_domain.dns_service.id
+  type      = "cname"
+  host      = keys( local.alias_records )[ count.index ]
+  data      = "${values( local.alias_records )[ count.index ]}."
+  ttl       = 3600
+}
+
+resource "ibm_dns_record" "srv_records" {
+  count = 3
+
+  domain_id = ibm_dns_domain.dns_service.id
+  type      = "srv"
+  data      = "etcd-${count.index}.${var.cluster_name}.${var.domain_name}"
+  host      = "${var.cluster_name}.${var.domain_name}"
+  ttl       = 43200
+  port      = 2380
+  priority  = 0
+  protocol  = "_tcp"
+  weight    = 10
+  service   = "_etcd-server-ssl"
 }

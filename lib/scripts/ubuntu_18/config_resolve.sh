@@ -18,7 +18,7 @@ echo "config_resolve.sh is starting..."
 #
 # netplan apply
 #
-# systemctl restart systemd-resolved
+# 
 
 # Configure name resolution for the ibm cloud dns service
 echo 'supersede domain-name-servers 161.26.0.7, 161.26.0.8;' >> /etc/dhcp/dhclient.conf

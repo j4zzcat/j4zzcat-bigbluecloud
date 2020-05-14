@@ -32,11 +32,3 @@ output "security_groups" {
     bastion_default = var.bastion ? ibm_is_security_group.bastion_default[ 0 ].id : null
   }
 }
-
-output "dns_service_instance_id" {
-  value = var.dns_service ? ibm_resource_instance.dns_service[ 0 ].guid : null
-}
-
-output "dns_service_zone_id" {
-  value = var.dns_service ? ibm_dns_zone.vpc[ 0 ].zone_id : null
-}
