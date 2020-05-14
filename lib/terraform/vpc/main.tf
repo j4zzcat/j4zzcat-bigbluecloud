@@ -1,11 +1,3 @@
-####
-# Some locals
-#
-
-locals {
-  repo_home     = "https://github.com/j4zzcat/j4zzcat-ibmcloud"
-  repo_home_raw = "https://raw.githubusercontent.com/j4zzcat/j4zzcat-ibmcloud/master"
-}
 
 ####
 # VPC, Subnet and Public Gateway
