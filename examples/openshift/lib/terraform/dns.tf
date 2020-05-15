@@ -29,12 +29,37 @@ locals {
 # VPC DNS
 #
 
+resource "ibm_resource_instance" "dns_service" {
+  count = var.dns_service_name == null ? 1 : 0
+
+  name              = "${var.cluster_name}-${var.domain_name}"
+  service           = "dns-svcs"
+  plan              = "standard-dns"
+  location          = "global"
+  resource_group_id = data.ibm_resource_group.resource_group.id
+}
+
+data "ibm_resource_instance" "dns_service" {
+  name = var.dns_service_name == null ? ibm_resource_instance.name : var.dns_service_name
+}
+
+resource "ibm_dns_zone" "vpc" {
+  name        = "${var.cluster_name}.${var.domain_name}"
+  instance_id = data.ibm_resource_instance.dns_service.guid
+}
+
+resource "ibm_dns_permitted_network" "vpc" {
+  instance_id = data.ibm_resource_instance.dns_service.guid
+  zone_id     = ibm_dns_zone.vpc.zone_id
+  vpc_crn     = module.vpc.crn
+  type        = "vpc"
+}
 
 resource "ibm_dns_resource_record" "hostname_records" {
   count = length( local.hostname_records )
 
-  instance_id = module.vpc.dns_service_instance_id
-  zone_id     = module.vpc.dns_service_zone_id
+  instance_id = data.ibm_resource_instance.dns_service.instance_id
+  zone_id     = ibm_dns_zone.vpc.zone_id
   type        = "A"
   name        = keys( local.hostname_records )[ count.index ]
   rdata       = values( local.hostname_records )[ count.index ]
@@ -44,8 +69,8 @@ resource "ibm_dns_resource_record" "hostname_records" {
 resource "ibm_dns_resource_record" "alias_records" {
   count = length( local.alias_records )
 
-  instance_id = module.vpc.dns_service_instance_id
-  zone_id     = module.vpc.dns_service_zone_id
+  instance_id = data.ibm_resource_instance.dns_service.instance_id
+  zone_id     = ibm_dns_zone.vpc.zone_id
   type        = "CNAME"
   name        = keys( local.alias_records )[ count.index ]
   rdata       = values( local.alias_records )[ count.index ]
@@ -55,8 +80,8 @@ resource "ibm_dns_resource_record" "alias_records" {
 resource "ibm_dns_resource_record" "srv_records" {
   count = 3
 
-  instance_id = module.vpc.dns_service_instance_id
-  zone_id     = module.vpc.dns_service_zone_id
+  instance_id = data.ibm_resource_instance.dns_service.instance_id
+  zone_id     = ibm_dns_zone.vpc.zone_id
   type        = "SRV"
   name        = "${var.cluster_name}.${var.domain_name}"
   rdata       = "etcd-${count.index}.${var.cluster_name}.${var.domain_name}"
