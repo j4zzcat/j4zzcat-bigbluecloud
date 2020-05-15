@@ -4,7 +4,7 @@ resource "ibm_resource_group" "resource_group" {
 }
 
 data "ibm_resource_group" "resource_group" {
-  name = var.resource_group_name == null ? ibm_resource_group.resource_group.name : var.resource_group_name
+  name = var.resource_group_name == null ? ibm_resource_group.resource_group[ 0 ].name : var.resource_group_name
 }
 
 module "vpc" {
@@ -13,7 +13,6 @@ module "vpc" {
   name                = var.cluster_name
   zone_name           = var.zone_name
   classic_access      = true
-  transit_gateway     = false
   bastion             = true
   bastion_key         = var.bastion_key
   resource_group_id   = data.ibm_resource_group.resource_group.id

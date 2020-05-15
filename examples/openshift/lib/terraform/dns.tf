@@ -3,7 +3,19 @@
 #
 
 locals {
-  dns_hostname_records = {
+  bastion_fip       = module.vpc.bastion_fip
+  installer_pip     = ibm_is_instance.installer.primary_network_interface[ 0 ].primary_ipv4_address
+  load_balancer_pip = ibm_is_instance.load_balancer.primary_network_interface[ 0 ].primary_ipv4_address
+  nat_server_fip    = ibm_compute_vm_instance.nat_server.ipv4_address
+  nat_server_pip    = ibm_compute_vm_instance.nat_server.ipv4_address_private
+  bootstrap_pip     = ibm_compute_vm_instance.bootstrap.ipv4_address_private
+  master_1_pip      = ibm_compute_vm_instance.master[ 0 ].ipv4_address_private
+  master_2_pip      = ibm_compute_vm_instance.master[ 1 ].ipv4_address_private
+  master_3_pip      = ibm_compute_vm_instance.master[ 2 ].ipv4_address_private
+  worker_1_pip      = ibm_compute_vm_instance.worker[ 0 ].ipv4_address_private
+  worker_2_pip      = ibm_compute_vm_instance.worker[ 1 ].ipv4_address_private
+
+  hostname_records = {
     "installer"     = local.installer_pip,
     "load-balancer" = local.load_balancer_pip,
     "nat-server"    = local.nat_server_pip
@@ -15,7 +27,7 @@ locals {
     "worker-2"      = local.worker_2_pip
   }
 
-  dns_alias_records = {
+  alias_records = {
     "api"     = "load-balancer.${var.cluster_name}.${var.domain_name}",
     "api-int" = "load-balancer.${var.cluster_name}.${var.domain_name}",
     "*.apps"  = "load-balancer.${var.cluster_name}.${var.domain_name}",
@@ -26,12 +38,40 @@ locals {
 }
 
 ####
+# Hosts file
+#
+
+resource "null_resource" "rm_hosts_file" {
+  provisioner "local-exec" {
+    command = <<-EOT
+      rm -f ${local.config_hosts_file}
+    EOT
+  }
+}
+
+resource "local_file" "create_hosts_file" {
+  filename        = local.config_hosts_file
+  file_permission = "0644"
+  content = <<-EOT
+    bastion_fip       = ${local.bastion_fip}
+    installer_pip     = ${local.installer_pip}
+    load_balancer_pip = ${local.load_balancer_pip}
+    nat_server_fip    = ${local.nat_server_fip}
+    nat_server_pip    = ${local.nat_server_pip}
+    bootstrap_pip     = ${local.bootstrap_pip}
+    master_1_pip      = ${local.master_1_pip}
+    master_2_pip      = ${local.master_2_pip}
+    master_3_pip      = ${local.master_3_pip}
+    worker_1_pip      = ${local.worker_1_pip}
+    worker_2_pip      = ${local.worker_2_pip}
+  EOT
+}
+
+####
 # VPC DNS
 #
 
 resource "ibm_resource_instance" "dns_service" {
-  count = var.dns_service_name == null ? 1 : 0
-
   name              = "${var.cluster_name}-${var.domain_name}"
   service           = "dns-svcs"
   plan              = "standard-dns"
@@ -39,17 +79,13 @@ resource "ibm_resource_instance" "dns_service" {
   resource_group_id = data.ibm_resource_group.resource_group.id
 }
 
-data "ibm_resource_instance" "dns_service" {
-  name = var.dns_service_name == null ? ibm_resource_instance.name : var.dns_service_name
-}
-
 resource "ibm_dns_zone" "vpc" {
   name        = "${var.cluster_name}.${var.domain_name}"
-  instance_id = data.ibm_resource_instance.dns_service.guid
+  instance_id = ibm_resource_instance.dns_service.guid
 }
 
 resource "ibm_dns_permitted_network" "vpc" {
-  instance_id = data.ibm_resource_instance.dns_service.guid
+  instance_id = ibm_resource_instance.dns_service.guid
   zone_id     = ibm_dns_zone.vpc.zone_id
   vpc_crn     = module.vpc.crn
   type        = "vpc"
@@ -58,7 +94,7 @@ resource "ibm_dns_permitted_network" "vpc" {
 resource "ibm_dns_resource_record" "hostname_records" {
   count = length( local.hostname_records )
 
-  instance_id = data.ibm_resource_instance.dns_service.instance_id
+  instance_id = ibm_resource_instance.dns_service.guid
   zone_id     = ibm_dns_zone.vpc.zone_id
   type        = "A"
   name        = keys( local.hostname_records )[ count.index ]
@@ -69,7 +105,7 @@ resource "ibm_dns_resource_record" "hostname_records" {
 resource "ibm_dns_resource_record" "alias_records" {
   count = length( local.alias_records )
 
-  instance_id = data.ibm_resource_instance.dns_service.instance_id
+  instance_id = ibm_resource_instance.dns_service.guid
   zone_id     = ibm_dns_zone.vpc.zone_id
   type        = "CNAME"
   name        = keys( local.alias_records )[ count.index ]
@@ -80,7 +116,7 @@ resource "ibm_dns_resource_record" "alias_records" {
 resource "ibm_dns_resource_record" "srv_records" {
   count = 3
 
-  instance_id = data.ibm_resource_instance.dns_service.instance_id
+  instance_id = ibm_resource_instance.dns_service.guid
   zone_id     = ibm_dns_zone.vpc.zone_id
   type        = "SRV"
   name        = "${var.cluster_name}.${var.domain_name}"
@@ -92,7 +128,6 @@ resource "ibm_dns_resource_record" "srv_records" {
   protocol    = "tcp"
   ttl         = 43200
 }
-
 
 ####
 # IAAS DNS

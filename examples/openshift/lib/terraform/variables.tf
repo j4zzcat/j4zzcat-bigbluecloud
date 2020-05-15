@@ -10,18 +10,14 @@ variable region_name         {
 }
 
 variable zone_name {
-  default "us-south-2"
+  default = "us-south-2"
 }
 
 variable data_center_name {
-  default = "ldal10"
+  default = "dal10"
 }
 
 variable resource_group_name {
-  default = null
-}
-
-variable dns_service_name {
   default = null
 }
 
