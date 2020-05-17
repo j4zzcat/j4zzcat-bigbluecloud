@@ -1,1 +1,1 @@
-docker build --rm -f ibmcloud-cli.dockerfile -t j5zzcat/ibmcloud-cli:latest .
+docker build --rm -f ibmcloud-cli.dockerfile -t j4zzcat/ibmcloud-cli:latest .
