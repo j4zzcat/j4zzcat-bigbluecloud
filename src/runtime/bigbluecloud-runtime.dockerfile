@@ -1,16 +1,21 @@
 FROM ubuntu:20.10
 
-ENV DEBIAN_FRONTEND noninteractive 
+ENV DEBIAN_FRONTEND noninteractive
 RUN apt update \
       && apt install -y curl git vim mc iputils-ping netcat python3 python3-pip ruby2.7-dev \
       && apt install -y apt-utils apt-transport-https ca-certificates software-properties-common \
-      && gem install --no-document docopt \
+      && gem install --no-document bundler \
+      && bundler config github.https true \
       && echo 'IRB.conf[ :AUTO_INDENT ] = true                                      \n\
                IRB.conf[ :USE_READLINE ] = true                                     \n\
                IRB.conf[ :LOAD_MODULES ] = [] unless IRB.conf.key?( :LOAD_MODULES ) \n\
                unless IRB.conf[ :LOAD_MODULES ].include?( "irb/completion" )        \n\
                  IRB.conf[ :LOAD_MODULES ] << "irb/completion"                      \n\
                end ' > ~/.irbrc
+
+WORKDIR /tmp
+RUN git clone https://github.com/j4zzcat/j4zzcat-bigbluecloud \
+      && bundler install
 
 ENV TERRAFORM_VERSION                   0.12.24
 ENV IBMCLOUD_CLI_VERSION                LATEST
