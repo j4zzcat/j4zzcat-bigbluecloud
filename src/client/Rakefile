@@ -1,0 +1,21 @@
+if !File.exist? '/.dockerenv'
+  gem_dir = File.dirname( File.expand_path __FILE__ )
+
+  if %x[ uname ].chomp == 'Linux'
+    run_as_option = "-u #{%x[ id -u ${USER} ].chomp}:#{%x[ id -g ${USER} ].chomp}"
+  end
+
+  exec 'docker',
+    'run', '-it', '--rm',
+    '-w', '/gem',
+    '-v', "#{gem_dir}:/gem",
+    'j4zzcat/bigbluecloud-runtime:latest',
+    *( "rake #{ARGV.join ' '}".split ' ' )
+end
+
+require 'bundler/gem_tasks'
+require 'rspec/core/rake_task'
+
+RSpec::Core::RakeTask.new( :spec )
+
+task :default => :spec

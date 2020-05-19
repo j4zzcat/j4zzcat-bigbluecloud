@@ -1,4 +1,5 @@
 require 'json'
+require 'open3'
 
 module BigBlueCloud
   class Cli
@@ -26,9 +27,9 @@ module BigBlueCloud
       cmd = "ibmcloud #{cmd} #{json_option}"
 
       result_exit_status, result_outerr = nil
-      Open3.popen2e( { 'IBMCLOUD_COLOR' => 'false' }, cmd ) do | stdin, stdout, stdouterr, wait_thread |
-        result_outerr      = stdout.read
-        result_exit_status = wait_thread.value.exit_status
+      Open3.popen2e( { 'IBMCLOUD_COLOR' => 'false' }, cmd ) do | stdin, stdouterr, wait_thread |
+        puts stdouterr.read
+        # result_exit_status = wait_thread.value.exit_status
       end
 
       raise Cli::Error.new result_exit_status, result_outerr if result_exit_status != 0

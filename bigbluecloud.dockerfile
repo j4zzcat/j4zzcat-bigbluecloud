@@ -13,9 +13,10 @@ RUN apt update \
                  IRB.conf[ :LOAD_MODULES ] << "irb/completion"                      \n\
                end ' > ~/.irbrc
 
+COPY src/client/ruby /tmp/
 WORKDIR /tmp
-RUN git clone https://github.com/j4zzcat/j4zzcat-bigbluecloud \
-      && bundler install
+RUN bundler install \
+      && rm -rf /tmp/*
 
 ENV TERRAFORM_VERSION                   0.12.24
 ENV IBMCLOUD_CLI_VERSION                LATEST

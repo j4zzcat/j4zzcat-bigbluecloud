@@ -25,9 +25,9 @@ Gem::Specification.new do | gem |
   gem.files        = Dir[ '*.md', '*.gemspec', 'Gemfile', 'lib/**/*.rb', 'resource/**/*' ]
   gem.require_path = 'lib'
 
-  gem.add_dependency 'log4r',          '1.1.11'
-  gem.add_dependency 'docopt',         '0.6.1'
-  gem.add_dependency 'smash_the_state'
+  gem.add_dependency 'log4r',           '1.1.10'
+  gem.add_dependency 'docopt',          '0.6.1'
+  gem.add_dependency 'smash_the_state', '1.4.0'
 
   gem.add_development_dependency 'bundler'
   gem.add_development_dependency 'rake'
