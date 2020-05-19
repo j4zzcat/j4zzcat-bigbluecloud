@@ -28,8 +28,6 @@ module BigBlueCloud
         end
       end
 
-      puts json_option
-
       env = {} if env.nil?
       env.merge!( { 'IBMCLOUD_COLOR' => 'false' } )
 
