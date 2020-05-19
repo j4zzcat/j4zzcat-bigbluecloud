@@ -13,7 +13,7 @@ RUN apt update \
                  IRB.conf[ :LOAD_MODULES ] << "irb/completion"                      \n\
                end ' > ~/.irbrc
 
-COPY src/client/ruby /tmp/
+COPY src/client /tmp/
 WORKDIR /tmp
 RUN bundler install \
       && rm -rf /tmp/*
