@@ -7,7 +7,7 @@ RSpec.describe BigBlueCloud::Cli do
     ENV[ 'IAAS_CLASSIC_USERNAME' ],
     ENV[ 'IAAS_CLASSIC_API_KEY' ] )
 
-  it 'fails correctly' do
+  it 'fails nicely' do
     begin
       cli.execute 'blah'
     rescue => e
@@ -16,7 +16,12 @@ RSpec.describe BigBlueCloud::Cli do
     end
   end
 
-  # it 'logins' do
-  #   cli.login
-  # end
+  it 'logins to the cloud' do
+    cli.login
+  end
+
+  it 'lists classic vms' do
+    result = cli.execute 'sl vs list', json: true
+    p result
+  end
 end

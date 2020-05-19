@@ -11,7 +11,7 @@ module BigBlueCloud
       end
     end
 
-    def initialize( region, ibmcloud_api_key,  iaas_classic_username, iaas_classic_api_key )
+    def initialize( region, ibmcloud_api_key, iaas_classic_username, iaas_classic_api_key )
       @region                = region
       @ibmcloud_api_key      = ibmcloud_api_key
       @iaas_classic_username = iaas_classic_username
@@ -19,14 +19,16 @@ module BigBlueCloud
     end
 
     def execute( cmd, env = nil, **kwargs )
-      if kwargs[ :to_json ] == true
+      if kwargs[ :json ] == true
         plugin = cmd.split[ 0 ]
         if %w[ is ].include? plugin
           json_option = '--json'
-        elsif %w[ tg ].include? plugin
-          json_option = '--output json'
+        elsif %w[ tg sl ].include? plugin
+          json_option = '--output=json'
         end
       end
+
+      puts json_option
 
       env = {} if env.nil?
       env.merge!( { 'IBMCLOUD_COLOR' => 'false' } )
@@ -35,16 +37,16 @@ module BigBlueCloud
 
       result_exit_status, result_out_err = nil
       Open3.popen2e( env, cmd ) do | std_in, std_out_err, wait_thread |
-        result_out_err      = std_out_err.read
+        result_out_err     = std_out_err.read
         result_exit_status = wait_thread.value.exitstatus
       end
 
       raise Cli::Error.new result_exit_status, result_out_err if result_exit_status != 0
 
-      if kwargs[ :to_json ] == true
-        JSON.parse result_outerr
-      elsif kwargs[ :to_raw ] == true
-        result_outerr
+      if kwargs[ :json ] == true
+        JSON.parse result_out_err
+      elsif kwargs[ :raw ] == true
+        result_out_err
       end
     end
 
