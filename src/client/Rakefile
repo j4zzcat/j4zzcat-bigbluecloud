@@ -1,14 +1,27 @@
 if !File.exist? '/.dockerenv'
   gem_dir = File.dirname( File.expand_path __FILE__ )
 
-  if %x[ uname ].chomp == 'Linux'
+  case %x[ uname ].chomp
+  when 'Linux'
     run_as_option = "-u #{%x[ id -u ${USER} ].chomp}:#{%x[ id -g ${USER} ].chomp}"
+
+    ibmcloud_api_key      = "<FILL IN>"
+    iaas_classic_username = "<FILL IN>"
+    iaas_classic_api_key  = "<FILL IN>"
+
+  when 'Darwin'
+    ibmcloud_api_key      = %x[ security find-generic-password -l ibmcloud-api-key -w ].chomp
+    iaas_classic_username = %x[ security find-generic-password -l ibmcloud-iaas-classic-api-key | awk -F \'=\' \'/acct/{print substr($2,2,length($2)-2)}\' ].chomp
+    iaas_classic_api_key  = %x[ security find-generic-password -l ibmcloud-iaas-classic-api-key -w ].chomp
   end
 
   exec 'docker',
     'run', '-it', '--rm',
     '-w', '/gem',
     '-v', "#{gem_dir}:/gem",
+    '-e', "IBMCLOUD_API_KEY=#{ibmcloud_api_key}",
+    '-e', "IAAS_CLASSIC_USERNAME=#{iaas_classic_username}",
+    '-e', "IAAS_CLASSIC_API_KEY=#{iaas_classic_api_key}",
     'j4zzcat/bigbluecloud-runtime:latest',
     *( "rake #{ARGV.join ' '}".split ' ' )
 end
@@ -19,3 +32,6 @@ require 'rspec/core/rake_task'
 RSpec::Core::RakeTask.new( :spec )
 
 task :default => :spec
+task :runtime do
+  exec 'bash'
+end
