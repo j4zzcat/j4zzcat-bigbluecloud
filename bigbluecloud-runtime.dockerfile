@@ -40,7 +40,8 @@ RUN if [ "${IBMCLOUD_TERRAFORM_PROVIDER_VERSION}" = "LATEST" ]; then IBMCLOUD_TE
       && rm -rf /tmp/*
 
 # install the latest ibm cloud cli release and supporting plugins
-RUN curl -sL https://ibm.biz/idt-installer | bash
+RUN apt install -y docker.io \
+      && curl -sL https://ibm.biz/idt-installer | bash
 RUN ibmcloud cf install \
       && ibmcloud plugin repo-plugins | awk '/Not Installed/{print $3}' | awk -F '/' '{print $1}' | xargs -n 1 ibmcloud plugin install || true \
       && echo 'source /usr/local/ibmcloud/autocomplete/bash_autocomplete' >> /root/.bashrc
